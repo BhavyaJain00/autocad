@@ -1,0 +1,12 @@
+{
+  "name": "demo-recorder-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic HTML-animation to MP4 recorder (hidden Electron windows + WebCodecs)",
+  "type": "commonjs",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "mp4-muxer": "5.2.2",
+    "webm-muxer": "5.1.4"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "cad-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CAD Studio - a standalone, AI-ready architectural 2D CAD application, and CAD Copilot - an AI assistant that docks beside the CAD and drives it",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @cadstudio/desktop",
+    "dev:copilot": "npm run dev -w @cadstudio/copilot",
+    "build": "npm run build -w @cadstudio/desktop && npm run build -w @cadstudio/copilot",
+    "build:studio": "npm run build -w @cadstudio/desktop",
+    "build:copilot": "npm run build -w @cadstudio/copilot",
+    "start": "npm run start -w @cadstudio/desktop",
+    "start:copilot": "npm run start -w @cadstudio/copilot",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "npm run test:e2e -w @cadstudio/desktop && npm run test:e2e -w @cadstudio/copilot",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "check": "npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.11.0",
+    "typescript": "~7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

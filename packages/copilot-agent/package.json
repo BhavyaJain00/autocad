@@ -1,0 +1,19 @@
+{
+  "name": "@cadstudio/copilot-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CAD Copilot agent: Claude tool-use loop with clarifying questions, task plan, approvals and cancellation",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
+    "@cadstudio/cad-protocol": "*",
+    "zod": "^4.6.7"
+  }
+}

@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Copilot for AutoCAD Architecture - drafting prototype</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0a0c0f;overflow:hidden;font-family:"Segoe UI",system-ui,sans-serif;color:#dfe4ea}
+#bar{position:fixed;left:0;right:0;top:0;height:42px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#101317;border-bottom:1px solid #20262e;font-size:13px;z-index:5}
+#bar .t{font-weight:600;color:#fff}
+#bar .d{color:#8f99a5}
+#bar .sp{flex:1}
+#bar button{background:#1b2129;color:#dce3ea;border:1px solid #2c3540;border-radius:6px;padding:5px 11px;font:inherit;cursor:pointer}
+#bar button.on{background:#2f6fde;border-color:#2f6fde;color:#fff}
+body.bare #bar{display:none}
+#wrap{position:fixed;left:0;right:0;top:42px;bottom:0}
+body.bare #wrap{top:0}
+#stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform:translate(-50%,-50%);transform-origin:50% 50%;background:#1f242b;overflow:hidden;box-shadow:0 12px 50px rgba(0,0,0,.55)}
+
+/* ---------- AutoCAD-like frame (mock-up, own drawing) ---------- */
+#title{position:absolute;left:0;top:0;width:1600px;height:34px;background:#1a1f25;display:flex;align-items:center;gap:10px;padding-left:6px;font-size:12px;color:#cbd2da;border-bottom:1px solid #12161b}
+.appbtn{width:40px;height:28px;border-radius:4px;background:linear-gradient(135deg,#2c66d6,#1d4fa8);display:grid;place-items:center}
+.qat{display:flex;gap:1px}
+.qat svg{width:16px;height:16px;padding:3px;box-sizing:content-box;color:#cfd6de}
+.ttl{flex:1;text-align:center;color:#c7ced6}
+.ttl b{color:#fff;font-weight:600}
+.srch{width:220px;height:22px;border:1px solid #3a434e;border-radius:3px;background:#232a32;color:#7e8893;padding:2px 8px;font-size:11.5px}
+.usr{color:#aeb6c0;padding:0 6px}
+.winbtns{display:flex}
+.winbtns span{width:44px;height:34px;display:grid;place-items:center;color:#cfd6de;font-size:13px}
+#tabs{position:absolute;left:0;top:34px;width:1600px;height:26px;background:#232930;display:flex;align-items:flex-end;padding-left:10px;font-size:12.5px;gap:2px}
+#tabs div{padding:4px 13px 5px;color:#b5bec8}
+#tabs div.on{background:#2f3742;color:#fff;border-radius:4px 4px 0 0}
+#tabs div.ai{color:#a8b9ff}
+#ribbon{position:absolute;left:0;top:60px;width:1600px;height:96px;background:#2f3742;display:flex;padding:3px 4px 0;border-bottom:1px solid #12161b}
+.panel{display:flex;flex-direction:column;border-right:1px solid #434d5a}
+.pbody{flex:1;display:flex;gap:1px;padding:0 5px;align-items:flex-start}
+.ptl{height:19px;font-size:11px;color:#b3bcc6;text-align:center;line-height:19px;background:#28303a}
+.big{width:54px;height:71px;display:flex;flex-direction:column;align-items:center;padding-top:4px;border-radius:4px;color:#e3e8ee;font-size:11px;text-align:center;line-height:1.15;border:1px solid transparent;white-space:pre-line;transition:transform .08s}
+.big svg{width:32px;height:32px;margin-bottom:2px;flex:none}
+.col{display:flex;flex-direction:column;gap:1px;padding-top:2px}
+.sm{height:23px;display:flex;align-items:center;gap:5px;padding:0 7px 0 3px;border-radius:3px;font-size:11.5px;color:#dfe5eb;white-space:nowrap;border:1px solid transparent;transition:transform .08s}
+.sm svg{width:16px;height:16px;flex:none}
+.big.act,.sm.act{background:#2563c9;border-color:#69a6ff;color:#fff;box-shadow:0 0 0 2px rgba(105,166,255,.35)}
+.press{transform:scale(.92)}
+.lddwrap{display:flex;flex-direction:column;gap:5px;padding:6px 4px 0}
+.licons{display:flex;gap:6px;color:#aeb6c0}
+.licons svg{width:16px;height:16px}
+.ldd{width:210px;height:24px;border:1px solid #4a5462;background:#252b33;border-radius:3px;display:flex;align-items:center;gap:7px;padding:0 7px;font-size:12px;color:#e8ecf0}
+.ldd.act{border-color:#69a6ff;box-shadow:0 0 0 2px rgba(105,166,255,.35)}
+.ldd .sw{width:11px;height:11px;border:1px solid #9aa3ad}
+.ldd .c2{margin-left:auto;color:#9aa3ad}
+#filetabs{position:absolute;left:0;top:156px;width:1140px;height:28px;background:#1c2128;display:flex;align-items:flex-end;gap:2px;padding-left:4px;font-size:12px}
+.ft{padding:5px 14px;color:#aeb6c0;border-radius:4px 4px 0 0}
+.ft.on{background:#212830;color:#fff;box-shadow:inset 0 2px 0 #2f8cff}
+.ft .x{color:#8b95a1;margin-left:8px}
+#model{position:absolute;left:0;top:184px;width:1140px;height:660px;background:#212830;overflow:hidden}
+#dw{position:absolute;left:0;top:0}
+#vplabel{position:absolute;left:8px;top:6px;font-size:12px;color:#cdd4dc}
+#banner{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:rgba(47,111,222,.16);border:1px solid #3b7cf0;color:#d6e4ff;border-radius:999px;padding:4px 13px;font-size:12px;display:none;align-items:center;gap:8px;white-space:nowrap}
+#banner .rd{width:8px;height:8px;border-radius:50%;background:#5b9bff;box-shadow:0 0 8px #5b9bff;animation:pul 1.4s ease-in-out infinite}
+@keyframes pul{50%{opacity:.35}}
+#vcube{position:absolute;left:968px;top:12px}
+#navbar{position:absolute;left:1102px;top:182px;width:28px;padding:7px 0;border-radius:6px;background:rgba(40,47,56,.85);border:1px solid #3c4552;display:flex;flex-direction:column;align-items:center;gap:9px;color:#c4ccd5}
+#navbar svg{width:18px;height:18px}
+#dyn{position:absolute;display:none;font-size:12px;pointer-events:none;white-space:nowrap;z-index:3}
+#dyn .p{background:#3d434b;color:#f1f3f5;border:1px solid #6b7480;padding:2px 6px;display:inline-block}
+#dyn .v{background:#eef1f4;color:#111;border:1px solid #7aa7ff;padding:2px 6px;margin-left:3px;display:inline-block;min-width:46px;font-family:Consolas,monospace}
+#cmd{position:absolute;left:14px;right:14px;bottom:10px;font-family:Consolas,"Courier New",monospace;font-size:12.5px;z-index:2}
+#hist{background:rgba(24,28,33,.80);border:1px solid #39424e;border-bottom:0;padding:4px 10px;border-radius:4px 4px 0 0;color:#c3cad3;line-height:18px;height:62px;overflow:hidden}
+#hist div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hist div:nth-child(1){opacity:.55}
+#hist div:nth-child(2){opacity:.8}
+#cmd .in{height:30px;background:#2b3139;border:1px solid #4a5462;border-radius:0 0 4px 4px;display:flex;align-items:center;gap:9px;padding:0 9px;color:#fff;white-space:nowrap;overflow:hidden}
+#cmd .ico{color:#8f99a5}
+.ok{color:#8fc1ff}
+.d{color:#8f99a5}
+.typed{color:#ffffff}
+.ph2{color:#7d8792}
+.caret{display:inline-block;width:7px;height:15px;background:#e6e6e6;vertical-align:-3px;margin-left:1px;animation:bl 1s step-end infinite}
+@keyframes bl{50%{opacity:0}}
+#ltabs{position:absolute;left:0;top:844px;width:1140px;height:26px;background:#1c2128;display:flex;align-items:center;gap:2px;padding-left:6px;font-size:12px;border-top:1px solid #12161b}
+.lt{padding:3px 12px;color:#aeb6c0;border-radius:3px}
+.lt.on{background:#2b323b;color:#fff}
+#status{position:absolute;left:0;top:870px;width:1600px;height:30px;background:#1a1f25;display:flex;align-items:center;gap:12px;padding:0 10px;font-size:11.5px;color:#aeb6c0;border-top:1px solid #12161b}
+#coords{font-family:Consolas,monospace;color:#cfd6de;width:230px}
+#aistat{color:#a8b9ff;display:none;align-items:center;gap:7px}
+#aistat .rd{width:7px;height:7px;border-radius:50%;background:#5b9bff;animation:pul 1.4s ease-in-out infinite}
+.sbi{display:flex;gap:2px;margin-left:auto;align-items:center}
+.sbi span{padding:3px 6px;border-radius:3px}
+.sbi .on{color:#5ba7ff;background:#20324d}
+
+/* ---------- AI Copilot palette (our product) ---------- */
+#pal{position:absolute;left:1140px;top:156px;width:460px;height:714px;background:#0d0e10;border-left:1px solid #2a3038;font-size:13px;color:#e6e8eb}
+.ptitlebar{height:24px;background:#252b33;color:#aeb6c0;font-size:11px;letter-spacing:.08em;display:flex;align-items:center;justify-content:space-between;padding:0 10px}
+.head{height:46px;display:flex;align-items:center;gap:9px;padding:0 12px;border-bottom:1px solid #1e2228}
+.logo{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#5b7cfa,#9b5bfa);display:grid;place-items:center;flex:none}
+.htitle{font-weight:600;font-size:13.5px}
+.prov{display:flex;background:#16181c;border:1px solid #262a31;border-radius:999px;padding:2px;margin-left:auto}
+.prov span{padding:3px 10px;border-radius:999px;font-size:12px;color:#9aa1ab;display:flex;align-items:center}
+.prov span.on{background:#262a31;color:#fff}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3fb950;margin-right:6px}
+.hic{display:flex;gap:10px;color:#9aa1ab;margin-left:6px}
+.hic svg{width:16px;height:16px}
+#conv{position:absolute;top:70px;bottom:178px;left:0;right:0;overflow-y:auto;padding:12px 14px 4px}
+#conv::-webkit-scrollbar{display:none}
+.msg-user{margin:6px 0 12px auto;max-width:88%;background:#23262c;border:1px solid #2c3038;border-radius:14px 14px 4px 14px;padding:9px 12px;line-height:1.45}
+.msg-ai{margin:6px 0 12px;line-height:1.5}
+.msg-ai b{color:#fff}
+.card{background:#16181c;border:1px solid #262a31;border-radius:12px;padding:12px;margin:8px 0 12px}
+.qh{font-size:10.5px;letter-spacing:.08em;color:#8a929c;text-transform:uppercase;margin-bottom:3px}
+.qq{font-weight:600;margin-bottom:7px}
+.qblk{margin-bottom:10px}
+.opt{border:1px solid #2a2f37;border-radius:8px;padding:7px 10px;margin:5px 0;color:#cfd5dc;display:flex;justify-content:space-between;gap:8px}
+.opt.sel{border-color:#5b7cfa;background:#1b2140;color:#fff}
+.rec{font-size:11px;color:#9db1ff;white-space:nowrap}
+.qsub{display:flex;justify-content:flex-end}
+.btn{background:#5b7cfa;color:#fff;border-radius:8px;padding:5px 14px;font-size:12.5px}
+.ans{color:#cfd5dc;display:flex;gap:7px;align-items:center;margin:2px 0 10px}
+.ans:last-child{margin-bottom:0}
+.tp-title{display:flex;justify-content:space-between;align-items:center;font-weight:600;margin-bottom:8px}
+.tbar{height:4px;border-radius:2px;background:#262a31;overflow:hidden;width:110px}
+.tbar i{display:block;height:100%;background:#3fb950;width:0;transition:width .3s}
+.task{display:flex;gap:9px;align-items:center;padding:3px 0;color:#cfd5dc}
+.task.done{color:#8f97a1}
+.task.run{color:#fff}
+.ic{width:16px;height:16px;flex:none;display:grid;place-items:center}
+.circ{width:13px;height:13px;border:2px solid #4a5160;border-radius:50%}
+.spin{width:13px;height:13px;border:2px solid #3a4150;border-top-color:#7b96ff;border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.act-title{font-size:10.5px;letter-spacing:.08em;color:#8a929c;margin-bottom:5px}
+.arow{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-top:1px solid #1f2329}
+.rows .arow:first-child{border-top:0}
+.arow code{font-family:Consolas,monospace;font-size:11px;color:#a9bbff;background:#1b2033;border-radius:4px;padding:1px 5px;flex:none;margin-top:1px}
+.arow .tx{color:#cfd5dc;line-height:1.38}
+.working{display:flex;gap:8px;align-items:center;color:#9aa1ab;font-size:12px;padding-top:6px;border-top:1px solid #1f2329}
+.thumb{margin-top:6px;border:1px solid #2a2f37;border-radius:6px;background:#212830;display:block}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 8px}
+.chip{border:1px solid #2c3140;border-radius:999px;padding:4px 10px;font-size:12px;color:#cfd5dc}
+#pinned{position:absolute;left:12px;right:12px;bottom:126px;height:44px;background:#16181c;border:1px solid #262a31;border-radius:10px;padding:6px 10px;display:none;flex-direction:column;justify-content:center;gap:5px}
+#pinned .l1{display:flex;justify-content:space-between;font-size:12px}
+#pinned .l1 b{font-weight:600}
+#pinned .l1 span{color:#9aa1ab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:270px}
+#pinned .tbar{width:100%}
+#comp{position:absolute;left:12px;right:12px;bottom:30px;height:88px;background:#16181c;border:1px solid #262a31;border-radius:12px;padding:9px 11px;line-height:1.4}
+#compText{max-height:44px;overflow:hidden}
+#compText.ph{color:#6c737d}
+#comp .row{position:absolute;left:8px;right:8px;bottom:7px;display:flex;align-items:center;gap:6px;font-size:12px;color:#9aa1ab}
+.pill{padding:3px 8px;border-radius:6px;background:#1d2026}
+.send{margin-left:auto;width:28px;height:28px;border-radius:8px;background:#5b7cfa;display:grid;place-items:center;color:#fff;font-size:14px}
+.send.stop{background:#3a1d1d;border:1px solid #e5534b}
+.send.stop i{width:9px;height:9px;background:#ff7b72;border-radius:2px;display:block}
+#watch{position:absolute;left:14px;right:14px;bottom:8px;font-size:11px;color:#6c737d;display:flex;gap:6px;align-items:center}
+#ptr{position:absolute;left:0;top:0;display:none;z-index:50;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+#ripple{position:absolute;width:26px;height:26px;border-radius:50%;border:2px solid #69a6ff;display:none;z-index:49;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="bar">
+  <span class="t">Prototype</span><span class="d">AI Copilot drafting a ground-floor plan in AutoCAD Architecture, step by step like a person</span>
+  <span class="sp"></span>
+  <button id="bPause">Pause</button>
+  <button data-speed="1">1x</button><button data-speed="2">2x</button><button data-speed="4">4x</button>
+  <button id="bRestart">Restart</button>
+</div>
+<div id="wrap"><div id="stage">
+
+  <div id="title">
+    <div class="appbtn"><svg viewBox="0 0 32 32" width="22" height="22"><path d="M5 15 L16 6 L27 15" fill="none" stroke="#fff" stroke-width="2.6"/><path d="M8 13 V26 H24 V13" fill="none" stroke="#fff" stroke-width="2.6"/><path d="M14 26 V19 H18 V26" fill="none" stroke="#bcd0ff" stroke-width="2"/></svg></div>
+    <div class="qat" id="qat"></div>
+    <div class="ttl"><b>AutoCAD Architecture 2027</b>&nbsp;&nbsp;&nbsp;House_30x40_GF.dwg</div>
+    <div class="srch">Type a keyword or phrase</div>
+    <div class="usr">pc &#9662;</div>
+    <div class="winbtns"><span>&#8212;</span><span>&#9744;</span><span>&#10005;</span></div>
+  </div>
+  <div id="tabs"><div class="on">Home</div><div>Insert</div><div>Annotate</div><div>Render</div><div>View</div><div>Manage</div><div>Add-ins</div><div>Collaborate</div><div>Express Tools</div><div class="ai">&#10022; AI Copilot</div></div>
+  <div id="ribbon"></div>
+  <div id="filetabs"><div class="ft">Start</div><div class="ft on">House_30x40_GF*<span class="x">&#10005;</span></div><div class="ft">+</div></div>
+
+  <div id="model">
+    <svg id="dw" width="1140" height="660" viewBox="0 0 1140 660">
+      <defs>
+        <pattern id="g1" x="4" y="8" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M12 0 H0 V12" fill="none" stroke="#252d37" stroke-width="1"/></pattern>
+        <pattern id="g5" x="40" y="20" width="60" height="60" patternUnits="userSpaceOnUse"><rect width="60" height="60" fill="url(#g1)"/><path d="M60 0 H0 V60" fill="none" stroke="#2c3642" stroke-width="1"/></pattern>
+        <pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#29313c"/><line x1="0" y1="0" x2="0" y2="5" stroke="#5a6676" stroke-width="1.1"/></pattern>
+      </defs>
+      <rect width="1140" height="660" fill="url(#g5)"/>
+      <g id="plan">
+        <g id="gPlot"></g><g id="gWallOut"></g><g id="gWallIn"></g><g id="gOpen"></g><g id="gStair"></g><g id="gText"></g><g id="gDim"></g>
+      </g>
+      <g id="gPrev"></g>
+      <g transform="translate(26,548)">
+        <path d="M0 0 H38" stroke="#e15b5b" stroke-width="2"/><path d="M38 -4 L46 0 L38 4 Z" fill="#e15b5b"/>
+        <path d="M0 0 V-38" stroke="#5bd17a" stroke-width="2"/><path d="M-4 -38 L0 -46 L4 -38 Z" fill="#5bd17a"/>
+        <rect x="-3" y="-3" width="6" height="6" fill="none" stroke="#cfd6de"/>
+        <text x="50" y="4" fill="#e15b5b" font-size="11" font-family="Arial">X</text><text x="-4" y="-50" fill="#5bd17a" font-size="11" font-family="Arial">Y</text>
+      </g>
+      <g id="cur">
+        <path d="M-34 0 H-6 M6 0 H34 M0 -34 V-6 M0 6 V34" stroke="#ffffff" stroke-width="1"/>
+        <rect id="pick" x="-5" y="-5" width="10" height="10" fill="none" stroke="#ffffff" stroke-width="1"/>
+      </g>
+    </svg>
+    <div id="vplabel">[&#8211;][Top][2D Wireframe]</div>
+    <div id="banner"><span class="rd"></span>AI Copilot is drafting &nbsp;&#183;&nbsp; press <b>Esc</b> to take over</div>
+    <svg id="vcube" width="150" height="152" viewBox="0 0 150 152">
+      <circle cx="75" cy="70" r="52" fill="none" stroke="#56606d" stroke-width="7" opacity=".6"/>
+      <g font-family="Arial" font-size="12" fill="#cfd6de" text-anchor="middle"><text x="75" y="23">N</text><text x="133" y="74">E</text><text x="75" y="127">S</text><text x="17" y="74">W</text></g>
+      <rect x="49" y="44" width="52" height="52" fill="#3b4451" stroke="#8a95a3" stroke-width="1.5"/>
+      <text x="75" y="74" font-family="Arial" font-size="12" font-weight="700" fill="#e8ecf0" text-anchor="middle">TOP</text>
+      <text x="75" y="146" font-family="Arial" font-size="10" fill="#aeb6c0" text-anchor="middle">WCS &#9662;</text>
+    </svg>
+    <div id="navbar"></div>
+    <div id="dyn"></div>
+    <div id="cmd"><div id="hist"></div><div class="in"><span class="ico">&#10005;</span><span class="ico">&gt;_</span><span id="inline"></span></div></div>
+  </div>
+  <div id="ltabs"><span class="lt on">Model</span><span class="lt">Layout1</span><span class="lt">Layout2</span><span class="lt">+</span></div>
+  <div id="status">
+    <span id="coords">21'-3", 7'-6", 0'-0"</span>
+    <span id="aistat"><span class="rd"></span><span id="aistatText">AI Copilot is drafting</span></span>
+    <div class="sbi"><span class="on">MODEL</span><span>#</span><span>:::</span><span class="on">ORTHO</span><span>POLAR</span><span class="on">OSNAP</span><span>OTRACK</span><span class="on">DYN</span><span>LWT</span><span>1/4" = 1'-0"</span><span>Architectural</span></div>
+  </div>
+
+  <div id="pal">
+    <div class="ptitlebar"><span>AI COPILOT</span><span>&#9881;&nbsp;&nbsp;&#10005;</span></div>
+    <div class="head">
+      <div class="logo"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 1 L9.6 6.4 L15 8 L9.6 9.6 L8 15 L6.4 9.6 L1 8 L6.4 6.4 Z" fill="#fff"/></svg></div>
+      <div class="htitle">AI Copilot</div>
+      <div class="prov"><span class="on"><i class="dot"></i>Claude</span><span>ChatGPT</span><span>Gemini</span></div>
+      <div class="hic"><svg viewBox="0 0 16 16"><path d="M3 13 L3.5 10.5 L10.5 3.5 L12.5 5.5 L5.5 12.5 Z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5 V3.5 M8 12.5 V14.5 M1.5 8 H3.5 M12.5 8 H14.5 M3.4 3.4 L4.8 4.8 M11.2 11.2 L12.6 12.6 M3.4 12.6 L4.8 11.2 M11.2 4.8 L12.6 3.4" stroke="currentColor" stroke-width="1.4"/></svg></div>
+    </div>
+    <div id="conv"><div id="convInner"></div></div>
+    <div id="pinned"><div class="l1"><b>Task Progress (<span id="pinN">0</span>/9)</b><span id="pinT"></span></div><div class="tbar"><i id="pinB"></i></div></div>
+    <div id="comp"><div id="compText" class="ph">Ask anything... e.g. "Draft a 30 x 40 ft ground floor plan"</div>
+      <div class="row"><span class="pill">+</span><span class="pill">Claude &#9662;</span><span class="pill">Effort: High &#9662;</span><span id="sendBtn" class="send">&#8593;</span></div></div>
+    <div id="watch">&#9679; Watch mode &#183; the AI works at a speed you can follow</div>
+  </div>
+
+  <svg id="ptr" width="22" height="28" viewBox="0 0 22 28"><path d="M2 2 L2 22 L7 17 L10.5 25 L13.5 23.6 L10 16 L17 16 Z" fill="#ffffff" stroke="#000000" stroke-width="1.3"/></svg>
+  <div id="ripple"></div>
+</div></div>
+
+<script>
+'use strict';
+const $ = (s) => document.querySelector(s);
+const P = new URLSearchParams(location.search);
+const SPEED = P.has('speed') ? Math.max(0, Number(P.get('speed'))) : 1;
+const INSTANT = SPEED === 0;
+const STOP = P.get('stop');
+if (P.has('bare')) document.body.classList.add('bare');
+const stage = $('#stage');
+function fit() { const w = $('#wrap'); const k = Math.min(w.clientWidth / 1600, w.clientHeight / 900); stage.style.transform = `translate(-50%,-50%) scale(${k})`; }
+window.addEventListener('resize', fit); fit();
+
+// ---------------------------------------------------------------- timing
+let paused = false;
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+async function holdWhilePaused() { while (paused) await wait(100); }
+async function sleep(ms) { if (INSTANT) return; await wait(ms / SPEED); await holdWhilePaused(); }
+function tween(ms, fn) {
+  if (INSTANT || ms <= 0) { fn(1); return Promise.resolve(); }
+  return new Promise((res) => {
+    const dur = ms / SPEED; let t0 = performance.now();
+    const step = () => {
+      if (paused) { t0 += 20; setTimeout(step, 20); return; }
+      const t = Math.min(1, (performance.now() - t0) / dur);
+      fn(t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+      if (t < 1) setTimeout(step, 16); else res();
+    };
+    step();
+  });
+}
+async function checkpoint(label) { if (STOP === label) { window.__ready = true; await new Promise(() => {}); } }
+
+document.querySelectorAll('#bar [data-speed]').forEach((b) => {
+  if (Number(b.dataset.speed) === SPEED) b.classList.add('on');
+  b.onclick = () => { const q = new URLSearchParams(location.search); q.set('speed', b.dataset.speed); location.search = q.toString(); };
+});
+$('#bRestart').onclick = () => location.reload();
+$('#bPause').onclick = () => { paused = !paused; $('#bPause').textContent = paused ? 'Play' : 'Pause'; $('#bPause').classList.toggle('on', paused); };
+
+// ---------------------------------------------------------------- icons (own artwork)
+const A = '#4aa3ff';
+const I = {
+  wall: `<rect x="4" y="9" width="24" height="14" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 17 L12 9 M9 23 L23 9 M18 23 L28 13" stroke="${A}" stroke-width="1.6"/>`,
+  door: `<path d="M5 26 H27" stroke="currentColor" stroke-width="2"/><path d="M8 26 V8" stroke="${A}" stroke-width="2.6"/><path d="M8 8 A18 18 0 0 1 26 26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/>`,
+  window: `<rect x="4" y="10" width="24" height="12" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 14 H28 M4 18 H28" stroke="${A}" stroke-width="1.6"/>`,
+  stair: `<path d="M4 26 H10 V20 H16 V14 H22 V8 H28" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 18 L20 6 M15 6 H20 V11" fill="none" stroke="${A}" stroke-width="2"/>`,
+  opening: `<path d="M4 11 H10 V21 H4 M28 11 H22 V21 H28" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 16 H20" stroke="${A}" stroke-width="2" stroke-dasharray="2 2"/>`,
+  space: `<rect x="5" y="7" width="22" height="18" fill="${A}33" stroke="${A}" stroke-width="2" stroke-dasharray="4 2"/><path d="M11 16 H21" stroke="currentColor" stroke-width="2"/>`,
+  slab: `<path d="M3 20 L16 13 L29 20 L16 27 Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 16 L16 9 L29 16" fill="none" stroke="${A}" stroke-width="2"/>`,
+  line: `<path d="M6 26 L26 6" stroke="currentColor" stroke-width="2"/><rect x="3" y="23" width="6" height="6" fill="${A}"/><rect x="23" y="3" width="6" height="6" fill="${A}"/>`,
+  pline: `<path d="M4 24 L12 10 L20 20 L28 6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="2.6" fill="${A}"/><circle cx="20" cy="20" r="2.6" fill="${A}"/>`,
+  rect: `<rect x="5" y="8" width="22" height="16" fill="none" stroke="currentColor" stroke-width="2"/><rect x="2" y="5" width="6" height="6" fill="${A}"/><rect x="24" y="21" width="6" height="6" fill="${A}"/>`,
+  circle: `<circle cx="16" cy="16" r="10" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="2.6" fill="${A}"/>`,
+  arc: `<path d="M6 24 A12 12 0 0 1 26 16" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="24" r="2.6" fill="${A}"/><circle cx="26" cy="16" r="2.6" fill="${A}"/>`,
+  hatch: `<rect x="5" y="5" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 15 L15 5 M5 25 L25 5 M15 27 L27 15" stroke="${A}" stroke-width="1.6"/>`,
+  move: `<path d="M16 4 V28 M4 16 H28" stroke="currentColor" stroke-width="2"/><path d="M12 8 L16 4 L20 8 M12 24 L16 28 L20 24 M8 12 L4 16 L8 20 M24 12 L28 16 L24 20" fill="none" stroke="${A}" stroke-width="2"/>`,
+  copy: `<rect x="4" y="4" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"/><rect x="12" y="12" width="16" height="16" fill="none" stroke="${A}" stroke-width="2"/>`,
+  rotate: `<path d="M24 10 A10 10 0 1 0 26 18" fill="none" stroke="currentColor" stroke-width="2"/><path d="M24 4 V10 H18" fill="none" stroke="${A}" stroke-width="2"/>`,
+  trim: `<path d="M4 16 H28" stroke="currentColor" stroke-width="2"/><path d="M16 4 V28" stroke="#e5534b" stroke-width="2" stroke-dasharray="3 2"/><path d="M20 16 H28" stroke="#e5534b" stroke-width="3"/>`,
+  offset: `<path d="M5 24 C10 12 18 8 26 8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 30 C12 18 20 14 28 14" fill="none" stroke="${A}" stroke-width="2"/>`,
+  mirror: `<path d="M16 3 V29" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/><path d="M12 8 L4 24 H12 Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 8 L28 24 H20 Z" fill="none" stroke="${A}" stroke-width="2"/>`,
+  erase: `<path d="M8 22 L18 8 L26 14 L16 28 H10 Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 28 H26" stroke="#e5534b" stroke-width="2"/>`,
+  array: `<rect x="4" y="4" width="8" height="8" fill="none" stroke="currentColor" stroke-width="2"/><rect x="20" y="4" width="8" height="8" fill="none" stroke="${A}" stroke-width="2"/><rect x="4" y="20" width="8" height="8" fill="none" stroke="${A}" stroke-width="2"/><rect x="20" y="20" width="8" height="8" fill="none" stroke="${A}" stroke-width="2"/>`,
+  fillet: `<path d="M6 4 V18 A8 8 0 0 0 14 26 H28" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 18 A8 8 0 0 0 14 26" fill="none" stroke="${A}" stroke-width="3"/>`,
+  text: `<path d="M8 26 L16 6 L24 26 M11 19 H21" fill="none" stroke="currentColor" stroke-width="2.6"/>`,
+  dim: `<path d="M4 20 H28" stroke="currentColor" stroke-width="2"/><path d="M4 10 V26 M28 10 V26" stroke="currentColor" stroke-width="1.5"/><path d="M2 23 L6 17 M26 23 L30 17" stroke="${A}" stroke-width="2"/><path d="M11 14 H21" stroke="${A}" stroke-width="2"/>`,
+  leader: `<path d="M6 26 L18 12 H28" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 26 L7 19 L12 23 Z" fill="${A}"/>`,
+  insert: `<rect x="10" y="4" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 28 L16 16 M10 16 H16 V22" fill="none" stroke="${A}" stroke-width="2"/>`,
+  table: `<rect x="4" y="6" width="24" height="20" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 13 H28 M4 20 H28 M14 6 V26" stroke="currentColor" stroke-width="1.5"/>`,
+  layers: `<path d="M16 4 L28 10 L16 16 L4 10 Z" fill="none" stroke="${A}" stroke-width="2"/><path d="M4 16 L16 22 L28 16 M4 22 L16 28 L28 22" fill="none" stroke="currentColor" stroke-width="2"/>`,
+  zoomext: `<circle cx="13" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 19 L28 28" stroke="currentColor" stroke-width="3"/><path d="M9 13 H17 M13 9 V17" stroke="${A}" stroke-width="2"/>`,
+  pan: `<path d="M16 5 V27 M5 16 H27" stroke="currentColor" stroke-width="2"/><path d="M12 9 L16 5 L20 9 M12 23 L16 27 L20 23 M9 12 L5 16 L9 20 M23 12 L27 16 L23 20" fill="none" stroke="currentColor" stroke-width="2"/>`,
+  grid: `<path d="M4 10 H28 M4 16 H28 M4 22 H28 M10 4 V28 M16 4 V28 M22 4 V28" stroke="currentColor" stroke-width="1.3"/>`,
+  wheel: `<circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="4" fill="none" stroke="currentColor" stroke-width="2"/>`,
+  lyon: `<circle cx="16" cy="13" r="8" fill="none" stroke="#ffd34d" stroke-width="2"/><path d="M12 23 H20 M13 27 H19" stroke="currentColor" stroke-width="2"/>`,
+  lylock: `<rect x="8" y="14" width="16" height="13" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 14 V10 A5 5 0 0 1 21 10" fill="none" stroke="currentColor" stroke-width="2"/>`,
+  new: `<path d="M8 4 H20 L26 10 V28 H8 Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 4 V10 H26" fill="none" stroke="currentColor" stroke-width="2"/>`,
+  open: `<path d="M4 9 H13 L16 12 H28 V26 H4 Z" fill="none" stroke="currentColor" stroke-width="2"/>`,
+  save: `<path d="M5 5 H23 L27 9 V27 H5 Z" fill="none" stroke="currentColor" stroke-width="2"/><rect x="10" y="5" width="11" height="8" fill="none" stroke="currentColor" stroke-width="2"/>`,
+  plot: `<rect x="8" y="4" width="16" height="8" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="12" width="24" height="10" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="18" width="14" height="10" fill="#1a1f25" stroke="currentColor" stroke-width="2"/>`,
+  undo: `<path d="M10 8 L4 14 L10 20" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M4 14 H20 A7 7 0 0 1 20 28 H12" fill="none" stroke="currentColor" stroke-width="2.6"/>`,
+  redo: `<path d="M22 8 L28 14 L22 20" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M28 14 H12 A7 7 0 0 0 12 28 H20" fill="none" stroke="currentColor" stroke-width="2.6"/>`,
+};
+const icon = (k) => `<svg viewBox="0 0 32 32">${I[k] || ''}</svg>`;
+$('#qat').innerHTML = ['new', 'open', 'save', 'plot', 'undo', 'redo'].map(icon).join('');
+$('#navbar').innerHTML = ['wheel', 'pan', 'zoomext'].map(icon).join('');
+
+const RIB = [
+  { t: 'Build', items: [['big', 'wall', 'Wall'], ['big', 'door', 'Door'], ['big', 'window', 'Window'], ['big', 'stair', 'Stair'], ['col', [['opening', 'Opening'], ['space', 'Space'], ['slab', 'Slab']]]] },
+  { t: 'Draw', items: [['col', [['line', 'Line'], ['pline', 'Polyline'], ['rect', 'Rectangle']]], ['col', [['circle', 'Circle'], ['arc', 'Arc'], ['hatch', 'Hatch']]]] },
+  { t: 'Modify', items: [['col', [['move', 'Move'], ['copy', 'Copy'], ['rotate', 'Rotate']]], ['col', [['trim', 'Trim'], ['offset', 'Offset'], ['mirror', 'Mirror']]], ['col', [['erase', 'Erase'], ['array', 'Array'], ['fillet', 'Fillet']]]] },
+  { t: 'Annotation', items: [['big', 'text', 'Text'], ['big', 'dim', 'Dimension'], ['col', [['leader', 'Leader'], ['insert', 'Insert'], ['table', 'Table']]]] },
+  { t: 'Layers', items: [['big', 'layers', 'Layer\nProperties'], ['layer']] },
+  { t: 'View', items: [['col', [['zoomext', 'Zoom Extents'], ['pan', 'Pan'], ['grid', 'Grid']]]] },
+];
+$('#ribbon').innerHTML = RIB.map((p) => `<div class="panel"><div class="pbody">${p.items.map((it) => {
+  if (it[0] === 'big') return `<div class="big" id="rb-${it[1]}">${icon(it[1])}<span>${it[2]}</span></div>`;
+  if (it[0] === 'col') return `<div class="col">${it[1].map(([k, l]) => `<div class="sm" id="rb-${k}">${icon(k)}<span>${l}</span></div>`).join('')}</div>`;
+  return `<div class="lddwrap"><div class="licons">${icon('lyon')}${icon('lylock')}${icon('layers')}</div><div class="ldd" id="rb-layer"><span class="sw" id="layersw" style="background:#ffffff"></span><span id="layername">0</span><span class="c2">&#9662;</span></div></div>`;
+}).join('')}</div><div class="ptl">${p.t} &#9662;</div></div>`).join('');
+
+// ---------------------------------------------------------------- drawing helpers
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+const S = 12, X0 = 340, Y0 = 500;            // 12 px per foot; plot origin (0,0) at (340,500)
+const sx = (x) => X0 + x * S, sy = (y) => Y0 - y * S;
+const G = (id) => document.getElementById(id);
+const OUT = 0.75, IN = 0.375;                // 9" and 4.5" walls
+const COL = { wall: '#e6e9ee', door: '#66d9ff', glaz: '#8fb7ff', stair: '#ffd27f', text: '#f2f4f7', dim: '#7ed6a0', plot: '#ffcc66' };
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function fmtFt(v) { const neg = v < 0; v = Math.abs(v); let f = Math.floor(v), i = Math.round((v - f) * 12); if (i === 12) { f += 1; i = 0; } return `${neg ? '-' : ''}${f}'-${i}"`; }
+
+// cursor, dynamic input, rubber band
+let cx = 560, cy = 300;
+const cur = G('cur'), dyn = G('dyn'), gPrev = G('gPrev');
+let rubber = null, rubEls = [];
+function placeCursor(x, y) {
+  cx = x; cy = y; cur.setAttribute('transform', `translate(${x},${y})`);
+  dyn.style.left = (x + 18) + 'px'; dyn.style.top = (y + 16) + 'px';
+  G('coords').textContent = `${fmtFt((x - X0) / S)}, ${fmtFt((Y0 - y) / S)}, 0'-0"`;
+  updateRubber();
+}
+async function moveTo(xft, yft, ms = 420) { const fx = cx, fy = cy, tx = sx(xft), ty = sy(yft); await tween(ms, (f) => placeCursor(fx + (tx - fx) * f, fy + (ty - fy) * f)); }
+function showDyn(p) { dyn.innerHTML = `<span class="p">${esc(p)}</span><span class="v"></span>`; dyn.style.display = 'block'; }
+function hideDyn() { dyn.style.display = 'none'; }
+function setRubber(r) {
+  rubber = r; gPrev.innerHTML = ''; rubEls = [];
+  if (!r) return;
+  if (r.type === 'rect') rubEls = [el('rect', { fill: 'none', stroke: '#9db1ff', 'stroke-width': 1, 'stroke-dasharray': '5 4' }, gPrev)];
+  else if (r.type === 'wall') rubEls = [el('line', { stroke: 'rgba(105,166,255,.30)', 'stroke-width': r.t * S }, gPrev), el('line', { stroke: '#9db1ff', 'stroke-width': 1, 'stroke-dasharray': '6 4' }, gPrev)];
+  else rubEls = [el('line', { stroke: '#9db1ff', 'stroke-width': 1, 'stroke-dasharray': '5 4' }, gPrev)];
+  updateRubber();
+}
+function updateRubber() {
+  if (!rubber) return;
+  const bx = sx(rubber.base[0]), by = sy(rubber.base[1]);
+  if (rubber.type === 'rect') { const r = rubEls[0]; r.setAttribute('x', Math.min(bx, cx)); r.setAttribute('y', Math.min(by, cy)); r.setAttribute('width', Math.abs(cx - bx)); r.setAttribute('height', Math.abs(cy - by)); return; }
+  for (const l of rubEls) { l.setAttribute('x1', bx); l.setAttribute('y1', by); l.setAttribute('x2', cx); l.setAttribute('y2', cy); }
+}
+async function clickFlash() { const p = G('pick'); p.setAttribute('stroke', '#69a6ff'); p.setAttribute('stroke-width', '2'); await sleep(140); p.setAttribute('stroke', '#ffffff'); p.setAttribute('stroke-width', '1'); }
+
+// command line
+const history = ['<span class="d">Regenerating model.</span>', 'Command: <span class="d">AI Copilot connected (Claude).</span>', 'Command:'];
+let curPrompt = '', curTyped = '';
+function fmtPrompt(p) { return esc(p).replace(/\[([^\]]+)\]/g, (m, inner) => '[' + inner.split('/').map((o) => `<span class="ok">${o}</span>`).join('/') + ']'); }
+function renderIn() { G('inline').innerHTML = `${curPrompt ? fmtPrompt(curPrompt) : (curTyped ? 'Command:' : '<span class="ph2">Type a command</span>')} <span class="typed">${esc(curTyped)}</span><span class="caret"></span>`; }
+function renderHist() { G('hist').innerHTML = history.slice(-3).map((h) => `<div>${h}</div>`).join(''); }
+function pushHist(h) { history.push(h); renderHist(); }
+async function cmdType(text, perChar = 45, onChar) {
+  for (const ch of text) { curTyped += ch; renderIn(); if (dyn.style.display === 'block') { const v = dyn.querySelector('.v'); if (v) v.textContent = curTyped; } if (onChar) onChar(curTyped); await sleep(perChar); }
+}
+function enter() { pushHist(`${curPrompt ? fmtPrompt(curPrompt) : 'Command:'} <span class="typed">${esc(curTyped)}</span>`); curTyped = ''; renderIn(); }
+const shortPrompt = (p) => p.split(' or [')[0].replace(/:$/, '');
+async function ask(prompt, value, o = {}) {
+  curPrompt = prompt; renderIn();
+  const dynOn = o.dyn !== false;
+  if (dynOn) showDyn(shortPrompt(prompt));
+  if (o.at) await moveTo(o.at[0], o.at[1], o.move ?? 420);
+  await sleep(o.pause ?? 140);
+  if (value) await cmdType(value, o.perChar ?? 45, o.onChar);
+  if (o.onTyped) await o.onTyped();
+  if (o.click) await clickFlash();
+  await sleep(o.hold ?? 160);
+  enter();
+  if (dynOn) hideDyn();
+}
+async function startCommand(name) { curPrompt = ''; renderIn(); await cmdType(name, 40); pushHist(`Command: <span class="typed">${name}</span>`); curTyped = ''; renderIn(); await sleep(120); }
+async function repeatCommand(name) { curPrompt = ''; renderIn(); await sleep(140); pushHist(`Command: <span class="typed">${name}</span>`); }
+
+// ribbon highlight + visible mouse pointer for "choosing the tool"
+function highlight(key) { document.querySelectorAll('#ribbon .act').forEach((e) => e.classList.remove('act')); if (key) { const b = G('rb-' + key); if (b) b.classList.add('act'); } }
+const ptr = G('ptr'), ripple = G('ripple');
+let px = 1380, py = 640;
+function ptrPlace(x, y) { px = x; py = y; ptr.style.left = (x - 2) + 'px'; ptr.style.top = (y - 2) + 'px'; }
+function stageXY(elm) { const sr = stage.getBoundingClientRect(), er = elm.getBoundingClientRect(), k = sr.width / 1600; return { x: (er.left - sr.left + er.width / 2) / k, y: (er.top - sr.top + er.height / 2) / k }; }
+async function pointerTo(xy, ms = 520) { ptr.style.display = 'block'; const fx = px, fy = py; await tween(ms, (f) => ptrPlace(fx + (xy.x - fx) * f, fy + (xy.y - fy) * f)); }
+async function rippleAt(xy) { if (INSTANT) return; ripple.style.left = (xy.x - 13) + 'px'; ripple.style.top = (xy.y - 13) + 'px'; ripple.style.display = 'block'; await sleep(160); ripple.style.display = 'none'; }
+async function clickRibbon(key) {
+  const b = G('rb-' + key);
+  if (INSTANT || !b) { highlight(key); return; }
+  cur.style.display = 'none'; ptrPlace(cx, cy + 184); ptr.style.display = 'block';
+  const xy = stageXY(b);
+  await pointerTo(xy, 560);
+  b.classList.add('press'); highlight(key); await rippleAt(xy); b.classList.remove('press');
+  await pointerTo({ x: cx, y: cy + 184 }, 420);
+  ptr.style.display = 'none'; cur.style.display = '';
+}
+let curLayer = '0';
+const LAYERCOL = { 'A-Site': COL.plot, 'A-Wall': COL.wall, 'A-Door': COL.door, 'A-Glaz': COL.glaz, 'A-Flor-Strs': COL.stair, 'A-Anno-Text': COL.text, 'A-Anno-Dims': COL.dim };
+async function setLayer(name) {
+  highlight(null); const dd = G('rb-layer'); dd.classList.add('act');
+  await startCommand('CLAYER');
+  await ask(`Enter new value for CLAYER <"${curLayer}">:`, name, { dyn: false, perChar: 32 });
+  curLayer = name; G('layername').textContent = name; G('layersw').style.background = LAYERCOL[name] || '#fff';
+  await sleep(160); dd.classList.remove('act');
+}
+
+// ---------------------------------------------------------------- geometry of the plan (feet)
+function wallLine(x1, y1, x2, y2, t) {
+  const w = t * S;
+  const out = el('line', { x1: sx(x1), y1: sy(y1), x2: sx(x1), y2: sy(y1), stroke: COL.wall, 'stroke-width': w + 2.2, 'stroke-linecap': 'square' }, G('gWallOut'));
+  const fill = el('line', { x1: sx(x1), y1: sy(y1), x2: sx(x1), y2: sy(y1), stroke: 'url(#hatch)', 'stroke-width': w - 0.6, 'stroke-linecap': 'square' }, G('gWallIn'));
+  return (f) => { const x = x1 + (x2 - x1) * f, y = y1 + (y2 - y1) * f; for (const l of [out, fill]) { l.setAttribute('x2', sx(x)); l.setAttribute('y2', sy(y)); } };
+}
+async function growWall(x1, y1, x2, y2, t, ms) { const set = wallLine(x1, y1, x2, y2, t); await tween(ms, set); }
+function cutAndJambs(o, g) {
+  const w = o.t * S, half = w / 2;
+  if (o.axis === 'h') {
+    el('rect', { x: sx(o.from), y: sy(o.at) - half - 1.6, width: (o.to - o.from) * S, height: w + 3.2, fill: '#212830' }, g);
+    for (const x of [o.from, o.to]) el('line', { x1: sx(x), y1: sy(o.at) - half - 1, x2: sx(x), y2: sy(o.at) + half + 1, stroke: COL.wall, 'stroke-width': 1.2 }, g);
+  } else {
+    el('rect', { x: sx(o.at) - half - 1.6, y: sy(o.to), width: w + 3.2, height: (o.to - o.from) * S, fill: '#212830' }, g);
+    for (const y of [o.from, o.to]) el('line', { x1: sx(o.at) - half - 1, y1: sy(y), x2: sx(o.at) + half + 1, y2: sy(y), stroke: COL.wall, 'stroke-width': 1.2 }, g);
+  }
+}
+async function drawOpening(o) { const g = el('g', { opacity: 0 }, G('gOpen')); cutAndJambs(o, g); await tween(260, (f) => g.setAttribute('opacity', f)); }
+async function drawDoor(d, ms) {
+  const g = el('g', {}, G('gOpen')); cutAndJambs(d, g);
+  const w = d.to - d.from;
+  const hx = d.axis === 'h' ? d.from : d.at, hy = d.axis === 'h' ? d.at : d.from;
+  const closed = d.axis === 'h' ? 0 : Math.PI / 2;
+  const open = d.axis === 'h' ? (d.side > 0 ? Math.PI / 2 : -Math.PI / 2) : (d.side > 0 ? 0 : Math.PI);
+  let diff = open - closed; while (diff > Math.PI) diff -= 2 * Math.PI; while (diff < -Math.PI) diff += 2 * Math.PI;
+  const leaf = el('line', { stroke: COL.door, 'stroke-width': 2 }, g);
+  const arc = el('path', { fill: 'none', stroke: COL.door, 'stroke-width': 1, opacity: 0.85 }, g);
+  const p0 = { x: hx + w * Math.cos(closed), y: hy + w * Math.sin(closed) };
+  await tween(ms, (f) => {
+    const a = closed + diff * f, ex = hx + w * Math.cos(a), ey = hy + w * Math.sin(a);
+    leaf.setAttribute('x1', sx(hx)); leaf.setAttribute('y1', sy(hy)); leaf.setAttribute('x2', sx(ex)); leaf.setAttribute('y2', sy(ey));
+    arc.setAttribute('d', `M ${sx(p0.x)} ${sy(p0.y)} A ${w * S} ${w * S} 0 0 ${diff > 0 ? 0 : 1} ${sx(ex)} ${sy(ey)}`);
+  });
+}
+async function drawWindow(o) {
+  const g = el('g', { opacity: 0 }, G('gOpen')); cutAndJambs(o, g);
+  const half = o.t * S / 2;
+  for (const [off, c, wd] of [[-half + 0.8, COL.wall, 1], [0, COL.glaz, 1.4], [half - 0.8, COL.wall, 1]]) {
+    if (o.axis === 'h') el('line', { x1: sx(o.from), y1: sy(o.at) + off, x2: sx(o.to), y2: sy(o.at) + off, stroke: c, 'stroke-width': wd }, g);
+    else el('line', { x1: sx(o.at) + off, y1: sy(o.from), x2: sx(o.at) + off, y2: sy(o.to), stroke: c, 'stroke-width': wd }, g);
+  }
+  await tween(240, (f) => g.setAttribute('opacity', f));
+}
+async function drawStair() {
+  const g = G('gStair'), c = COL.stair;
+  el('rect', { x: sx(0.62), y: sy(26.8), width: (7.76 - 0.62) * S, height: (26.8 - 15.22) * S, fill: 'none', stroke: c, 'stroke-width': 1 }, g);
+  el('line', { x1: sx(4.0), y1: sy(15.22), x2: sx(4.0), y2: sy(23.4), stroke: c, 'stroke-width': 1.4 }, g);
+  el('line', { x1: sx(0.62), y1: sy(23.4), x2: sx(7.76), y2: sy(23.4), stroke: c, 'stroke-width': 1 }, g);
+  for (let k = 0; k < 9; k++) {
+    const y = 15.9 + k * 0.833;
+    el('line', { x1: sx(0.62), y1: sy(y), x2: sx(3.9), y2: sy(y), stroke: c, 'stroke-width': 1 }, g);
+    el('line', { x1: sx(4.1), y1: sy(y), x2: sx(7.76), y2: sy(y), stroke: c, 'stroke-width': 1 }, g);
+    await sleep(70);
+  }
+  el('path', { d: `M ${sx(2.3)} ${sy(16.2)} V ${sy(25)} H ${sx(5.9)} V ${sy(16.9)}`, fill: 'none', stroke: c, 'stroke-width': 1.2 }, g);
+  el('path', { d: `M ${sx(5.9) - 4} ${sy(16.9) - 6} L ${sx(5.9)} ${sy(16.9)} L ${sx(5.9) + 4} ${sy(16.9) - 6}`, fill: 'none', stroke: c, 'stroke-width': 1.2 }, g);
+  const t = el('text', { x: sx(2.3), y: sy(16.2) + 11, fill: c, 'font-size': 8.5, 'font-family': 'Arial', 'text-anchor': 'middle', 'font-weight': 700 }, g); t.textContent = 'UP';
+}
+function textEl(xft, yft, size, weight, color, anchor = 'middle', dy = 0) {
+  return el('text', { x: sx(xft), y: sy(yft) + dy, fill: color, 'font-size': size, 'font-family': 'Arial', 'font-weight': weight, 'text-anchor': anchor, 'letter-spacing': '0.3' }, G('gText'));
+}
+async function drawDim(dm) {
+  const g = el('g', {}, G('gDim')), c = COL.dim;
+  const tick = (x, y) => el('line', { x1: x - 4, y1: y + 4, x2: x + 4, y2: y - 4, stroke: c, 'stroke-width': 1.6 }, g);
+  if (dm.o === 'h') {
+    const y = sy(dm.at);
+    for (const x of [dm.a, dm.b]) el('line', { x1: sx(x), y1: sy(-0.35), x2: sx(x), y2: y + 5, stroke: c, 'stroke-width': 0.9 }, g);
+    const ln = el('line', { x1: sx(dm.a), y1: y, x2: sx(dm.a), y2: y, stroke: c, 'stroke-width': 1 }, g);
+    await tween(320, (f) => ln.setAttribute('x2', sx(dm.a + (dm.b - dm.a) * f)));
+    tick(sx(dm.a), y); tick(sx(dm.b), y);
+    const t = el('text', { x: (sx(dm.a) + sx(dm.b)) / 2, y: y - 4, fill: c, 'font-size': 10, 'font-family': 'Arial', 'text-anchor': 'middle' }, g); t.textContent = dm.text;
+  } else {
+    const x = sx(dm.at);
+    for (const yy of [dm.a, dm.b]) el('line', { x1: sx(-0.35), y1: sy(yy), x2: x - 5, y2: sy(yy), stroke: c, 'stroke-width': 0.9 }, g);
+    const ln = el('line', { x1: x, y1: sy(dm.a), x2: x, y2: sy(dm.a), stroke: c, 'stroke-width': 1 }, g);
+    await tween(320, (f) => ln.setAttribute('y2', sy(dm.a + (dm.b - dm.a) * f)));
+    tick(x, sy(dm.a)); tick(x, sy(dm.b));
+    const ty = (sy(dm.a) + sy(dm.b)) / 2;
+    const t = el('text', { x: x - 4, y: ty, fill: c, 'font-size': 10, 'font-family': 'Arial', 'text-anchor': 'middle', transform: `rotate(-90 ${x - 4} ${ty})` }, g); t.textContent = dm.text;
+  }
+}
+
+// ---------------------------------------------------------------- the house (ground floor, 30' x 40', road at the bottom)
+const OW = [[0.375, 0.375], [29.625, 0.375, "@30'<0"], [29.625, 39.625, "@40'<90"], [0.375, 39.625, "@30'<180"]];
+const IW = [
+  { x1: 0.375, y1: 15, x2: 29.625, y2: 15, s: "0,15'", e: "@30'<0" },
+  { x1: 12, y1: 0.375, x2: 12, y2: 15, s: "12',0", e: "@15'<90" },
+  { x1: 0.375, y1: 27, x2: 29.625, y2: 27, s: "0,27'", e: "@30'<0" },
+  { x1: 8, y1: 15, x2: 8, y2: 27, s: "8',15'", e: "@12'<90" },
+  { x1: 19, y1: 15, x2: 19, y2: 39.625, s: "19',15'", e: "@25'<90" },
+  { x1: 13, y1: 27, x2: 13, y2: 39.625, s: "13',27'", e: "@13'<90" },
+  { x1: 13, y1: 32, x2: 19, y2: 32, s: "13',32'", e: "@6'<0" },
+];
+const OPENINGS = [
+  { axis: 'h', at: 0.375, from: 1.0, to: 11.5, t: OUT, w: "10'6\"", ins: "6'3\",0" },
+  { axis: 'h', at: 15, from: 13, to: 16.5, t: IN, w: "3'6\"", ins: "14'9\",15'" },
+  { axis: 'v', at: 8, from: 16, to: 19.5, t: IN, w: "3'6\"", ins: "8',17'9\"" },
+  { axis: 'v', at: 19, from: 17.5, to: 20.5, t: IN, w: "3'", ins: "19',19'" },
+  { axis: 'h', at: 27, from: 14, to: 17, t: IN, w: "3'", ins: "15'6\",27'" },
+];
+const DOORS = [
+  { axis: 'v', at: 12, from: 6.0, to: 9.5, t: IN, side: +1, w: "3'6\"", ins: "12',7'9\"" },
+  { axis: 'h', at: 27, from: 9.0, to: 12.0, t: IN, side: +1, w: "3'", ins: "10'6\",27'" },
+  { axis: 'v', at: 19, from: 28.0, to: 31.0, t: IN, side: +1, w: "3'", ins: "19',29'6\"" },
+  { axis: 'h', at: 32, from: 14.5, to: 17.0, t: IN, side: +1, w: "2'6\"", ins: "15'9\",32'" },
+];
+const WINDOWS = [
+  { axis: 'h', at: 0.375, from: 18, to: 24, t: OUT, w: "6'", ins: "21',0" },
+  { axis: 'v', at: 29.625, from: 5, to: 10, t: OUT, w: "5'", ins: "30',7'6\"" },
+  { axis: 'h', at: 39.625, from: 22, to: 27, t: OUT, w: "5'", ins: "24'6\",40'" },
+  { axis: 'h', at: 39.625, from: 3, to: 8, t: OUT, w: "5'", ins: "5'6\",40'" },
+  { axis: 'v', at: 29.625, from: 19, to: 23, t: OUT, w: "4'", ins: "30',21'" },
+  { axis: 'v', at: 0.375, from: 31, to: 35, t: OUT, w: "4'", ins: "0,33'" },
+  { axis: 'v', at: 0.375, from: 19, to: 22, t: OUT, w: "3'", ins: "0,20'6\"" },
+  { axis: 'h', at: 39.625, from: 15, to: 17, t: OUT, w: "2'", ins: "16',40'" },
+];
+const LABELS = [
+  [6.2, 7.5, 'CAR PARKING', "11'-3\" x 14'-3\""], [21, 7.5, 'LIVING', "17'-3\" x 14'-3\""],
+  [13.5, 21, 'DINING', "10'-6\" x 11'-6\""], [24.4, 21, 'KITCHEN', "10'-3\" x 11'-6\""],
+  [6.6, 33.5, 'BEDROOM 1', "12'-3\" x 12'-3\""], [24.4, 33.5, 'BEDROOM 2', "10'-3\" x 12'-3\""],
+  [16, 36, 'TOILET', "5'-6\" x 7'-3\""], [16, 29.5, 'PASSAGE', ''],
+];
+const DIMS = [
+  { o: 'h', a: 0, b: 12, at: -1.75, text: "12'-0\"", p1: '0,0', p2: "12',0", loc: "@0,-1'9\"" },
+  { o: 'h', a: 12, b: 30, at: -1.75, text: "18'-0\"", cont: true, p2: "30',0" },
+  { o: 'h', a: 0, b: 30, at: -3.5, text: "30'-0\"", p1: '0,0', p2: "30',0", loc: "@0,-3'6\"" },
+  { o: 'v', a: 0, b: 15, at: -1.75, text: "15'-0\"", p1: '0,0', p2: "0,15'", loc: "@-1'9\",0" },
+  { o: 'v', a: 15, b: 27, at: -1.75, text: "12'-0\"", cont: true, p2: "0,27'" },
+  { o: 'v', a: 27, b: 40, at: -1.75, text: "13'-0\"", cont: true, p2: "0,40'" },
+  { o: 'v', a: 0, b: 40, at: -3.5, text: "40'-0\"", p1: '0,0', p2: "0,40'", loc: "@-3'6\",0" },
+];
+const ptOf = (s) => { // "12',7'9\"" -> feet (only what this demo types)
+  const toFt = (v) => { v = v.trim(); if (!v || v === '0') return 0; const m = v.match(/^(\d+)'(?:-?(\d+(?:\.\d+)?)")?$|^(\d+(?:\.\d+)?)"$/); if (!m) return Number(v) || 0; return m[3] !== undefined ? Number(m[3]) / 12 : Number(m[1]) + (m[2] ? Number(m[2]) / 12 : 0); };
+  const [a, b] = s.split(','); return [toFt(a), toFt(b)];
+};
+const mid = (o) => (o.axis === 'h' ? [(o.from + o.to) / 2, o.at] : [o.at, (o.from + o.to) / 2]);
+
+// ---------------------------------------------------------------- chat panel
+const conv = G('conv'), convIn = G('convInner');
+const CHECK = '<svg viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="7.2" fill="#3fb950"/><path d="M4.6 8.2 L7 10.5 L11.4 5.8" fill="none" stroke="#0d0e10" stroke-width="1.8"/></svg>';
+function scrollConv() { conv.scrollTop = conv.scrollHeight; }
+function add(html, cls) { const d = document.createElement('div'); d.className = cls; d.innerHTML = html; convIn.appendChild(d); scrollConv(); return d; }
+const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+async function aiSay(text, perChar = 9) {
+  const d = add('', 'msg-ai');
+  if (INSTANT) { d.innerHTML = md(text); scrollConv(); return d; }
+  for (let i = 1; i <= text.length; i += 2) { d.innerHTML = md(text.slice(0, i)); if (i % 12 === 1) scrollConv(); await sleep(perChar * 2); }
+  d.innerHTML = md(text); scrollConv(); return d;
+}
+async function typeComposer(text) {
+  const c = G('compText'); c.classList.remove('ph');
+  if (INSTANT) { c.textContent = text; return; }
+  for (let i = 1; i <= text.length; i++) { c.textContent = text.slice(0, i); await sleep(16); }
+}
+function sendComposer(text) { const c = G('compText'); c.textContent = 'Ask anything... (you can correct the AI at any step)'; c.classList.add('ph'); add(esc(text), 'msg-user'); }
+function setBusy(on) {
+  G('banner').style.display = on ? 'flex' : 'none'; G('aistat').style.display = on ? 'flex' : 'none';
+  G('pinned').style.display = on ? 'flex' : 'none';
+  const b = G('sendBtn'); b.className = on ? 'send stop' : 'send'; b.innerHTML = on ? '<i></i>' : '&#8593;';
+}
+async function clickInPanel(elm) { if (INSTANT) return; const xy = stageXY(elm); await pointerTo(xy, 480); await rippleAt(xy); }
+const QS = [
+  { h: 'Main entrance', q: 'Where should the main door be?', opts: [{ t: 'From the parking, into the living room', rec: true }, { t: 'Directly from the road into the living room' }] },
+  { h: 'Staircase', q: 'Which staircase type?', opts: [{ t: "Dog-legged (U-shaped), 3'-3\" flights", rec: true }, { t: 'Straight flight along a side wall' }] },
+];
+function questionCard() {
+  return add(QS.map((q, i) => `<div class="qblk"><div class="qh">${q.h}</div><div class="qq">${q.q}</div>${q.opts.map((o, j) => `<div class="opt" id="qo${i}_${j}"><span>${esc(o.t)}</span>${o.rec ? '<span class="rec">Recommended</span>' : ''}</div>`).join('')}</div>`).join('') + '<div class="qsub"><span class="btn" id="qsubmit">Submit</span></div>', 'card');
+}
+async function answer(i, j) { const o = G(`qo${i}_${j}`); await clickInPanel(o); o.classList.add('sel'); }
+async function submitQuestions(card) { await clickInPanel(G('qsubmit')); ptr.style.display = 'none'; card.innerHTML = QS.map((q) => `<div class="qh">${q.h}</div><div class="qq">${q.q}</div><div class="ans">${CHECK}${esc(q.opts[0].t)}</div>`).join(''); scrollConv(); }
+const TASKS = ['Plot boundary', 'Outer walls 9"', 'Inner walls 4½"', 'Doors and openings', 'Windows', 'Staircase', 'Room names and sizes', 'Dimensions', 'Check the drawing'];
+function taskCard() {
+  return add(`<div class="tp-title"><span>Task Progress (<span id="tpn">0</span>/${TASKS.length})</span><div class="tbar"><i id="tpb"></i></div></div>` + TASKS.map((t, i) => `<div class="task" id="tk${i}"><span class="ic"><span class="circ"></span></span><span>${esc(t)}</span></div>`).join(''), 'card');
+}
+function setTask(i, st) {
+  const e = G('tk' + i); e.className = 'task ' + st;
+  e.querySelector('.ic').innerHTML = st === 'run' ? '<span class="spin"></span>' : st === 'done' ? CHECK : '<span class="circ"></span>';
+  const done = document.querySelectorAll('.task.done').length;
+  G('tpn').textContent = done; G('tpb').style.width = (done / TASKS.length * 100) + '%';
+  G('pinN').textContent = done; G('pinB').style.width = (done / TASKS.length * 100) + '%';
+  if (st === 'run') { G('pinT').textContent = 'Now: ' + TASKS[i]; G('aistatText').textContent = `AI Copilot is drafting - step ${i + 1} of ${TASKS.length}: ${TASKS[i]}`; }
+}
+let actRows = null, actCard = null;
+function activityCard() { actCard = add('<div class="act-title">CAD ACTIVITY</div><div class="rows"></div><div class="working"><span class="spin"></span><span>Working in AutoCAD Architecture...</span></div>', 'card'); actRows = actCard.querySelector('.rows'); }
+function actStart(code, text) { const r = document.createElement('div'); r.className = 'arow'; r.innerHTML = `<span class="ic"><span class="spin"></span></span><code>${code}</code><span class="tx">${text}</span>`; actRows.appendChild(r); scrollConv(); return r; }
+function actDone(r, text) { r.querySelector('.ic').innerHTML = CHECK; if (text) r.querySelector('.tx').innerHTML = text; scrollConv(); }
+
+// ---------------------------------------------------------------- the steps, done the way a person would do them
+async function stepPlot() {
+  setTask(0, 'run');
+  await setLayer('A-Site');
+  await clickRibbon('rect'); await startCommand('RECTANG');
+  const r = actStart('RECTANG', 'Plot boundary...');
+  await ask('Specify first corner point or [Chamfer/Elevation/Fillet/Thickness/Width]:', '0,0', { at: [0, 0], move: 600 });
+  setRubber({ type: 'rect', base: [0, 0] });
+  await ask('Specify other corner point or [Area/Dimensions/Rotation]:', "@30',40'", { at: [30, 40], move: 900 });
+  setRubber(null);
+  const pr = el('rect', { x: sx(0), y: sy(40), width: 30 * S, height: 40 * S, fill: 'none', stroke: COL.plot, 'stroke-width': 1.2, 'stroke-dasharray': '10 4 2 4', opacity: 0 }, G('gPlot'));
+  await tween(300, (f) => pr.setAttribute('opacity', f));
+  actDone(r, "Plot boundary 30'-0\" x 40'-0\" (layer A-Site)");
+  setTask(0, 'done');
+}
+async function stepOuterWalls() {
+  setTask(1, 'run');
+  await setLayer('A-Wall');
+  await clickRibbon('wall'); await startCommand('WALLADD');
+  const r = actStart('WALLADD', 'Outer walls...');
+  await ask('Start point or [STyle/Group/WIdth/Height/OFfset/Justify/Match/Arc]:', 'WI', { dyn: false });
+  await ask('Wall width <4 1/2">:', '9"', { dyn: false });
+  await ask('Start point or [STyle/Group/WIdth/Height/OFfset/Justify/Match/Arc]:', '0,0', { at: [0.375, 0.375], move: 500 });
+  let base = [OW[0][0], OW[0][1]];
+  for (let i = 1; i < OW.length; i++) {
+    const [x, y, typed] = OW[i];
+    setRubber({ type: 'wall', base, t: OUT });
+    await ask(i === 1 ? 'End point or [STyle/Group/WIdth/Height/OFfset/Justify/Match/Arc]:' : 'End point or [STyle/Group/WIdth/Height/OFfset/Justify/Match/Arc/Undo/Close]:', typed,
+      { at: [x, y], move: 850, onTyped: i === 2 ? () => checkpoint('walls') : null });
+    setRubber(null);
+    await growWall(base[0], base[1], x, y, OUT, 380);
+    base = [x, y];
+  }
+  setRubber({ type: 'wall', base, t: OUT });
+  await ask('End point or [STyle/Group/WIdth/Height/OFfset/Justify/Match/Arc/Undo/Close]:', 'C', { dyn: false, at: [0.375, 0.375], move: 700 });
+  setRubber(null);
+  await growWall(base[0], base[1], 0.375, 0.375, OUT, 380);
+  pushHist('<span class="d">4 walls added. Wall cleanup applied at corners.</span>');
+  actDone(r, 'Outer walls, 9" thick, 4 segments, corners cleaned up');
+  setTask(1, 'done');
+}
+async function stepInnerWalls() {
+  setTask(2, 'run');
+  await clickRibbon('wall'); await startCommand('WALLADD');
+  const r = actStart('WALLADD', 'Inner walls...');
+  await ask('Start point or [STyle/Group/WIdth/Height/OFfset/Justify/Match/Arc]:', 'WI', { dyn: false });
+  await ask('Wall width <9">:', '4 1/2"', { dyn: false });
+  for (let i = 0; i < IW.length; i++) {
+    const w = IW[i];
+    if (i > 0) await repeatCommand('WALLADD');
+    await ask('Start point or [STyle/Group/WIdth/Height/OFfset/Justify/Match/Arc]:', w.s, { at: [w.x1, w.y1], move: 380, perChar: 34 });
+    setRubber({ type: 'wall', base: [w.x1, w.y1], t: IN });
+    await ask('End point or [STyle/Group/WIdth/Height/OFfset/Justify/Match/Arc]:', w.e, { at: [w.x2, w.y2], move: 520, perChar: 34 });
+    setRubber(null);
+    await growWall(w.x1, w.y1, w.x2, w.y2, IN, 260);
+    await ask('End point or [STyle/Group/WIdth/Height/OFfset/Justify/Match/Arc/Undo]:', '', { dyn: false, pause: 60, hold: 90 });
+  }
+  pushHist('<span class="d">7 walls added. Wall cleanup applied at T-junctions.</span>');
+  actDone(r, 'Inner walls, 4½" thick, 7 segments, T-junctions cleaned up');
+  setTask(2, 'done');
+}
+async function stepDoorsAndOpenings() {
+  setTask(3, 'run');
+  await setLayer('A-Door');
+  await clickRibbon('opening'); await startCommand('OPENINGADD');
+  const ro = actStart('OPENINGADD', 'Openings...');
+  let width = null;
+  for (let i = 0; i < OPENINGS.length; i++) {
+    const o = OPENINGS[i];
+    if (i > 0) await repeatCommand('OPENINGADD');
+    await ask('Select a wall, grid assembly or ENTER:', '', { at: mid(o), move: 420, click: true });
+    if (o.w !== width) { await ask('Insertion point or [STyle/WIdth/HEight/Auto/Match]:', 'WI', { dyn: false, perChar: 38 }); await ask(`Width <${width || "3'-0\""}>:`, o.w, { dyn: false, perChar: 38 }); width = o.w; }
+    await ask('Insertion point or [STyle/WIdth/HEight/Auto/Match]:', o.ins, { perChar: 32 });
+    await drawOpening(o);
+  }
+  actDone(ro, "5 openings: parking entrance 10'-6\", 4 internal 3'-0\" to 3'-6\"");
+  await clickRibbon('door'); await startCommand('DOORADD');
+  const rd = actStart('DOORADD', 'Doors...');
+  width = null;
+  for (let i = 0; i < DOORS.length; i++) {
+    const d = DOORS[i];
+    if (i > 0) await repeatCommand('DOORADD');
+    await ask('Select wall, grid assembly or ENTER:', '', { at: mid(d), move: 420, click: true });
+    if (d.w !== width) { await ask('Insertion point or [STyle/WIdth/HEight/Auto/Match]:', 'WI', { dyn: false, perChar: 38 }); await ask(`Width <${width || "3'-0\""}>:`, d.w, { dyn: false, perChar: 38 }); width = d.w; }
+    await ask('Insertion point or [STyle/WIdth/HEight/Auto/Match]:', d.ins, { perChar: 32, onTyped: i === 1 ? () => checkpoint('doors') : null });
+    await drawDoor(d, 650);
+  }
+  actDone(rd, "4 doors: main 3'-6\" from the parking, bedrooms 3'-0\", toilet 2'-6\"");
+  setTask(3, 'done');
+}
+async function stepWindows() {
+  setTask(4, 'run');
+  await setLayer('A-Glaz');
+  await clickRibbon('window'); await startCommand('WINDOWADD');
+  const r = actStart('WINDOWADD', 'Windows...');
+  let width = null;
+  for (let i = 0; i < WINDOWS.length; i++) {
+    const w = WINDOWS[i];
+    if (i > 0) await repeatCommand('WINDOWADD');
+    if (w.w !== width) { await ask('Insertion point or [STyle/WIdth/HEight/SIll/Match]:', 'WI', { dyn: false, perChar: 38 }); await ask(`Width <${width || "3'-0\""}>:`, w.w, { dyn: false, perChar: 38 }); width = w.w; }
+    await ask('Insertion point or [STyle/WIdth/HEight/SIll/Match]:', w.ins, { at: mid(w), move: 380, perChar: 30 });
+    await drawWindow(w);
+  }
+  actDone(r, '8 windows on outside walls (living, kitchen, bedrooms, stair, toilet ventilator)');
+  setTask(4, 'done');
+}
+async function stepStair() {
+  setTask(5, 'run');
+  await setLayer('A-Flor-Strs');
+  await clickRibbon('stair'); await startCommand('STAIRADD');
+  const r = actStart('STAIRADD', 'Staircase...');
+  await ask('Start point of flight or [SHape/STyle/HEight/Width/Justify/Match]:', 'SH', { dyn: false });
+  await ask('Shape [U-shaped/Multi-landing/Spiral/Straight] <Straight>:', 'U', { dyn: false });
+  await ask('Start point of flight or [SHape/STyle/HEight/Width/Justify/Match]:', 'W', { dyn: false });
+  await ask("Width <3'-0\">:", "3'3\"", { dyn: false });
+  await ask('Start point of flight or [SHape/STyle/HEight/Width/Justify/Match]:', "2'3\",15'11\"", { at: [2.3, 15.9], move: 520, perChar: 34 });
+  setRubber({ type: 'line', base: [2.3, 15.9] });
+  await ask('Flight end point:', "@7'6\"<90", { at: [2.3, 23.4], move: 600 });
+  setRubber(null);
+  await drawStair();
+  pushHist('<span class="d">Stair created: U-shaped, 20 risers, 3\'-3" flights.</span>');
+  actDone(r, "Dog-legged stair, 3'-3\" flights, 20 risers, landing at the back");
+  setTask(5, 'done');
+}
+async function stepText() {
+  setTask(6, 'run');
+  await setLayer('A-Anno-Text');
+  await clickRibbon('text'); await startCommand('TEXT');
+  const r = actStart('TEXT', 'Room names...');
+  await ask('Specify start point of text or [Justify/Style]:', 'J', { dyn: false });
+  await ask('Enter an option [Left/Center/Right/Align/Middle/Fit/TL/TC/TR/ML/MC/MR/BL/BC/BR]:', 'MC', { dyn: false });
+  for (let i = 0; i < LABELS.length; i++) {
+    const [x, y, name, size] = LABELS[i];
+    if (i > 0) await repeatCommand('TEXT');
+    await ask(i === 0 ? 'Specify middle point of text:' : 'Specify middle point of text or [Justify/Style]:', '', { at: [x, y], move: 380, click: true });
+    await ask("Specify height <0'-9\">:", i === 0 ? '9"' : '', { dyn: false, pause: 40, hold: 60 });
+    await ask('Specify rotation angle of text <0>:', '', { dyn: false, pause: 40, hold: 60 });
+    const n = textEl(x, y, 10.5, 700, COL.text, 'middle', size ? -2 : 3);
+    await ask('Enter text:', name, { dyn: false, perChar: 30, onChar: (s) => { n.textContent = s; } });
+    if (size) { const s2 = textEl(x, y, 8.5, 400, '#cfd6de', 'middle', 10); await ask('Enter text:', size, { dyn: false, perChar: 22, onChar: (s) => { s2.textContent = s; } }); }
+    await ask('Enter text:', '', { dyn: false, pause: 30, hold: 60 });
+  }
+  actDone(r, '8 room names with clear sizes (text height 9")');
+  await repeatCommand('TEXT');
+  await ask('Specify start point of text or [Justify/Style]:', 'J', { dyn: false });
+  await ask('Enter an option [Left/Center/Right/Align/Middle/Fit/TL/TC/TR/ML/MC/MR/BL/BC/BR]:', 'L', { dyn: false });
+  await ask('Specify start point of text:', "32'11\",3'6\"", { at: [32.9, 3.6], move: 500, perChar: 30 });
+  await ask("Specify height <0'-9\">:", "1'", { dyn: false });
+  await ask('Specify rotation angle of text <0>:', '', { dyn: false, pause: 40, hold: 60 });
+  const t1 = textEl(32.9, 3.6, 14, 700, COL.text, 'start');
+  await ask('Enter text:', 'GROUND FLOOR PLAN', { dyn: false, perChar: 30, onChar: (s) => { t1.textContent = s; } });
+  const t2 = textEl(32.9, 3.6, 10, 400, '#cfd6de', 'start', 18);
+  await ask('Enter text:', 'EAST FACING  |  SCALE 1/4" = 1\'-0"', { dyn: false, perChar: 18, onChar: (s) => { t2.textContent = s; } });
+  await ask('Enter text:', '', { dyn: false, pause: 30, hold: 60 });
+  el('line', { x1: sx(32.9), y1: sy(3.6) + 4, x2: sx(32.9) + 158, y2: sy(3.6) + 4, stroke: COL.text, 'stroke-width': 1 }, G('gText'));
+  await clickRibbon('insert'); await startCommand('-INSERT');
+  const rn = actStart('-INSERT', 'North arrow...');
+  await ask('Enter block name or [?]:', 'NORTH-ARROW', { dyn: false, perChar: 30 });
+  await ask('Specify insertion point or [Basepoint/Scale/Rotate]:', "38'4\",35'10\"", { at: [38.33, 35.83], move: 520, perChar: 30 });
+  const na = el('g', { opacity: 0 }, G('gText')), nx = sx(38.33), ny = sy(35.83);
+  el('circle', { cx: nx, cy: ny, r: 17, fill: 'none', stroke: COL.text, 'stroke-width': 1.2 }, na);
+  el('path', { d: `M ${nx} ${ny - 16} L ${nx + 7} ${ny + 11} L ${nx} ${ny + 6} L ${nx - 7} ${ny + 11} Z`, fill: COL.text }, na);
+  const nt = el('text', { x: nx, y: ny - 21, fill: COL.text, 'font-size': 11, 'font-family': 'Arial', 'font-weight': 700, 'text-anchor': 'middle' }, na); nt.textContent = 'N';
+  await tween(250, (f) => na.setAttribute('opacity', f));
+  actDone(rn, 'North arrow (block NORTH-ARROW) and drawing title');
+  setTask(6, 'done');
+}
+async function stepDims() {
+  setTask(7, 'run');
+  await setLayer('A-Anno-Dims');
+  const r = actStart('DIMLINEAR', 'Dimensions...');
+  let first = true;
+  for (let i = 0; i < DIMS.length; i++) {
+    const dm = DIMS[i];
+    if (!dm.cont) {
+      if (first) { await clickRibbon('dim'); await startCommand('DIMLINEAR'); first = false; } else await repeatCommand('DIMLINEAR');
+      await ask('Specify first extension line origin or <select object>:', dm.p1, { at: ptOf(dm.p1), move: 420, perChar: 32 });
+      await ask('Specify second extension line origin:', dm.p2, { at: ptOf(dm.p2), move: 520, perChar: 32 });
+      const loc = dm.o === 'h' ? [ (dm.a + dm.b) / 2, dm.at ] : [ dm.at, (dm.a + dm.b) / 2 ];
+      await ask('Specify dimension line location or [Mtext/Text/Angle/Horizontal/Vertical/Rotated]:', dm.loc, { at: loc, move: 420, perChar: 30, onTyped: i === 3 ? () => checkpoint('dims') : null });
+      await drawDim(dm);
+      pushHist(`<span class="d">Dimension text = ${esc(dm.text)}</span>`);
+    } else {
+      if (!DIMS[i - 1].cont) { await startCommand('DIMCONTINUE'); }
+      await ask('Specify a second extension line origin or [Select/Undo] <Select>:', dm.p2, { at: ptOf(dm.p2), move: 480, perChar: 32 });
+      await drawDim(dm);
+      pushHist(`<span class="d">Dimension text = ${esc(dm.text)}</span>`);
+      if (!DIMS[i + 1] || !DIMS[i + 1].cont) await ask('Specify a second extension line origin or [Select/Undo] <Select>:', '', { dyn: false, pause: 40, hold: 70 });
+    }
+  }
+  actDone(r, 'Running and overall dimensions on two sides (DIMLINEAR + DIMCONTINUE)');
+  setTask(7, 'done');
+}
+async function stepCheck() {
+  setTask(8, 'run');
+  highlight('zoomext'); await startCommand('ZOOM');
+  await ask('Specify corner of window, enter a scale factor (nX or nXP), or [All/Center/Dynamic/Extents/Previous/Scale/Window/Object] <real time>:', 'E', { dyn: false });
+  const r = actStart('CHECK', 'Looking at the drawing...');
+  await sleep(900);
+  actDone(r, 'Took a picture of the drawing and checked it: walls closed, every room has a door, no overlapping labels' +
+    '<svg class="thumb" width="168" height="124" viewBox="280 15 520 540"><rect x="280" y="15" width="520" height="540" fill="#212830"/><use href="#plan"/></svg>');
+  setTask(8, 'done');
+}
+
+// ---------------------------------------------------------------- the story
+const USER = 'Draft the ground floor for a 30 x 40 ft east-facing plot: car parking in front, living, dining, kitchen, 2 bedrooms, 1 toilet and a staircase for G+1. 9" outer walls, 4½" inner walls.';
+async function main() {
+  renderHist(); renderIn(); placeCursor(560, 300);
+  await sleep(700);
+  await typeComposer(USER);
+  await sleep(350);
+  sendComposer(USER); setBusy(true);
+  await checkpoint('sent');
+  await sleep(700);
+  await aiSay("Got it: a 30'-0\" x 40'-0\" plot, ground floor of a G+1 house. Two quick choices before I start drawing:");
+  const q = questionCard();
+  await sleep(900);
+  await answer(0, 0); await sleep(450);
+  await answer(1, 0); await sleep(350);
+  await submitQuestions(q);
+  await sleep(450);
+  await aiSay("Thanks. I'll draft it the way you would: plot first, then walls, openings, stair, labels and dimensions, using AutoCAD Architecture's own tools. Correct me in this chat at any step, or press **Esc** to take over.");
+  taskCard(); activityCard();
+  await checkpoint('plan');
+  await sleep(500);
+  await stepPlot();
+  await stepOuterWalls();
+  await stepInnerWalls();
+  await stepDoorsAndOpenings();
+  await stepWindows();
+  await stepStair();
+  await stepText();
+  await stepDims();
+  await stepCheck();
+  actCard.querySelector('.working').remove();
+  setBusy(false); highlight(null); curPrompt = ''; renderIn();
+  await aiSay("**Ground floor drafted.** 8 rooms, 4 doors, 5 openings, 8 windows and a dog-legged stair, on proper layers (A-Wall, A-Door, A-Glaz, A-Anno...). Every step is in AutoCAD's undo history, so you can step back with Ctrl+Z.\n\nShall I draft the first floor on the same wall grid next?");
+  add('<span class="chip">Yes, draft the first floor</span><span class="chip">Make the kitchen 2 ft wider</span><span class="chip">Plot to PDF</span>', 'chips');
+  scrollConv();
+  await checkpoint('done');
+  window.__done = true;
+}
+main();
+</script>
+</body>
+</html>

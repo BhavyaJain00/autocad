@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Autoloader manifest of AI Copilot for AutoCAD 2027.
+  Install as a bundle folder:
+    %APPDATA%\Autodesk\ApplicationPlugins\AcadCopilot.bundle\PackageContents.xml       (this file)
+    %APPDATA%\Autodesk\ApplicationPlugins\AcadCopilot.bundle\Contents\AcadCopilot.Plugin.dll, AcadCopilot.Core.dll
+    %APPDATA%\Autodesk\ApplicationPlugins\AcadCopilot.bundle\Contents\bridge\AcadCopilotMcp.exe (+ its dlls)
+  Loads in AutoCAD 2027 (R26.0, .NET 10, 64-bit Windows) at AutoCAD start-up (the plug-in starts the pipe server for
+  the MCP bridge and opens the chat palette). Platform "AutoCAD|AutoCAD*" = plain AutoCAD plus any AutoCAD-based
+  product on the same release (AutoCAD Architecture, MEP ...), the value Autodesk's own "Autodesk FeaturedApps" bundle
+  uses; Autodesk's AutoCAD 2027 MCP Server bundle lists "AutoCAD|...|ADT|..." where "AutoCAD" is plain AutoCAD. The
+  plug-in needs no AEC/Architecture assemblies.
+-->
+<ApplicationPackage
+  SchemaVersion="1.0"
+  AppVersion="0.1.0"
+  Name="AI Copilot for AutoCAD 2027"
+  Description="AI chat panel that drafts in AutoCAD with AutoCAD's own commands, using the user's own Claude, ChatGPT or Gemini account (official CLIs, no API keys)."
+  Author="AcadCopilot"
+  ProductType="Application"
+  SupportedLocales="Enu"
+  ProductCode="{8C1D4E7A-3B5F-4A62-9D8E-2F7A6C5B4E31}"
+  UpgradeCode="{5E9A2C8D-7F14-4B3E-A6D2-1C8B7E4F9A05}">
+
+  <CompanyDetails Name="AcadCopilot" />
+
+  <Components Description="AutoCAD 2027, 64-bit">
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD|AutoCAD*" SeriesMin="R26.0" SeriesMax="R26.0" />
+    <ComponentEntry
+      AppName="AcadCopilot"
+      Version="0.1.0"
+      ModuleName="./Contents/AcadCopilot.Plugin.dll"
+      AppDescription="AI Copilot chat palette and the drafting tools used by the AI through the MCP bridge."
+      AppType=".Net"
+      LoadOnAutoCADStartup="True">
+      <RuntimeRequirements OS="Win64" Platform="AutoCAD|AutoCAD*" SeriesMin="R26.0" SeriesMax="R26.0" />
+      <Commands GroupName="ACADCOPILOT">
+        <Command Global="COPILOT" Local="COPILOT" />
+        <Command Global="COPILOTSTATUS" Local="COPILOTSTATUS" />
+      </Commands>
+    </ComponentEntry>
+  </Components>
+</ApplicationPackage>

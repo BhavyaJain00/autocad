@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recorder test page</title>
+<!--
+  Test page for tools/record.js. Implements the recorder page contract:
+    ?record=1  virtual clock, frozen until window.__demo.advance(ms) is called
+    ?bare=1    stage is exactly 1920x1080 CSS px at the top-left, no scaling
+  Extra test switches:
+    ?error=3000   set __demo.error once the virtual time reaches 3000 ms
+    ?heavy=1      add ~4000 SVG lines that change every step (raster stress)
+    ?duration=N   story length in ms (default 10000)
+  Everything visible is a pure function of the virtual time t, so every frame
+  of a recording can be checked: the big counter, the 20-bit strip (round(t) in
+  binary, LSB on the left) and the two spinner needles (CSS animation vs JS)
+  must all agree with the frame's timestamp.
+-->
+<style>
+  html, body { margin: 0; padding: 0; background: #0b1118; overflow: hidden; }
+  #stage {
+    position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden;
+    background: linear-gradient(180deg, #1d2b3a 0%, #0f1720 100%);
+    color: #e8eef5; font-family: "Segoe UI", Arial, sans-serif; transform-origin: 0 0;
+  }
+  #title { position: absolute; left: 60px; top: 36px; font-size: 40px; font-weight: 600; }
+  #chapter { position: absolute; right: 60px; top: 36px; font-size: 40px; font-weight: 600; color: #ffd166; }
+  #counter {
+    position: absolute; left: 0; width: 1920px; top: 190px; text-align: center;
+    font: 700 150px Consolas, "Courier New", monospace; white-space: pre;
+  }
+  #sub { position: absolute; left: 0; width: 1920px; top: 390px; text-align: center; font: 400 44px Consolas, monospace; color: #9fb3c8; white-space: pre; }
+  #track { position: absolute; left: 100px; width: 1720px; top: 638px; height: 4px; background: #3a4a5c; }
+  #ball { position: absolute; left: 0; top: 580px; width: 120px; height: 120px; border-radius: 50%; background: #ef476f; }
+  #ballLabel { position: absolute; top: 718px; width: 240px; margin-left: -60px; text-align: center; font: 600 30px Consolas, monospace; color: #ef476f; }
+  .dial { position: absolute; top: 470px; width: 150px; height: 150px; }
+  .dial .ring { position: absolute; inset: 0; border-radius: 50%; border: 6px solid #2f4256; box-sizing: border-box; }
+  #cssNeedle, #jsNeedle { position: absolute; left: 72px; top: 8px; width: 6px; height: 67px; transform-origin: 3px 67px; border-radius: 3px; }
+  #cssNeedle { background: #06d6a0; animation: spin 1000ms linear infinite; }
+  #jsNeedle { background: #ffd166; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .dialLabel { position: absolute; top: 630px; width: 150px; text-align: center; font: 600 24px Consolas, monospace; }
+  #strip { position: absolute; left: 100px; top: 880px; display: flex; }
+  #strip .bit { width: 64px; height: 64px; margin-right: 18px; background: #000; box-shadow: 0 0 0 3px #556677; }
+  #stripLabel { position: absolute; left: 100px; top: 960px; font: 400 28px Consolas, monospace; color: #9fb3c8; }
+  #heavy { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="heavy" width="1920" height="1080" style="display:none"></svg>
+  <div id="title">Recorder test page</div>
+  <div id="chapter"></div>
+  <div id="counter"></div>
+  <div id="sub"></div>
+  <div id="track"></div>
+  <div id="ball"></div>
+  <div id="ballLabel"></div>
+  <div class="dial" style="left:1560px"><div class="ring"></div><div id="cssNeedle"></div></div>
+  <div class="dialLabel" style="left:1560px;color:#06d6a0">CSS anim</div>
+  <div class="dial" style="left:1730px"><div class="ring"></div><div id="jsNeedle"></div></div>
+  <div class="dialLabel" style="left:1730px;color:#ffd166">JS</div>
+  <div id="strip"></div>
+  <div id="stripLabel"></div>
+</div>
+<script>
+(() => {
+  'use strict';
+  const q = new URLSearchParams(location.search);
+  const RECORD = q.get('record') === '1';
+  const BARE = q.get('bare') === '1';
+  const DURATION = Number(q.get('duration')) > 0 ? Number(q.get('duration')) : 10000;
+  const ERROR_AT = q.has('error') ? Number(q.get('error')) : null;
+  const HEAVY = q.get('heavy') === '1';
+  const BITS = 20;
+  const CHAPTERS = ['1 Intro', '2 Walls', '3 Doors', '4 Roof'];
+  const COLORS = ['#ef476f', '#118ab2', '#06d6a0', '#ffd166'];
+
+  const $ = (id) => document.getElementById(id);
+  const stage = $('stage'), strip = $('strip'), ball = $('ball'), ballLabel = $('ballLabel');
+  const bits = [];
+  for (let b = 0; b < BITS; b++) {
+    const d = document.createElement('div');
+    d.className = 'bit';
+    strip.appendChild(d);
+    bits.push(d);
+  }
+
+  let heavyLines = [];
+  if (HEAVY) {
+    const svg = $('heavy');
+    svg.style.display = 'block';
+    const ns = 'http://www.w3.org/2000/svg';
+    for (let i = 0; i < 4000; i++) {
+      const l = document.createElementNS(ns, 'line');
+      const x = (i * 37) % 1920, y = (i * 53) % 1080;
+      l.setAttribute('x1', x); l.setAttribute('y1', y);
+      l.setAttribute('x2', (x + 220) % 1920); l.setAttribute('y2', (y + 140) % 1080);
+      l.setAttribute('stroke-width', '1.5');
+      svg.appendChild(l);
+      heavyLines.push(l);
+    }
+  }
+
+  const demo = window.__demo = {
+    ready: false,
+    error: null,
+    duration: DURATION,
+    chapter: null,
+    advance,
+  };
+
+  let t = 0;
+
+  function render(time) {
+    const tt = Math.min(time, DURATION);
+    const ci = Math.min(CHAPTERS.length - 1, Math.floor(tt / (DURATION / CHAPTERS.length)));
+    demo.chapter = CHAPTERS[ci];
+    $('chapter').textContent = 'Chapter ' + demo.chapter;
+    $('counter').textContent = 't = ' + time.toFixed(3).padStart(9, '0') + ' ms';
+    $('sub').textContent = 'frame@30fps ' + String(Math.round(time * 30 / 1000)).padStart(4, ' ') +
+      '   frame@60fps ' + String(Math.round(time * 60 / 1000)).padStart(4, ' ');
+    const x = 100 + 1600 * (tt / DURATION);
+    ball.style.left = x + 'px';
+    ball.style.background = COLORS[ci];
+    ballLabel.style.left = x + 'px';
+    ballLabel.textContent = (tt / 1000).toFixed(2) + ' s';
+    $('jsNeedle').style.transform = 'rotate(' + ((time % 1000) / 1000 * 360) + 'deg)';
+    const ms = Math.round(time);
+    for (let b = 0; b < BITS; b++) bits[b].style.background = (ms >> b) & 1 ? '#ffffff' : '#000000';
+    $('stripLabel').textContent = 'strip = round(t) = ' + ms + ' (binary, LSB left)';
+    if (HEAVY) {
+      const hue = Math.round(time / 7) % 360;
+      for (let i = 0; i < heavyLines.length; i++) {
+        heavyLines[i].setAttribute('stroke', 'hsla(' + ((hue + i) % 360) + ',70%,60%,0.35)');
+      }
+    }
+  }
+
+  // Keep every CSS animation/transition in lock-step with the virtual clock.
+  function syncAnimations(time) {
+    for (const a of document.getAnimations()) {
+      if (a.playState !== 'paused') a.pause();
+      a.currentTime = time;
+    }
+  }
+
+  const raf = () => new Promise((r) => requestAnimationFrame(() => r()));
+
+  async function advance(ms) {
+    if (demo.error) throw new Error(demo.error);
+    try {
+      t += Number(ms) || 0;
+      if (ERROR_AT != null && t >= ERROR_AT) throw new Error('test error triggered at t=' + t.toFixed(1) + ' ms');
+      render(t);
+      syncAnimations(t);
+    } catch (e) {
+      demo.error = String((e && e.stack) || e);
+      throw e;
+    }
+    await raf();
+    await raf();
+    return t >= DURATION;
+  }
+
+  function fit() {
+    if (BARE) { stage.style.transform = 'none'; return; }
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = 'translate(' + (innerWidth - 1920 * s) / 2 + 'px,' + (innerHeight - 1080 * s) / 2 + 'px) scale(' + s + ')';
+  }
+  addEventListener('resize', fit);
+  fit();
+
+  render(0);
+  syncAnimations(0);
+
+  if (RECORD) {
+    document.fonts.ready.then(raf).then(raf).then(() => { demo.ready = true; });
+  } else {
+    // Normal viewing: play in real time and loop.
+    let start = null;
+    const loop = (now) => {
+      if (start == null) start = now;
+      const time = (now - start) % (DURATION + 1000);
+      render(time);
+      syncAnimations(time);
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+    demo.ready = true;
+  }
+})();
+</script>
+</body>
+</html>

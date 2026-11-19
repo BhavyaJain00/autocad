@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>AcadCopilot.McpBridge.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AcadCopilot.Core\AcadCopilot.Core.csproj" />
+    <ProjectReference Include="..\..\src\AcadCopilot.McpBridge\AcadCopilot.McpBridge.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Shared fakes (one copy, compiled into both test projects). -->
+    <Compile Include="..\AcadCopilot.Core.Tests\Fakes\FakePipeHandler.cs" Link="Fakes\FakePipeHandler.cs" />
+    <Compile Include="..\AcadCopilot.Core.Tests\Fakes\TestDirectory.cs" Link="Fakes\TestDirectory.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Pure helpers of the plug-in's Inspect folder (no AutoCAD, GDI or WPF types: picture maths, name patterns and
+      boxes, the inspection tool schemas). The plug-in itself only runs inside AutoCAD, so they are compiled in here
+      and unit-tested in PluginInspect\.
+    -->
+    <Compile Include="..\..\src\AcadCopilot.Plugin\Inspect\CaptureMath.cs" Link="PluginInspect\Linked\CaptureMath.cs" />
+    <Compile Include="..\..\src\AcadCopilot.Plugin\Inspect\InspectFilters.cs" Link="PluginInspect\Linked\InspectFilters.cs" />
+    <Compile Include="..\..\src\AcadCopilot.Plugin\Inspect\InspectToolDefinitions.cs" Link="PluginInspect\Linked\InspectToolDefinitions.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

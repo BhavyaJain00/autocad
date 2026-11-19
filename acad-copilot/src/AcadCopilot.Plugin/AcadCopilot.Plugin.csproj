@@ -1,0 +1,96 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    AcadCopilot.Plugin.dll: the AutoCAD 2027 (R26.0, .NET 10) plug-in.
+      Acad/       IExtensionApplication (CopilotApp), main-thread dispatcher, revision tracker, bridge locator, units
+      Commands/   COPILOT, COPILOTSTATUS
+      Ipc/        pipe handler: tools.list / tools.call / ui.* for the MCP bridge
+      Learning/   "Learn from me": records the user's own commands and objects (never the copilot's) while the user lets it
+      Palette/    PaletteSet docked right hosting the WPF chat pane, ribbon tab "AI Copilot"
+      Tools/      tool registry (drafting + inspect tools) and the per-call ToolContext
+      ViewModels/ Views/ Resources/   the WPF chat panel (no AutoCAD types, rendered off-screen in the UI tests)
+    AutoCAD assemblies are referenced from $(AcadInstallDir) (Directory.Build.props) with Private=false: never copied.
+    The build also copies the MCP bridge (AcadCopilotMcp.exe + its dependencies) into bin\<Config>\net10.0-windows10.0.19041.0\bridge\.
+  -->
+  <PropertyGroup>
+    <!-- windows10.0.19041: Windows Runtime projection for voice input (Windows.Media.SpeechRecognition, Voice/). -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>AcadCopilot.Plugin</RootNamespace>
+    <AssemblyName>AcadCopilot.Plugin</AssemblyName>
+    <!-- Ship the voice dependencies (System.Speech, WinRT.Runtime, Microsoft.Windows.SDK.NET) next to the plug-in. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="accoremgd">
+      <HintPath>$(AcadInstallDir)accoremgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="acdbmgd">
+      <HintPath>$(AcadInstallDir)acdbmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="acmgd">
+      <HintPath>$(AcadInstallDir)acmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AdWindows">
+      <HintPath>$(AcadInstallDir)AdWindows.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AcadCopilot.Core\AcadCopilot.Core.csproj" />
+    <!--
+      Build-order and restore dependency only: the bridge is a separate process, so its assembly and its NuGet
+      packages (ModelContextProtocol.Core) must not flow into the plug-in. CopyBridge below copies its output folder.
+    -->
+    <ProjectReference Include="..\AcadCopilot.McpBridge\AcadCopilot.McpBridge.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      ExcludeAssets="all"
+                      PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AcadCopilot.Plugin.Ui.Tests" />
+  </ItemGroup>
+
+  <!-- Voice input, offline fallback: Windows Speech Recognition (SAPI desktop dictation). -->
+  <ItemGroup>
+    <PackageReference Include="System.Speech" Version="10.0.15" />
+  </ItemGroup>
+
+  <!--
+    AutoCAD loads the plug-in without its .deps.json, so the dependencies next to AcadCopilot.Plugin.dll are used as they
+    are: put System.Speech's Windows implementation there instead of the package's platform-neutral stub.
+  -->
+  <Target Name="UseWindowsSystemSpeech" AfterTargets="Build" Condition="Exists('$(OutDir)runtimes\win\lib\net10.0\System.Speech.dll')">
+    <Copy SourceFiles="$(OutDir)runtimes\win\lib\net10.0\System.Speech.dll" DestinationFolder="$(OutDir)" />
+  </Target>
+
+  <!-- Copies the bridge's build output (exe, dlls, deps/runtimeconfig json, pdbs; not the XML docs) to $(OutDir)bridge\. -->
+  <Target Name="CopyBridge" AfterTargets="Build">
+    <MSBuild Projects="..\AcadCopilot.McpBridge\AcadCopilot.McpBridge.csproj"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)"
+             RemoveProperties="Platform;PlatformTarget;TargetFramework;RuntimeIdentifier;SelfContained">
+      <Output TaskParameter="TargetOutputs" ItemName="_AcadCopilotBridgeTarget" />
+    </MSBuild>
+    <PropertyGroup>
+      <_AcadCopilotBridgeDir>@(_AcadCopilotBridgeTarget->'%(RootDir)%(Directory)')</_AcadCopilotBridgeDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_AcadCopilotBridgeFile Include="$(_AcadCopilotBridgeDir)**\*" Exclude="$(_AcadCopilotBridgeDir)**\*.xml" />
+    </ItemGroup>
+    <Error Condition="!Exists('$(_AcadCopilotBridgeDir)AcadCopilotMcp.exe')"
+           Text="The MCP bridge was not built: $(_AcadCopilotBridgeDir)AcadCopilotMcp.exe is missing." />
+    <Copy SourceFiles="@(_AcadCopilotBridgeFile)"
+          DestinationFiles="@(_AcadCopilotBridgeFile->'$(OutDir)bridge\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

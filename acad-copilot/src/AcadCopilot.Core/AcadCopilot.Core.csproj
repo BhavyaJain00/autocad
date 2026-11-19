@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    AcadCopilot.Core: pure .NET 10 library with NO AutoCAD references and NO package references.
+    Contracts shared by the add-in, the MCP bridge and the CLI runners live here:
+      Tools/        tool definitions, results, JSON-schema validator, argument helpers
+      Ipc/          JSON-RPC 2.0 over a named pipe (PipeServer / PipeClient), discovery files
+      Interaction/  questions, plans, approvals (panel UI contracts)
+      Agents/       IAgentRunner + AgentEvent stream, ProcessRunner, CommandLocator, CLI runners
+      Panel/        ICopilotBackend (what the chat view model talks to) + CopilotBackend
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AcadCopilot.Core</RootNamespace>
+    <AssemblyName>AcadCopilot.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AcadCopilot.Core.Tests" />
+  </ItemGroup>
+
+</Project>
