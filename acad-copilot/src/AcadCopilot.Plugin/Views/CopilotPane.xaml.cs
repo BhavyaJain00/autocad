@@ -46,6 +46,25 @@ public sealed record CopilotPaneOptions
 
     /// <summary>The "Learn from me" recorder of the session; null hides the Learning bar.</summary>
     public AcadCopilot.Plugin.Learning.IUserActionRecorder? Recorder { get; init; }
+
+    /// <summary>
+    /// The drawing link for the composer's 📍 Point button and the "5 objects selected" chip
+    /// (<see cref="AcadCopilot.Plugin.Interaction.AcadDrawingInteraction"/> inside AutoCAD); null hides both.
+    /// </summary>
+    public AcadCopilot.Plugin.Interaction.IDrawingInteraction? Interaction { get; init; }
+
+    /// <summary>False hides the ⚡ quick-prompt menu.</summary>
+    public bool EnableQuickPrompts { get; init; } = true;
+
+    /// <summary>
+    /// Finds unfinished drafting jobs of the active drawing (agent A's job journal); called on the UI thread when the pane
+    /// first loads and by <see cref="CopilotPane.OfferResumableJobs"/>. Each one becomes a "Resume previous job" card.
+    /// Null = no cards.
+    /// </summary>
+    public Func<IReadOnlyList<AcadCopilot.Core.Recovery.ResumeInfo>>? ResumableJobs { get; init; }
+
+    /// <summary>Called when the user dismisses a "Resume previous job" card (forget that journal).</summary>
+    public Action<AcadCopilot.Core.Recovery.ResumeInfo>? DismissJob { get; init; }
 }
 
 /// <summary>
@@ -98,12 +117,15 @@ public partial class CopilotPane : UserControl
         var voice = options.EnableVoice ? options.Voice ?? new VoiceInputService() : null;
         var knowledge = (backend as CopilotBackend)?.Knowledge.Directory ?? AcadCopilot.Core.AppPaths.Knowledge;
         var hub = backend as ICopilotHub;
+        var quickPrompts = options.EnableQuickPrompts ? new QuickPromptsViewModel(panelSettings) : null;
         Shell = new CopilotPanelViewModel(
             hub ?? new SingleSessionHub(backend),
             session => new ChatViewModel(session, Dispatcher, filePicker, panelSettings, copilotSettings, voice)
             {
                 KnowledgeDirectory = knowledge,
                 FolderOpener = options.OpenFolder,
+                Interaction = options.Interaction,
+                QuickPrompts = quickPrompts,
             },
             canCreateTabs: hub is not null,
             recorder: options.Recorder);
@@ -112,8 +134,10 @@ public partial class CopilotPane : UserControl
         ShowSelectedTab();
 
         Composer.PreviewKeyDown += OnComposerPreviewKeyDown;
+        Composer.SelectionChanged += (_, _) => ViewModel.ComposerCaret = Composer.CaretIndex;
         PreviewKeyDown += OnPanePreviewKeyDown;
         ConversationScroll.ScrollChanged += OnConversationScrollChanged;
+        ComposerFrame.SizeChanged += (_, e) => ApplyCompactComposer(e.NewSize.Width);
         ComposerFrame.DragOver += OnComposerDragOver;
         ComposerFrame.Drop += OnComposerDrop;
         Loaded += OnLoaded;
@@ -160,8 +184,40 @@ public partial class CopilotPane : UserControl
         Theme = theme;
     }
 
+    /// <summary>
+    /// Shows a "Resume previous job" card in the tab shown for each unfinished job that
+    /// <see cref="CopilotPaneOptions.ResumableJobs"/> finds (call it after the active drawing changed). UI thread.
+    /// </summary>
+    public void OfferResumableJobs()
+    {
+        if (_options.ResumableJobs is not { } find)
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var job in find().Take(3))
+            {
+                ViewModel.ShowResumeOffer(job, _options.DismissJob);
+            }
+        }
+        catch (Exception ex)
+        {
+            CopilotLog.Warn("Could not look for unfinished jobs", ex);
+        }
+    }
+
+    private bool _offeredJobs;
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        if (!_offeredJobs)
+        {
+            _offeredJobs = true;
+            OfferResumableJobs();
+        }
+
         if (_themeTimer is not null)
         {
             FollowAcadTheme();
@@ -223,6 +279,11 @@ public partial class CopilotPane : UserControl
             _stickToBottom = true;
             ViewModel.SendCommand.Execute(null);
         }
+        else if (ViewModel.IsBusy && ViewModel.AddToQueueCommand.CanExecute(null))
+        {
+            // Enter while this chat is working: the request waits in the queue and runs next.
+            ViewModel.AddToQueueCommand.Execute(null);
+        }
     }
 
     private void OnPanePreviewKeyDown(object sender, KeyEventArgs e)
@@ -242,6 +303,21 @@ public partial class CopilotPane : UserControl
             // Esc while listening stops listening (the words stay); a second Esc stops the AI.
             e.Handled = true;
             _ = voice.StopAsync(allowAutoSend: false);
+            return;
+        }
+
+        if (e.Key == Key.Escape && ViewModel.IsQuickMenuOpen)
+        {
+            e.Handled = true;
+            ViewModel.IsQuickMenuOpen = false;
+            return;
+        }
+
+        if (e.Key == Key.Escape && ViewModel.ShowPickBanner)
+        {
+            // Esc in the panel while AutoCAD waits for a click ends the pick (as Esc in AutoCAD does).
+            e.Handled = true;
+            ViewModel.CancelPickCommand.Execute(null);
             return;
         }
 
@@ -270,7 +346,68 @@ public partial class CopilotPane : UserControl
     private void FocusComposer()
     {
         Composer.Focus();
-        Composer.CaretIndex = Composer.Text.Length;
+        Composer.CaretIndex = ViewModel.PendingComposerCaret is { } caret ? Math.Clamp(caret, 0, Composer.Text.Length) : Composer.Text.Length;
+    }
+
+    // Below this width the composer's buttons show icons only (Point, Watch, Fast), so Send / Stop always fit.
+    private const double CompactComposerWidth = 400;
+
+    private void ApplyCompactComposer(double width)
+    {
+        var labels = width > 0 && width < CompactComposerWidth ? Visibility.Collapsed : Visibility.Visible;
+        PointLabel.Visibility = labels;
+        WatchLabel.Visibility = labels;
+        FastLabel.Visibility = labels;
+    }
+
+    // Queue rows can be dragged to a new place (the grip on the left); up / down buttons do the same from the keyboard.
+    private Point _queueDragStart;
+    private QueuedRequest? _queueDragItem;
+
+    private void OnQueueGripMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        _queueDragStart = e.GetPosition(this);
+        _queueDragItem = (sender as FrameworkElement)?.DataContext as QueuedRequest;
+    }
+
+    private void OnQueueGripMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_queueDragItem is not { } item || e.LeftButton != MouseButtonState.Pressed || sender is not DependencyObject source)
+        {
+            return;
+        }
+
+        var delta = e.GetPosition(this) - _queueDragStart;
+        if (Math.Abs(delta.Y) < SystemParameters.MinimumVerticalDragDistance && Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance)
+        {
+            return;
+        }
+
+        _queueDragItem = null;
+        try
+        {
+            DragDrop.DoDragDrop(source, new DataObject(typeof(QueuedRequest), item), DragDropEffects.Move);
+        }
+        catch (InvalidOperationException ex)
+        {
+            CopilotLog.Warn("Queue drag failed", ex);
+        }
+    }
+
+    private void OnQueueRowDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(typeof(QueuedRequest)) ? DragDropEffects.Move : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void OnQueueRowDrop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(typeof(QueuedRequest)) is QueuedRequest dragged && (sender as FrameworkElement)?.DataContext is QueuedRequest target)
+        {
+            ViewModel.MoveQueued(dragged, ViewModel.Queue.IndexOf(target));
+        }
+
+        e.Handled = true;
     }
 
     private static void OnComposerDragOver(object sender, DragEventArgs e)

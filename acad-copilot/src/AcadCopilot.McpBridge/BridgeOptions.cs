@@ -11,7 +11,7 @@ public sealed record BridgeOptions
         """
         AcadCopilotMcp - MCP server (stdio) that controls Autodesk AutoCAD 2027 through the AI Copilot add-in.
 
-        Usage: AcadCopilotMcp [--pid <acadPid>] [--panel] [--session <id>] [--instances-dir <dir>] [--connect-timeout <seconds>] [--log <file>|none]
+        Usage: AcadCopilotMcp [--pid <acadPid>] [--panel] [--session <id>] [--readonly] [--instances-dir <dir>] [--connect-timeout <seconds>] [--log <file>|none]
 
           --pid <n>               Connect to the AutoCAD process <n> (default: the newest running AutoCAD with the add-in).
           --panel                 Also expose ask_user and update_plan, answered in the AI Copilot panel.
@@ -19,6 +19,9 @@ public sealed record BridgeOptions
                                   Claude Desktop / Claude Code / Codex / Gemini session.
           --session <id>          The panel chat tab this server works for (the panel passes it): questions, the task
                                   list and approvals appear in that tab, and drawing tools act on that tab's drawing.
+          --readonly              Only tools that read (drawing info, layers, entities, picture, recall_knowledge):
+                                  drawing, learning and panel tools are hidden and refused (the second-opinion
+                                  reviewer runs with it).
           --instances-dir <dir>   Folder with discovery files (default %LOCALAPPDATA%\AcadCopilot\instances).
           --connect-timeout <s>   Pipe connect timeout in seconds (default 3).
           --log <file>|none       Log file (default %LOCALAPPDATA%\AcadCopilot\logs\bridge.log).
@@ -37,6 +40,9 @@ public sealed record BridgeOptions
 
     /// <summary>Panel chat session (tab) id, sent with every call to the add-in; null = not a panel tab.</summary>
     public string? SessionId { get; init; }
+
+    /// <summary>Read-only server (second-opinion reviewer): only tools that read are listed and run.</summary>
+    public bool ReadOnly { get; init; }
 
     /// <summary>Discovery folder override (tests); null = default.</summary>
     public string? InstancesDirectory { get; init; }
@@ -67,6 +73,9 @@ public sealed record BridgeOptions
                     break;
                 case "--panel":
                     options = options with { Panel = true };
+                    break;
+                case "--readonly":
+                    options = options with { ReadOnly = true };
                     break;
                 case "--session":
                     var session = Next(args, ref i, arg);

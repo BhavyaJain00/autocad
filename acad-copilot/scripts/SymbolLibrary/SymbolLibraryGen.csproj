@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Generator of the services symbol library: writes deploy\AcadCopilot.bundle\Contents\Blocks\AcadCopilot-Services.dxf
+    from AcadCopilot.Core.Services.SymbolLibrary and checks it by parsing it back (DxfReader.Validate).
+    Run it through scripts\make-symbol-library.ps1 (build lock, isolated output). Not part of AcadCopilot.sln.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AcadCopilot.Core\AcadCopilot.Core.csproj" />
+  </ItemGroup>
+
+</Project>

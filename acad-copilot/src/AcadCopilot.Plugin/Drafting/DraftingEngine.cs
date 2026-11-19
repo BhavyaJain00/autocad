@@ -15,6 +15,22 @@ using CommandTypeFlags = Autodesk.AutoCAD.Internal.CommandTypeFlags;
 
 namespace AcadCopilot.Plugin.Drafting;
 
+/// <summary>Options of one run_commands call besides the plan.</summary>
+internal sealed record DraftingOptions
+{
+    /// <summary>Default options: self-healing on, no progress callback, no checkpoint.</summary>
+    public static DraftingOptions Default { get; } = new();
+
+    /// <summary>Apply <see cref="InputRepair"/> syntax fixes and press forgotten finishing Enters (run_commands autoFix).</summary>
+    public bool AutoFix { get; init; } = true;
+
+    /// <summary>Called on the main thread after each step that was typed through (1-based step number); for the job journal.</summary>
+    public Action<int>? StepFinished { get; init; }
+
+    /// <summary>Name of the checkpoint created before the call, reported in the result.</summary>
+    public string? Checkpoint { get; init; }
+}
+
 /// <summary>What a run_commands call produced: the report plus handle values for <see cref="ToolResult"/>.</summary>
 /// <param name="Report">The full report (ToolResult.Data).</param>
 /// <param name="Created">Handle values of objects created (capped).</param>
@@ -66,6 +82,13 @@ internal sealed record DraftingOutcome(RunCommandsReport Report, IReadOnlyList<l
 /// would split it); TEXTEVAL=0 keeps "(" literal at text prompts; and <see cref="RunWatch"/> vetoes any forbidden command
 /// AutoCAD is about to run. Dialogs are switched off (<see cref="SysvarScope"/>); one that still opens is cancelled
 /// (<see cref="DialogCloser"/>) and the call stops with its title. The user's Esc stops the call.</para>
+/// <para><b>Self-healing</b> (run_commands autoFix, default on; rules in <see cref="InputRepair"/>, pure and unit-tested):
+/// before an input is typed, typographic marks and spaces in coordinates are fixed ("10, 20" -&gt; "10,20"); when AutoCAD
+/// rejects an input and asks again, one syntax-only retry is typed at the same prompt (feet-inches or mm/m in drawing units,
+/// option keyword typos -&gt; capital letters, degree signs removed); a step still waiting at a finish prompt after its
+/// inputs gets the forgotten Enter (at most <see cref="InputRepair.MaxFinishEnters"/>); a command that still opens a
+/// dialog box is retyped as its '-' version. Every fix is reported (StepReport.AutoFixed, "Auto-fixed: ..." in the
+/// summary); nothing that changes the meaning of the geometry is ever guessed.</para>
 /// <para><b>Always restored</b> (also on errors, Stop and timeouts): a still-active command is cancelled with Esc, the
 /// UNDO Begin/End group is closed, and the system variables are put back.</para>
 /// </summary>
@@ -95,16 +118,19 @@ internal sealed class DraftingEngine
     private readonly CommandAliases _aliases;
     private readonly AcadDispatcher _dispatcher;
     private readonly CancellationToken _cancellationToken;
+    private readonly DraftingOptions _options;
     private readonly List<string> _warnings = [];
     private bool _selectionWarningLogged;
+    private int? _angleUnits;
 
-    private DraftingEngine(Document document, DraftingPlan plan, CommandAliases aliases, AcadDispatcher dispatcher, CancellationToken cancellationToken)
+    private DraftingEngine(Document document, DraftingPlan plan, CommandAliases aliases, AcadDispatcher dispatcher, DraftingOptions options, CancellationToken cancellationToken)
     {
         _document = document;
         _database = document.Database;
         _plan = plan;
         _aliases = aliases;
         _dispatcher = dispatcher;
+        _options = options;
         _cancellationToken = cancellationToken;
     }
 
@@ -165,13 +191,18 @@ internal sealed class DraftingEngine
     }
 
     /// <summary>Runs <paramref name="plan"/> in the active drawing. Main thread (inside the dispatcher).</summary>
-    public static Task<DraftingOutcome> RunAsync(DraftingPlan plan, CommandAliases aliases, AcadDispatcher dispatcher, CancellationToken cancellationToken)
+    public static Task<DraftingOutcome> RunAsync(DraftingPlan plan, CommandAliases aliases, AcadDispatcher dispatcher, CancellationToken cancellationToken) =>
+        RunAsync(plan, aliases, dispatcher, DraftingOptions.Default, cancellationToken);
+
+    /// <summary>Runs <paramref name="plan"/> in the active drawing with <paramref name="options"/>. Main thread (inside the dispatcher).</summary>
+    public static Task<DraftingOutcome> RunAsync(DraftingPlan plan, CommandAliases aliases, AcadDispatcher dispatcher, DraftingOptions options, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(aliases);
         ArgumentNullException.ThrowIfNull(dispatcher);
+        ArgumentNullException.ThrowIfNull(options);
         var document = AcadDispatcher.RequireActiveDocument();
-        return new DraftingEngine(document, plan, aliases, dispatcher, cancellationToken).RunCoreAsync();
+        return new DraftingEngine(document, plan, aliases, dispatcher, options, cancellationToken).RunCoreAsync();
     }
 
     /// <summary>
@@ -210,7 +241,24 @@ internal sealed class DraftingEngine
         var total = Stopwatch.StartNew();
         var units = ToolContext.GetUnits(_database);
         var recorders = _plan.Steps.Select(s => new StepRecorder(s)).ToList();
-        _warnings.AddRange(_plan.RewriteNotes);
+        foreach (var recorder in recorders.Where(r => r.Step.RewriteNote is not null))
+        {
+            // Self-healing at plan time: the dialog command was replaced by its command-line version.
+            var step = recorder.Step;
+            recorder.AutoFixed(InputRepair.CommandLineVersion(
+                step.RequestedCommand,
+                step.Command,
+                $"{CommandPolicy.NormalizeName(step.RequestedCommand)} opens a dialog box, palette or interactive mode; use {step.Command} yourself next time"));
+        }
+
+        try
+        {
+            _angleUnits = _database.Aunits;
+        }
+        catch (Exception ex) when (ex is Autodesk.AutoCAD.Runtime.Exception or InvalidOperationException)
+        {
+            _angleUnits = null;
+        }
 
         if (BusyReason(_document, _dispatcher) is { } busy)
         {
@@ -267,6 +315,11 @@ internal sealed class DraftingEngine
                 watch.CurrentStep = index + 1;
                 stepsRun++;
                 var stop = await RunStepAsync(recorders[index], watch, units).ConfigureAwait(true);
+                if (recorders[index].Status is StepStatus.Finished or StepStatus.LeftWaiting)
+                {
+                    ReportStepFinished(index + 1);
+                }
+
                 if (stop is not null)
                 {
                     outcome = stop.Value.Outcome;
@@ -329,6 +382,7 @@ internal sealed class DraftingEngine
             Units = units.Describe(),
             StoppedReason = stoppedReason,
             Warnings = _warnings.Count > 0 ? _warnings.Distinct().ToList() : null,
+            Checkpoint = _options.Checkpoint,
             ElapsedMs = total.ElapsedMilliseconds,
         };
         CopilotLog.Info($"run_commands '{_plan.Title}': {outcome}, {stepsRun}/{_plan.Steps.Count} steps, {report.CreatedCount} created, " +
@@ -371,6 +425,34 @@ internal sealed class DraftingEngine
             recorder.CommandTyped(step.Command);
             recorder.Status = StepStatus.Finished;
             var result = await WaitAsync(watch, timeout, historyBefore).ConfigureAwait(true);
+            if (result == WaitResult.Dialog && _options.AutoFix && DashRetry(step) is { } dash)
+            {
+                // Self-healing: the command opened a dialog box although dialogs are off. Close it and type the
+                // command-line version instead (only before any input was typed, so nothing can be answered twice).
+                var closed = await CloseDialogAsync(watch).ConfigureAwait(true);
+                if (_dispatcher.IsModal || watch.ModalDepth > 0)
+                {
+                    recorder.Status = StepStatus.Failed;
+                    recorder.Error = closed;
+                    return (RunOutcome.Stopped, $"Step {step.Number} ({step.Command}): {closed}");
+                }
+
+                if (AcadInput.IsCommandActive())
+                {
+                    await EscapeAsync(watch).ConfigureAwait(true);
+                }
+
+                CopilotLog.Info($"Drafting: {step.Command} opened a dialog ({closed}); retrying as {dash}.");
+                recorder.AutoFixed(InputRepair.CommandLineVersion(step.Command, dash, $"{step.Command} opened a dialog box, which the copilot closed; use {dash} yourself next time"));
+                historyBefore = AcadInput.History();
+                started = watch.CommandsStarted;
+                watch.UnknownCommand = null;
+                sequenceBeforeType = watch.Sequence;
+                AcadInput.Type(_document, dash + "\n", echo: true);
+                recorder.CommandTyped(dash);
+                result = await WaitAsync(watch, timeout, historyBefore).ConfigureAwait(true);
+            }
+
             var commandLines = NewLines(historyBefore);
             recorder.Messages(CommandLineText.Messages(commandLines, "Command:").Where(l => !l.StartsWith("Unknown command", StringComparison.OrdinalIgnoreCase)));
             if (result != WaitResult.Taken)
@@ -414,6 +496,12 @@ internal sealed class DraftingEngine
                 }
 
                 var prompt = AcadInput.LastPrompt();
+                if (_options.AutoFix && !AcceptsSpaces(prompt, watch, sequenceBeforeType) && InputRepair.BeforeTyping(input, prompt) is { } syntax)
+                {
+                    recorder.AutoFixed(syntax);
+                    input = syntax.Replacement;
+                }
+
                 if (CommandLineText.HasSeparator(input) && !AcceptsSpaces(prompt, watch, sequenceBeforeType))
                 {
                     recorder.Rejected(
@@ -442,6 +530,23 @@ internal sealed class DraftingEngine
                     return await StopAsync(recorder, watch, result, input, timeout).ConfigureAwait(true);
                 }
 
+                if (rejection is not null && _options.AutoFix)
+                {
+                    var retry = await RetryRejectedAsync(recorder, watch, i, input, prompt, rejection, units, timeout).ConfigureAwait(true);
+                    if (retry.Stop is { } stopped)
+                    {
+                        recorder.NotTyped(step.Inputs.Skip(i + 1), "the call stopped");
+                        return stopped;
+                    }
+
+                    if (retry.Fixed)
+                    {
+                        continue;
+                    }
+
+                    rejection = retry.Rejection ?? rejection;
+                }
+
                 if (rejection is not null)
                 {
                     recorder.Rejected(i + 1, input, prompt, rejection, CommandLineText.HintForRejection(input, prompt, rejection, units));
@@ -468,6 +573,37 @@ internal sealed class DraftingEngine
                 }
             }
 
+            for (var enters = 0; _options.AutoFix && enters < InputRepair.MaxFinishEnters && AcadInput.IsCommandActive(); enters++)
+            {
+                // Self-healing: the inputs ended without the finishing "" at a prompt where Enter only ends the command
+                // or the selection (LINE's "Specify next point", "Select objects:", TEXT's "Enter text:", -HATCH...).
+                var waitingAt = AcadInput.LastPrompt();
+                if (!InputRepair.IsFinishPrompt(waitingAt, step.CanonicalName))
+                {
+                    break;
+                }
+
+                var before = AcadInput.History();
+                AcadInput.Type(_document, "\n", echo: true);
+                recorder.Typed(waitingAt, string.Empty);
+                var entered = await WaitAsync(watch, timeout, before).ConfigureAwait(true);
+                recorder.Messages(CommandLineText.Messages(NewLines(before), waitingAt));
+                if (entered != WaitResult.Taken)
+                {
+                    return await StopAsync(recorder, watch, entered, string.Empty, timeout).ConfigureAwait(true);
+                }
+
+                recorder.AutoFixed(InputRepair.FinishEnter(waitingAt));
+                if (AcadInput.IsCommandActive())
+                {
+                    var settled = await SettleAfterInputsAsync(watch).ConfigureAwait(true);
+                    if (settled != WaitResult.Taken)
+                    {
+                        return await StopAsync(recorder, watch, settled, string.Empty, timeout).ConfigureAwait(true);
+                    }
+                }
+            }
+
             if (AcadInput.IsCommandActive())
             {
                 recorder.WaitingAt = AcadInput.LastPrompt();
@@ -481,6 +617,77 @@ internal sealed class DraftingEngine
         finally
         {
             recorder.ElapsedMs = stopwatch.ElapsedMilliseconds;
+        }
+    }
+
+    // Self-healing of a rejected input: when AutoCAD asks again (the command still waits at a prompt) and a pure syntax
+    // fix is known (InputRepair.AfterRejection), types the fixed input once at that prompt. Fixed = the retry was taken
+    // without a new rejection; Rejection = the combined message when the retry was rejected too; Stop = the wait failed.
+    private async Task<(bool Fixed, string? Rejection, (RunOutcome Outcome, string Reason)? Stop)> RetryRejectedAsync(
+        StepRecorder recorder,
+        RunWatch watch,
+        int inputIndex,
+        string input,
+        string prompt,
+        string rejection,
+        DrawingUnits units,
+        TimeSpan timeout)
+    {
+        if (!AcadInput.IsCommandActive() || InputRepair.AfterRejection(input, prompt, rejection, units, _angleUnits) is not { } fix)
+        {
+            return (false, null, null);
+        }
+
+        var promptNow = AcadInput.LastPrompt();
+        if (!CommandLineText.IsWaitingForInput(true, promptNow) || CommandLineText.HasSeparator(fix.Replacement))
+        {
+            return (false, null, null);
+        }
+
+        await PauseAsync(DraftingPace.InputDelayMs).ConfigureAwait(true);
+        var before = AcadInput.History();
+        AcadInput.Type(_document, fix.Replacement + "\n", echo: true);
+        recorder.Typed(promptNow, fix.Replacement);
+        var result = await WaitAsync(watch, timeout, before).ConfigureAwait(true);
+        var lines = NewLines(before);
+        var again = lines.Count > 0 ? CommandLineText.FindRejection(lines) : null;
+        recorder.Messages(CommandLineText.Messages(lines, promptNow).Where(l => !string.Equals(l, again, StringComparison.Ordinal)));
+        if (result != WaitResult.Taken)
+        {
+            return (false, null, await StopAsync(recorder, watch, result, fix.Replacement, timeout).ConfigureAwait(true));
+        }
+
+        if (again is null)
+        {
+            recorder.AutoFixed(fix with { Reason = $"AutoCAD rejected it ({rejection.TrimEnd('.')}); {fix.Reason}" });
+            CopilotLog.Info($"Drafting: step {recorder.Step.Number} input {inputIndex + 1} '{input}' rejected, retyped as '{fix.Replacement}'.");
+            return (true, null, null);
+        }
+
+        return (false, $"{rejection.TrimEnd('.')}; retried as '{fix.Replacement}', which AutoCAD also rejected ({again.TrimEnd('.')})", null);
+    }
+
+    // The command-line version to retype when a step's command opened a dialog box: InputRepair.DashVersion, and only
+    // when AutoCAD knows that command.
+    private string? DashRetry(PlannedStep step)
+    {
+        if (InputRepair.DashVersion(step.Command, _aliases) is not { } dash)
+        {
+            return null;
+        }
+
+        return AcadInput.CommandType(dash) is CommandTypeFlags.CoreCmd or CommandTypeFlags.ARXCmd ? dash : null;
+    }
+
+    private void ReportStepFinished(int step)
+    {
+        try
+        {
+            _options.StepFinished?.Invoke(step);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            CopilotLog.Warn("Drafting: recording step progress failed", ex);
         }
     }
 

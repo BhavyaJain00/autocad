@@ -1,12 +1,14 @@
 using System.Text.Json.Nodes;
 using AcadCopilot.Core.Drafting;
+using AcadCopilot.Core.Recovery;
 using AcadCopilot.Core.Tools;
 using AcadCopilot.Plugin.Acad;
 using AcadCopilot.Plugin.Drafting;
+using AcadCopilot.Plugin.Recovery;
 
 namespace AcadCopilot.Plugin.Tools;
 
-/// <summary>Drafting tools (run_commands, cancel_command, undo).</summary>
+/// <summary>Drafting tools (run_commands, cancel_command, undo), followed by the recovery tools (ToolRegistry.Recovery.cs).</summary>
 public sealed partial class ToolRegistry
 {
     static partial void AddDraftingTools(List<ToolSpec> tools)
@@ -15,10 +17,12 @@ public sealed partial class ToolRegistry
         tools.Add(new ToolSpec(DraftingTools.RunCommandsDefinition(), RunCommandsToolAsync));
         tools.Add(new ToolSpec(DraftingTools.CancelCommandDefinition(), CancelCommandToolAsync));
         tools.Add(new ToolSpec(DraftingTools.UndoDefinition(), UndoToolAsync));
+        AddRecoveryTools(tools);
     }
 
     // run_commands: validate -> policy (built-in + the user's acad.pgp, AutoLISP-defined commands) -> one approval for
-    // the commands that need it -> type everything visibly on AutoCAD's main thread (DraftingEngine).
+    // the commands that need it -> checkpoint (autoCheckpoint) -> job journal -> type everything visibly on AutoCAD's
+    // main thread (DraftingEngine, with self-healing unless autoFix is false).
     private static async Task<ToolResult> RunCommandsToolAsync(ToolContext context, JsonObject arguments, CancellationToken cancellationToken)
     {
         if (!RunCommandsRequest.TryParse(arguments, out var request, out var errors))
@@ -61,8 +65,42 @@ public sealed partial class ToolRegistry
             }
         }
 
+        var sessionId = RecoveryContext.SessionId;
         var outcome = await context.InvokeAsync(
-            () => DraftingEngine.RunAsync(plan, aliases, context.Dispatcher, cancellationToken),
+            async () =>
+            {
+                var document = AcadDispatcher.RequireActiveDocument();
+                string? checkpoint = null;
+                string? checkpointProblem = null;
+                if (request!.WantsCheckpoint)
+                {
+                    var (created, problem) = await CheckpointService.CreateAsync(
+                        context.Dispatcher,
+                        document,
+                        CheckpointNames.ForRun(request.Title),
+                        CheckpointOrigin.Auto,
+                        request.Title).ConfigureAwait(true);
+                    checkpoint = created?.Name;
+                    checkpointProblem = problem;
+                }
+
+                var journal = RecoveryJournal.BeginRun(sessionId, document, plan, checkpoint);
+                var options = new DraftingOptions
+                {
+                    AutoFix = request.AutoFix,
+                    Checkpoint = checkpoint,
+                    StepFinished = journal is null ? null : journal.StepFinished,
+                };
+                var result = await DraftingEngine.RunAsync(plan, aliases, context.Dispatcher, options, cancellationToken).ConfigureAwait(true);
+                journal?.End(result.Report);
+                if (checkpointProblem is not null && result.Report.Outcome != RunOutcome.Busy)
+                {
+                    var warnings = (result.Report.Warnings ?? []).Append("Checkpoint before this call: " + checkpointProblem + ".").ToList();
+                    result = result with { Report = result.Report with { Warnings = warnings } };
+                }
+
+                return result;
+            },
             cancellationToken).ConfigureAwait(false);
         return outcome.ToToolResult();
     }

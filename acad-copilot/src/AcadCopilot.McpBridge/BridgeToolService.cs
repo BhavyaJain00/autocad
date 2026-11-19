@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using AcadCopilot.Core;
+using AcadCopilot.Core.Agents;
 using AcadCopilot.Core.Diagnostics;
 using AcadCopilot.Core.Interaction;
 using AcadCopilot.Core.Ipc;
@@ -34,6 +35,10 @@ public sealed class BridgeToolService
     private readonly AcadLink _link;
     private readonly bool _panel;
     private readonly KnowledgeStore _knowledge;
+    private readonly bool _readOnly;
+    private readonly ResponseCache _cache;
+    private readonly FifoGate _acadGate = new();
+    private long _failedStages;
     private readonly Lock _cacheGate = new();
     private PipeClient? _cachedFor;
     private IReadOnlyList<ToolDefinition>? _cachedTools;
@@ -44,10 +49,14 @@ public sealed class BridgeToolService
     /// <param name="link">Connection to AutoCAD.</param>
     /// <param name="panel">Expose ask_user and update_plan (bridge launched by the panel).</param>
     /// <param name="knowledge">The knowledge base of the learning tools (default: <see cref="AppPaths.Knowledge"/>).</param>
-    public BridgeToolService(AcadLink link, bool panel, KnowledgeStore? knowledge = null)
+    /// <param name="readOnly">Only list and run tools that read (the second-opinion reviewer, bridge flag --readonly).</param>
+    /// <param name="cache">Cache of read results (default: a new one per service).</param>
+    public BridgeToolService(AcadLink link, bool panel, KnowledgeStore? knowledge = null, bool readOnly = false, ResponseCache? cache = null)
     {
         _link = link;
-        _panel = panel;
+        _panel = panel && !readOnly;
+        _readOnly = readOnly;
+        _cache = cache ?? new ResponseCache();
         _knowledge = knowledge ?? new KnowledgeStore(AppPaths.Knowledge);
         _link.ToolsChanged += _ => InvalidateCache();
     }
@@ -73,7 +82,8 @@ public sealed class BridgeToolService
         try
         {
             var client = await _link.GetClientAsync(cancellationToken).ConfigureAwait(false);
-            tools.AddRange(await GetAcadToolsAsync(client, cancellationToken).ConfigureAwait(false));
+            var acadTools = await GetAcadToolsAsync(client, cancellationToken).ConfigureAwait(false);
+            tools.AddRange(_readOnly ? acadTools.Where(t => t.Risk == ToolRisk.Read) : acadTools);
         }
         catch (Exception ex) when (ex is AcadUnavailableException or IOException or JsonRpcException)
         {
@@ -89,7 +99,7 @@ public sealed class BridgeToolService
             tools.Add(BridgeTools.UpdatePlanDefinition());
         }
 
-        tools.AddRange(KnowledgeTools.BridgeDefinitions());
+        tools.AddRange(_readOnly ? KnowledgeTools.BridgeDefinitions().Where(t => t.Risk == ToolRisk.Read) : KnowledgeTools.BridgeDefinitions());
         return tools;
     }
 
@@ -98,6 +108,11 @@ public sealed class BridgeToolService
     {
         try
         {
+            if (_readOnly && await RefuseInReadOnlyAsync(name, cancellationToken).ConfigureAwait(false) is { } refused)
+            {
+                return refused;
+            }
+
             switch (name)
             {
                 case BridgeTools.AcadStatus:
@@ -106,13 +121,12 @@ public sealed class BridgeToolService
                     return await AskUserAsync(arguments, cancellationToken).ConfigureAwait(false);
                 case BridgeTools.UpdatePlan when _panel:
                     return await UpdatePlanAsync(arguments, cancellationToken).ConfigureAwait(false);
+                case KnowledgeTools.RecallKnowledge:
+                    return await Task.Run(() => RecallKnowledge(arguments), cancellationToken).ConfigureAwait(false);
                 case var learning when KnowledgeTools.BridgeNames.Contains(learning):
                     return await Task.Run(() => ToCallResult(KnowledgeTools.Execute(_knowledge, learning, arguments)), cancellationToken).ConfigureAwait(false);
                 default:
-                    var client = await _link.GetClientAsync(cancellationToken).ConfigureAwait(false);
-                    var callId = "bridge-" + Interlocked.Increment(ref _callCounter).ToString(CultureInfo.InvariantCulture);
-                    var result = await client.CallToolAsync(name, arguments, callId, cancellationToken).ConfigureAwait(false);
-                    return ToCallResult(result);
+                    return await CallAcadAsync(name, arguments, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (AcadUnavailableException ex)
@@ -174,6 +188,175 @@ public sealed class BridgeToolService
 
         var forClient = dropped.Count == 0 ? result : result with { Images = images, Warnings = [.. result.Warnings, .. dropped] };
         return new BridgeCallResult(forClient.ToTextJson(), !result.Success) { Images = images };
+    }
+
+    /// <summary>The cache of read results (tests look at it).</summary>
+    public ResponseCache Cache => _cache;
+
+    /// <summary>True when this bridge only lists and runs tools that read (--readonly).</summary>
+    public bool IsReadOnly => _readOnly;
+
+    /// <summary>Name of the call that only fetches the drawing revision (the add-in answers an unknown tool at once, with the revision).</summary>
+    internal const string RevisionProbe = "__acad_copilot_revision";
+
+    /// <summary>The bridge's own tools that only read (allowed with --readonly).</summary>
+    private static readonly HashSet<string> ReadOnlyBridgeTools = new(StringComparer.Ordinal)
+    {
+        BridgeTools.AcadStatus, KnowledgeTools.RecallKnowledge, KnowledgeTools.ListRecordings, KnowledgeTools.ReadRecording,
+    };
+
+    /// <summary>The refusal for a tool a read-only bridge may not run, or null when it reads.</summary>
+    private async Task<BridgeCallResult?> RefuseInReadOnlyAsync(string name, CancellationToken cancellationToken)
+    {
+        if (ReadOnlyBridgeTools.Contains(name))
+        {
+            return null;
+        }
+
+        if (!BridgeTools.ReservedNames.Contains(name))
+        {
+            var client = await _link.GetClientAsync(cancellationToken).ConfigureAwait(false);
+            var tools = await GetAcadToolsAsync(client, cancellationToken).ConfigureAwait(false);
+            if (tools.FirstOrDefault(t => t.Name == name) is { Risk: ToolRisk.Read })
+            {
+                return null;
+            }
+        }
+
+        CopilotLog.Info($"Read-only bridge refused '{name}'.");
+        return new BridgeCallResult(
+            $"'{name}' is not available: this is a read-only review. You can only look at the drawing (get_drawing_info, list_layers, list_entities, get_entity, get_sysvars, capture_view, recall_knowledge). Report the problem as a finding instead.",
+            IsError: true);
+    }
+
+    /// <summary>recall_knowledge: the user's knowledge plus the matching built-in guides, cached until a knowledge file changes.</summary>
+    private BridgeCallResult RecallKnowledge(JsonObject? arguments)
+    {
+        var key = ResponseCache.Key(KnowledgeTools.RecallKnowledge, arguments);
+        var stamp = KnowledgeStamp();
+        if (_cache.TryGet(key, stamp, out var cached))
+        {
+            return ResponseCache.MarkCached(cached);
+        }
+
+        var query = arguments?["query"] is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+        var result = ToCallResult(DraftingGuides.AddTo(KnowledgeTools.Execute(_knowledge, KnowledgeTools.RecallKnowledge, arguments), query));
+        _cache.Store(key, stamp, result);
+        return result;
+    }
+
+    /// <summary>A stamp that changes whenever a knowledge file is added, removed or written.</summary>
+    private long KnowledgeStamp()
+    {
+        try
+        {
+            var directory = new DirectoryInfo(_knowledge.Directory);
+            if (!directory.Exists)
+            {
+                return 0;
+            }
+
+            long stamp = 17;
+            foreach (var file in directory.EnumerateFiles("*", SearchOption.AllDirectories))
+            {
+                stamp = unchecked((stamp * 31) + file.LastWriteTimeUtc.Ticks + file.Length + StringComparer.OrdinalIgnoreCase.GetHashCode(file.FullName));
+            }
+
+            return stamp;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return DateTime.UtcNow.Ticks; // unknown: never a cache hit
+        }
+    }
+
+    /// <summary>
+    /// An AutoCAD tool call. All of this bridge's AutoCAD calls pass a FIFO gate, so calls the CLI sends together (the next
+    /// run_commands stage queued behind the current one) reach AutoCAD in order, one at a time; a run_commands that waited
+    /// behind a run_commands that failed is skipped, so a queued stage never builds on a broken one. Read results of
+    /// <see cref="ResponseCache.DrawingTools"/> are served from the cache while the drawing revision is unchanged; every
+    /// other call clears those entries.
+    /// </summary>
+    private async Task<BridgeCallResult> CallAcadAsync(string name, JsonObject? arguments, CancellationToken cancellationToken)
+    {
+        var failedBefore = Interlocked.Read(ref _failedStages);
+        var isStage = name == AcadCopilot.Core.Drafting.DraftingTools.RunCommands;
+        using var turn = await _acadGate.EnterAsync(cancellationToken).ConfigureAwait(false);
+        if (isStage && Interlocked.Read(ref _failedStages) > failedBefore)
+        {
+            Interlocked.Increment(ref _failedStages);
+            var title = arguments?["title"] is JsonValue titleValue && titleValue.TryGetValue<string>(out var t) ? $" '{t}'" : string.Empty;
+            CopilotLog.Info($"Queued run_commands{title} skipped: a run_commands sent before it failed.");
+            return new BridgeCallResult(
+                ToolResult.Fail($"Skipped: this queued run_commands{title} was not typed because a run_commands call sent before it failed. Look at that result and the drawing (capture_view), fix the failed stage, then send this stage again.").ToJson(),
+                IsError: true);
+        }
+
+        var client = await _link.GetClientAsync(cancellationToken).ConfigureAwait(false);
+        var cacheable = ResponseCache.DrawingTools.Contains(name);
+        var key = cacheable ? ResponseCache.Key(name, arguments) : null;
+        if (key is not null && _cache.Has(key))
+        {
+            var revision = await ProbeRevisionAsync(client, cancellationToken).ConfigureAwait(false);
+            if (revision is { } current && _cache.TryGet(key, current, out var cached))
+            {
+                return ResponseCache.MarkCached(cached);
+            }
+        }
+
+        if (!cacheable && !IsKnownReadTool(name))
+        {
+            // Anything else may change the drawing, the view or the current layer: start over.
+            _cache.InvalidateDrawing();
+        }
+
+        var callId = "bridge-" + Interlocked.Increment(ref _callCounter).ToString(CultureInfo.InvariantCulture);
+        ToolResult result;
+        try
+        {
+            result = await client.CallToolAsync(name, arguments, callId, cancellationToken).ConfigureAwait(false);
+        }
+        catch when (isStage)
+        {
+            Interlocked.Increment(ref _failedStages);
+            throw;
+        }
+
+        if (isStage && !result.Success)
+        {
+            Interlocked.Increment(ref _failedStages);
+        }
+
+        var callResult = ToCallResult(result);
+        if (key is not null && result.Success)
+        {
+            _cache.Store(key, result.Revision, callResult);
+        }
+
+        return callResult;
+    }
+
+    private bool IsKnownReadTool(string name)
+    {
+        lock (_cacheGate)
+        {
+            return _cachedTools?.FirstOrDefault(t => t.Name == name) is { Risk: ToolRisk.Read };
+        }
+    }
+
+    /// <summary>The add-in's drawing revision now, or null when it could not be read.</summary>
+    private async Task<long?> ProbeRevisionAsync(PipeClient client, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var probe = await client.CallToolAsync(RevisionProbe, null, "bridge-revision", cancellationToken).ConfigureAwait(false);
+            return probe.Revision;
+        }
+        catch (Exception ex) when (ex is IOException or JsonRpcException)
+        {
+            CopilotLog.Info("Revision probe failed: " + ex.Message);
+            return null;
+        }
     }
 
     private async Task<IReadOnlyList<ToolDefinition>> GetAcadToolsAsync(PipeClient client, CancellationToken cancellationToken)

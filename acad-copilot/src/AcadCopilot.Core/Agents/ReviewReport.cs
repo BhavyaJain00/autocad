@@ -103,6 +103,7 @@ public sealed partial record ReviewReport
     {
         var raw = (text ?? string.Empty).Trim();
         string? summary = null;
+        string? firstLine = null;
         var findings = new List<ReviewFinding>();
         foreach (var rawLine in raw.Split('\n'))
         {
@@ -122,9 +123,9 @@ public sealed partial record ReviewReport
             var item = ListItem().Match(line);
             if (!item.Success)
             {
-                if (summary is null && findings.Count == 0 && !line.StartsWith('#'))
+                if (firstLine is null && findings.Count == 0 && !line.StartsWith('#'))
                 {
-                    summary = Clean(line);
+                    firstLine = Clean(line);
                 }
 
                 continue;
@@ -154,7 +155,7 @@ public sealed partial record ReviewReport
         {
             Reviewer = reviewer,
             ReviewerName = reviewerName,
-            Summary = summary ?? (findings.Count == 0 ? "No problems found." : $"{findings.Count} finding(s)."),
+            Summary = summary ?? firstLine ?? (findings.Count == 0 ? "No problems found." : $"{findings.Count} finding(s)."),
             Findings = [.. findings.OrderBy(f => f.Severity)],
             RawText = raw,
         };

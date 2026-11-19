@@ -33,11 +33,11 @@ if (!string.Equals(options.LogFile, "none", StringComparison.OrdinalIgnoreCase))
     CopilotLog.Initialize(options.LogFile ?? Path.Combine(AppPaths.Logs, "bridge.log"));
 }
 
-CopilotLog.Info($"Bridge {BridgeServer.Version} starting (pid {Environment.ProcessId}, target pid {options.Pid?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "newest"}, panel {options.Panel}, session {options.SessionId ?? "none"}).");
+CopilotLog.Info($"Bridge {BridgeServer.Version} starting (pid {Environment.ProcessId}, target pid {options.Pid?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "newest"}, panel {options.Panel}, read-only {options.ReadOnly}, session {options.SessionId ?? "none"}).");
 try
 {
     await using var link = new AcadLink(options);
-    var service = new BridgeToolService(link, options.Panel);
+    var service = new BridgeToolService(link, options.Panel, readOnly: options.ReadOnly);
     var transport = new StdioServerTransport(BridgeServer.ServerName);
     await using var server = BridgeServer.Create(transport, service, link);
     await server.RunAsync(CancellationToken.None);

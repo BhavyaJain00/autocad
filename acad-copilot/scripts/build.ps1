@@ -311,7 +311,9 @@ $writer = [System.Xml.XmlWriter]::Create($manifestTarget, $settings)
 try { $manifest.Save($writer) } finally { $writer.Dispose() }
 
 Write-Step 'Checking the bundle'
-foreach ($required in @('AcadCopilot.Plugin.dll', 'AcadCopilot.Core.dll', 'bridge\AcadCopilotMcp.exe', 'bridge\AcadCopilotMcp.dll', 'bridge\AcadCopilotMcp.runtimeconfig.json')) {
+# Blocks\AcadCopilot-Services.dxf: the electrical / plumbing symbol library (bundle template; regenerate it with
+# scripts\make-symbol-library.ps1, a Core test fails when it is out of date).
+foreach ($required in @('AcadCopilot.Plugin.dll', 'AcadCopilot.Core.dll', 'bridge\AcadCopilotMcp.exe', 'bridge\AcadCopilotMcp.dll', 'bridge\AcadCopilotMcp.runtimeconfig.json', 'Blocks\AcadCopilot-Services.dxf')) {
     if (-not (Test-Path -LiteralPath (Join-Path $contents $required))) { throw "Bundle is missing Contents\$required" }
 }
 

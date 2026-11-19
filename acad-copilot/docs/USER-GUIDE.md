@@ -329,6 +329,37 @@ same time**, so you can let one tab draw the ground floor while another works ou
 
 ---
 
+## 6c. Point, select, queue and quick prompts
+
+**Point at the drawing (📍 Point).** Click **Point** in the message box, then click one or more points in the drawing
+(object snaps work; Enter when done, Esc cancels). Each point goes into your message where the cursor was, for example
+`Put the kitchen here [point 12'-6",30'-0" (150,360)]` (feet-inches, then drawing units). While AutoCAD waits for your
+click, a blue bar above the message box says so, with **Cancel**. If another chat is typing into AutoCAD, the click waits
+for its turn. The AI can ask you for a click too ("Click where the kitchen should go"): the same bar shows its question
+and the command line shows the prompt.
+
+**Select and ask.** Select objects in the drawing the normal way (click them, or a window), then type your request.
+The message box shows a chip **5 objects selected · goes with your message**; the message then carries their handles
+and a short description, so you can say *"make these walls 9 inch"* or *"what is this?"*. Click **x** on the chip to
+leave the selection out. The AI can also read your selection itself and select objects to show you what it means.
+
+**Queue.** While a chat is working, type the next request and press **Enter** (or the queue button next to Stop): it
+waits in **Queue (n)** above the message box and starts by itself when the current answer is done, one after another.
+Drag a row by its grip (or use the arrows) to change the order, **x** removes one, **Clear** removes all. **Stop**
+pauses the queue (so does a failed answer); **Resume** continues it.
+
+**Quick prompts (⚡).** The lightning button opens ready-made requests: *30x40 G+1 standard plan*, *Add dimensions*,
+*Review this plan* (a second AI checks the drawing), *Learn my style from this drawing*, *Plot to PDF*. A click puts the
+text in the message box so you can change it before sending. **Save current message as a quick prompt** keeps your own
+requests (edit with the pencil, delete with the bin); they are kept on this PC (`panel.json`).
+
+**AI behaviour** (Settings): *Ask before drawing* (room schedule and "Shall I draw this?" first), *Switch AI when one
+stops* (another signed-in AI continues the job when one hits its limit), *Second opinion after each drawing* (a review
+card lists what to fix, with **Fix these**), *Tutor mode* (one short line per AutoCAD command it uses). When AutoCAD
+closed in the middle of a job, the panel offers **Resume previous job** for that drawing.
+
+---
+
 ## 7. What needs your approval, and what it cannot do
 
 The AI asks first, with an **Approval needed** card in the panel (**Approve** / **Reject**), before it runs commands

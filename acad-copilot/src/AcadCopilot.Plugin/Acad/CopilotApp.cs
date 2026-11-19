@@ -200,6 +200,9 @@ public sealed class CopilotApp : IExtensionApplication
         {
             // The knowledge folder exists from the start, so the user can find and edit it.
             _backend.Knowledge.EnsureCreated();
+
+            // Built-in recipes (electrical / plumbing first drafts, colour presentation elevation); never overwrites the user's edits.
+            AcadCopilot.Core.Learning.BuiltInKnowledge.Seed(_backend.Knowledge.Directory);
         }
         catch (System.Exception ex)
         {

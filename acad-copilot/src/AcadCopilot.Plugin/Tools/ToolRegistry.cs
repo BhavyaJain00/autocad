@@ -77,6 +77,8 @@ public sealed partial class ToolRegistry
         AddDraftingTools(tools);
         AddInspectTools(tools);
         AddLearningTools(tools);
+        AddInteractionTools(tools); // ToolRegistry.Interaction.cs: pick_point, get_selection, select_objects
+        AddServicesTools(tools); // ToolRegistry.Services.cs: symbol library, services legend, presentation fills, PNG export
         return new ToolRegistry(tools);
     }
 

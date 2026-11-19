@@ -41,6 +41,7 @@ docs/USER-GUIDE.md section 9).
 | CLIs | The runners were verified live with Claude Code and Codex CLI in the Revit version. Gemini CLI on this PC is in "API key" mode without a key: not verified live. |
 | Chat tabs (2026-11-18) | Several conversations in parallel, one per tab, each bound to a drawing; drawing actions take turns in AutoCAD (see "Chat tabs" below). Tested without AutoCAD (queue, sessions, routing over the real pipe, bridge `--session`, view models, off-screen renders `artifacts\ui\11-chat-tabs-*.png`, `12-close-working-tab-*.png`). Binding to a document and switching the active document are compile-verified only. |
 | Plain AutoCAD 2027 + learning (2026-11-19) | Retargeted from AutoCAD Architecture (removed from this PC) to plain AutoCAD 2027: manifest `Platform="AutoCAD\|AutoCAD*"`, no AEC references anywhere (the plug-in references only `acmgd`, `acdbmgd`, `accoremgd`, `AdWindows`), product detection via `AcadProduct`, instructions without Architecture objects unless the host is AutoCAD Architecture. Continuous learning (see "Learning"): Core 619 and bridge 67 tests green, including the learning tools through the built `AcadCopilotMcp.exe`. `learn_style_from_drawing` and the product detection inside AutoCAD are compile-verified only. |
+| Composer helpers (2026-11-19) | **Point** (click points in the drawing, `[point 12'-6",30'-0" (150,360)]` goes into the message; `Plugin/Interaction/AcadDrawingInteraction.cs` runs `Editor.GetPoint` inside `DocumentCollection.ExecuteInCommandContextAsync`, waits for its turn in the AutoCAD queue), **selection chip** (pickfirst selection via `Document.ImpliedSelectionChanged` + `Editor.SelectImplied`; the message carries handles + short summaries), **task queue** per tab (Enter while busy queues; drag / arrows reorder; Stop or a failure pauses, Resume continues), **quick prompts** (built-ins + the user's own in `panel.json`), Settings **AI behaviour** switches (agent B's `ICopilotAssist.Features`), **review card** with Fix these (`ReviewCompleted`), **switch notice** (`ProviderSwitched`), **Resume previous job** card (agent A's `JobJournalStore.FindUnfinished`, wired in `PaletteHost`). UI 222 tests green, renders `artifacts\ui\16-*` .. `19-*.png`. The AutoCAD side (picking, selection events, `pick_point` / `get_selection` / `select_objects` bodies) is compile-verified only. |
 | Learn from me (2026-11-19) | Recorder of the user's own manual work (see "Learn from me" below): Core 642, bridge 68, UI 196 tests green (recording model, steps, Markdown, caps, copilot actions ignored, `list_recordings` / `read_recording` also through the built `AcadCopilotMcp.exe`, Learning bar renders `artifacts\ui\15-learn-from-me-*.png`). The AutoCAD event capture (`Plugin/Learning/ActionRecorder.cs`) is compile-verified only. |
 | **Compile-verified only (needs AutoCAD)** | Everything that runs inside AutoCAD: loading from the bundle, the palette and ribbon tab, the main-thread dispatcher, `run_commands` (typing, prompts, undo grouping, approvals), `capture_view` and the other inspect tools, `COPILOT` / `COPILOTSTATUS`. None of it has run inside AutoCAD yet. |
 
@@ -100,6 +101,9 @@ powershell -ExecutionPolicy Bypass -File scripts\install.ps1
     workspace\                   private working folders of the CLIs (claude\, codex\, gemini ...)
     knowledge\                   what the AI learned: rules.md, style.md, lessons.md, recipes\*.md (user-editable),
                                  recordings\*.md ("Learn from me": the user's own manual work)
+    checkpoints\<drawing>_<hash>\ copies of the drawing per checkpoint (*.dwg) + index.json; max 20 per drawing, 7 days
+    journal\<session>.json       job journal per chat session (or "drawing-<drawing>_<hash>"): plan tasks, run_commands
+                                 calls and finished steps, drawing path, AutoCAD pid; deleted after 7 days
     settings.json                selected provider + model per provider (no secrets)
 ```
 
@@ -124,7 +128,14 @@ started with `DOTNET_ROOT` set to the runtime AutoCAD itself runs on. Override i
 | `recall_knowledge` | Read | bridge (`Core/Learning/KnowledgeTools.cs`) | `{query?, kinds?, limit?}` keyword search over rules, style, recipes (with steps) and lessons; empty query = overview |
 | `remember_rule`, `save_recipe`, `save_lesson`, `forget` | Write (no approval) | bridge (`Core/Learning/KnowledgeTools.cs`) | write / remove items in the knowledge files (see "Learning") |
 | `learn_style_from_drawing` | Write (no approval; only reads the drawing) | `Tools/ToolRegistry.Learning.cs` | reads the active drawing's layers, text, dimension styles, walls, door swings, blocks, hatches into `style.md` |
+| `create_checkpoint` | Write | `Tools/ToolRegistry.Recovery.cs` | `{name}`: an AutoCAD UNDO mark plus a copy of the drawing in `checkpoints\` (see "Self-healing, checkpoints, crash recovery") |
+| `list_checkpoints` | Read | `Tools/ToolRegistry.Recovery.cs` | checkpoints of the active drawing, newest first, with how each can be restored (`undo`, `file`, `undo+file`) |
+| `restore_checkpoint` | Destructive (approval) | `Tools/ToolRegistry.Recovery.cs` | `{name, fromFile?}`: UNDO Back to the checkpoint's mark, verified after every Back (REDO/MREDO when it does not match); `fromFile` replaces model space with the saved copy |
+| `get_resume_info` | Read | `Tools/ToolRegistry.Recovery.cs` | what an unfinished job on the active drawing finished and what remains (job journal), the interrupted call's steps, its checkpoint, what to do next |
 | `list_recordings`, `read_recording` | Read | bridge (`Core/Learning/KnowledgeTools.cs`) | the user's "Learn from me" recordings in `knowledge\recordings\` (newest first; `read_recording {name?, offset?, maxCharacters?}` in parts of at most 60,000 characters, names resolved only inside that folder) |
+| `pick_point` | Write (takes a turn; changes nothing) | `Tools/ToolRegistry.Interaction.cs` | `{prompt, count? 1-20, timeoutSeconds? 5-600}`: asks the USER to click points (prompt in the command line and a banner in the panel; Enter finishes, Esc cancels / fails); returns WCS points with feet-inches |
+| `get_selection` | Read | `Tools/ToolRegistry.Interaction.cs` | `{which? auto/current/last, limit?}`: the user's pickfirst selection (or the last one), counts by type / layer, `EntitySummary` per object |
+| `select_objects` | Write (takes a turn; changes nothing) | `Tools/ToolRegistry.Interaction.cs` | `{handles[]}`: selects + highlights objects for the user (grips), `[]` clears |
 
 `get_drawing_info` also returns `product` ("AutoCAD 2027" for plain AutoCAD, the vertical's name otherwise) and
 `architectureObjects` (true only in AutoCAD Architecture / MEP).
@@ -146,6 +157,39 @@ Every `run_commands` step is checked before anything is typed. Command names are
   PUBLISH, ETRANSMIT, PURGE, LAYDEL, LAYMRG, AUDIT, ERASE with `ALL`.
 - **Dialog commands** are replaced by their command-line versions (LAYER -> -LAYER, HATCH -> -HATCH, STYLE -> -STYLE
   ...). Dialog-only commands are refused, with what to use instead.
+
+### Self-healing, checkpoints, crash recovery
+
+- **Self-healing** (`Core/Drafting/InputRepair.cs`, pure, unit-tested; applied in `Plugin/Drafting/DraftingEngine.cs`;
+  `run_commands {autoFix: false}` turns it off). Syntax only, never a guess about geometry, each fix listed as
+  "Auto-fixed: ..." in the result: before typing, Unicode minus/quote marks and spaces in coordinates ("10, 20",
+  "10 20" at a point prompt, `12'-6 1/2"`); after AutoCAD rejects an input and asks again, ONE retry with feet-inches
+  or mm/cm/m converted to drawing units when LUNITS is not 3/4 and INSUNITS gives the scale (never when a bare number in
+  the same coordinate would be ambiguous), a misspelt / bracketed / non-capital option keyword typed as its capital
+  letters (only when exactly one option fits), a degree sign removed (AUNITS 0); the forgotten finishing Enter at
+  finish prompts only (LINE/PLINE/SPLINE next point, `Select objects:`, `Enter text:`, -HATCH internal point,
+  TRIM/EXTEND, `<Exit>` defaults, -LAYER/-LINETYPE main prompt, DIMCONTINUE/DIMBASELINE; never where Enter accepts
+  another `<default>`); a command that still opens a dialog retyped as its `-` version when AutoCAD knows it. The
+  plan-time LAYER -> -LAYER rewrites are reported the same way.
+- **Checkpoints** (`Core/Recovery/Checkpoints.cs`, `CheckpointStore.cs`; `Plugin/Recovery/CheckpointService.cs`). A
+  checkpoint is an AutoCAD `UNDO Mark` (exact restore while the drawing stays open: handles, layers, styles, paper
+  space) plus a `Database.Wblock()` copy saved to `checkpoints\` (survives a crash; never the user's file). Marks are
+  anonymous, so the copilot keeps its own mark stack with a fingerprint (entities by handle, layer count) per mark;
+  `restore_checkpoint` types `UNDO Back` once per mark and checks the fingerprint after every Back, skips marks that U
+  already used up, answers No to "This will undo everything", and on any mismatch reverses with REDO/MREDO so nothing
+  is lost. `fromFile` (only on request, after a restart) erases model space and inserts the copy's model space
+  (`Database.Insert`; new handles, current layouts/layers kept) inside one undo group, after a safety checkpoint of the
+  current state. `run_commands` creates "before: <title>" automatically for calls of 10+ steps (`autoCheckpoint`).
+- **Crash recovery** (`Core/Recovery/JobJournal*.cs`, `ResumeInfo.cs`; `Plugin/Recovery/`). Every `run_commands` call is
+  journaled before typing and after each finished step (atomic writes), with the checkpoint made for it; plan tasks are
+  journaled when the pipe handler forwards `update_plan` (`RecoveryHooks.PlanUpdated`). `get_resume_info` reads the
+  journals of the active drawing: tasks done/remaining, the interrupted call (steps typed / not typed), its checkpoint
+  and advice. `ResumeMonitor` (start-up and every opened drawing) exposes the newest unfinished job of an AutoCAD session
+  that has ended as `CurrentOffer` / `OfferChanged` for a "Resume previous job" card; `Dismiss(session)` retires it, and
+  a new plan on the same drawing retires older ended jobs. Journals and checkpoint copies older than 7 days are deleted
+  once per session.
+- Compile-verified only (needs AutoCAD): the engine integration, UNDO Mark/Back/REDO/MREDO, Wblock/SaveAs/Insert, the
+  monitor's document events. The pure rules, catalog, store, journal and resume text are unit-tested.
 
 ### System instructions (`src/AcadCopilot.Core/Agents/CopilotInstructions.cs`)
 

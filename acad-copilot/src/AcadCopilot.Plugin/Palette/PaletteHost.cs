@@ -79,7 +79,13 @@ public sealed class PaletteHost : IDisposable
 
         var firstRun = _store.IsFirstRun;
         _state = _store.Load();
-        _pane = new CopilotPane(_backend, new CopilotPaneOptions { Recorder = _recorder });
+        _pane = new CopilotPane(_backend, new CopilotPaneOptions
+        {
+            Recorder = _recorder,
+            Interaction = CreateInteraction(),
+            ResumableJobs = FindUnfinishedJobs,
+            DismissJob = job => Core.Recovery.JobJournalStore.CreateDefault().Dismiss(job.Session),
+        });
         var paletteSet = new PaletteSet(Title, PaletteId)
         {
             Style = PaletteSetStyles.ShowCloseButton | PaletteSetStyles.ShowAutoHideButton | PaletteSetStyles.ShowPropertiesMenu,
@@ -109,6 +115,36 @@ public sealed class PaletteHost : IDisposable
         {
             CopilotLog.Info("Palette created hidden (it was closed last time).");
         }
+    }
+
+    // "Click to point" and "select and ask" (Interaction/AcadDrawingInteraction): the composer's Point button and selection
+    // chip; panel picks wait for their turn in the chats' AutoCAD queue. Null (buttons hidden) when it cannot start.
+    private Interaction.IDrawingInteraction? CreateInteraction()
+    {
+        try
+        {
+            return Acad.CopilotApp.Current?.Dispatcher is { } dispatcher
+                ? Interaction.AcadDrawingInteraction.GetOrCreate(dispatcher, _backend.DrawingQueue)
+                : null;
+        }
+        catch (Exception ex)
+        {
+            CopilotLog.Warn("Click-to-point and the selection chip are not available", ex);
+            return null;
+        }
+    }
+
+    // "Resume previous job" cards: unfinished jobs of the active drawing left by an AutoCAD session that ended (job journal).
+    private static IReadOnlyList<Core.Recovery.ResumeInfo> FindUnfinishedJobs()
+    {
+        var document = Autodesk.AutoCAD.ApplicationServices.Core.Application.DocumentManager.MdiActiveDocument;
+        if (document is null)
+        {
+            return [];
+        }
+
+        var drawing = new Core.Recovery.JournalDrawing(document.Name, System.IO.Path.GetFileName(document.Name), document.IsNamedDrawing);
+        return Core.Recovery.JobJournalStore.CreateDefault().FindUnfinished(drawing, otherSessionsOnly: true);
     }
 
     /// <summary>Shows the palette (creating it if needed).</summary>

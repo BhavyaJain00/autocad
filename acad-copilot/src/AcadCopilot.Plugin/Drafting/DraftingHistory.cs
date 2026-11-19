@@ -113,6 +113,17 @@ internal sealed class DraftingHistory
     /// <summary>Forgets a call (after it was undone).</summary>
     public void Remove(RunRecord record) => _runs.Remove(record);
 
+    /// <summary>
+    /// Forgets the calls on <paramref name="database"/> that ended after <paramref name="utc"/> (a checkpoint restore took
+    /// them back); returns how many.
+    /// </summary>
+    public int ForgetAfter(Database database, DateTime utc)
+    {
+        ArgumentNullException.ThrowIfNull(database);
+        var key = database.UnmanagedObject;
+        return _runs.RemoveAll(r => r.Database == key && r.EndedUtc > utc);
+    }
+
     private void OnObjectChanged(object? sender, ObjectEventArgs e) => Count(sender, e.DBObject);
 
     private void OnObjectErased(object? sender, ObjectErasedEventArgs e) => Count(sender, e.DBObject);

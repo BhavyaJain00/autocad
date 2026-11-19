@@ -404,6 +404,22 @@ public sealed class CopilotPanelViewModel : ObservableObject, IDisposable
                 }
 
                 break;
+            case nameof(ChatViewModel.AutoSwitchProvider) or nameof(ChatViewModel.AskBeforeDrawing) or nameof(ChatViewModel.AutoReview) or nameof(ChatViewModel.TutorMode) when !_syncing:
+                // The switches are shared by every tab (one backend setting): show the new value everywhere.
+                _syncing = true;
+                try
+                {
+                    foreach (var tab in Tabs.Where(t => !ReferenceEquals(t, changed)))
+                    {
+                        tab.RefreshFeatures();
+                    }
+                }
+                finally
+                {
+                    _syncing = false;
+                }
+
+                break;
             case nameof(ChatViewModel.Title) when ReferenceEquals(changed, PendingClose):
                 OnPropertyChanged(nameof(PendingCloseText));
                 break;
@@ -456,7 +472,8 @@ internal sealed class SingleSessionHub : ICopilotHub
 
     public SingleSessionHub(ICopilotBackend backend)
     {
-        _session = new SingleSession(backend);
+        // A backend with the assistant switches keeps them visible through the wrapper.
+        _session = backend is ICopilotAssist assist ? new AssistSingleSession(backend, assist) : new SingleSession(backend);
     }
 
     public event EventHandler? SessionsChanged
@@ -485,7 +502,24 @@ internal sealed class SingleSessionHub : ICopilotHub
     {
     }
 
-    private sealed class SingleSession(ICopilotBackend backend) : ICopilotSession
+    private sealed class AssistSingleSession(ICopilotBackend backend, ICopilotAssist assist) : SingleSession(backend), ICopilotAssist
+    {
+        public CopilotFeatures Features
+        {
+            get => assist.Features;
+            set => assist.Features = value;
+        }
+
+        public bool EmitNoticesAsText
+        {
+            get => assist.EmitNoticesAsText;
+            set => assist.EmitNoticesAsText = value;
+        }
+
+        public IAsyncEnumerable<AgentEvent> ReviewAsync(string? focus, CancellationToken cancellationToken) => assist.ReviewAsync(focus, cancellationToken);
+    }
+
+    private class SingleSession(ICopilotBackend backend) : ICopilotSession
     {
         public event EventHandler? StateChanged
         {

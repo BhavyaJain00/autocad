@@ -530,7 +530,13 @@ internal sealed class GeminiStreamParser : CliStreamParser
                 if (!string.IsNullOrWhiteSpace(message))
                 {
                     _lastError = message;
-                    CopilotLog.Info($"Gemini CLI {CliText.Str(json, "severity") ?? "error"}: {message}");
+                    var severity = CliText.Str(json, "severity") ?? "error";
+                    CopilotLog.Info($"Gemini CLI {severity}: {message}");
+                    if (severity == "error" && CliText.IsHardLimit(message))
+                    {
+                        // The account's quota is used up (not a short 429 burst it retries): end the turn now.
+                        events.Add(CliText.Failure(Profile, message, AgentFailureKind.RateLimited));
+                    }
                 }
 
                 break;

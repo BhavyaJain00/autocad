@@ -17,8 +17,11 @@ namespace AcadCopilot.Core.Panel;
 /// </para>
 /// Contains no AutoCAD code, so it is unit-tested directly.
 /// </summary>
-public sealed class CopilotBackend : ICopilotBackend, ICopilotHub
+public sealed class CopilotBackend : ICopilotBackend, ICopilotHub, ICopilotAssist
 {
+    /// <summary>Longest wait for one provider's status while choosing who takes over a job or reviews.</summary>
+    internal static readonly TimeSpan StatusProbeTimeout = TimeSpan.FromSeconds(20);
+
     /// <summary>Default for the most chats that may run at once (each runs its own CLI process; RAM is limited).</summary>
     public const int DefaultMaxRunningSessions = 4;
 
@@ -32,6 +35,7 @@ public sealed class CopilotBackend : ICopilotBackend, ICopilotHub
     private AcadSessionInfo _acad;
     private CopilotSession? _active;
     private int _running;
+    private volatile bool _emitNoticesAsText = true;
 
     /// <summary>Creates the backend.</summary>
     /// <param name="runners">One runner per provider (display order).</param>
@@ -116,7 +120,123 @@ public sealed class CopilotBackend : ICopilotBackend, ICopilotHub
     /// The system instructions of the next turn: the drafting instructions for the host product plus the current
     /// "WHAT YOU HAVE LEARNED" digest (read fresh, so what the AI saved last turn applies now).
     /// </summary>
-    public string BuildInstructions() => CopilotInstructions.Compose(Acad.Product, KnowledgeDigest.Build(Knowledge));
+    public string BuildInstructions() => BuildInstructions(Features.TurnOptions);
+
+    /// <summary>The drafting instructions of the next turn with the given per-turn switches (tutor mode, ask before drawing).</summary>
+    public string BuildInstructions(TurnOptions options) => CopilotInstructions.Compose(Acad.Product, KnowledgeDigest.Build(Knowledge), options);
+
+    /// <summary>
+    /// The second-opinion reviewer's instructions: <see cref="CopilotInstructions.Reviewer"/> plus the user's learned rules
+    /// and style (the digest), within <see cref="CopilotInstructions.MaxComposedLength"/>.
+    /// </summary>
+    public string BuildReviewerInstructions()
+    {
+        var text = CopilotInstructions.Reviewer;
+        var learned = KnowledgeDigest.Build(Knowledge);
+        if (!string.IsNullOrWhiteSpace(learned))
+        {
+            var room = CopilotInstructions.MaxComposedLength - text.Length - 2;
+            text += "\n\n" + (learned.Length <= room ? learned : learned[..Math.Max(0, room - 3)] + "...");
+        }
+
+        return text;
+    }
+
+    /// <inheritdoc />
+    public CopilotFeatures Features
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _settings.Features;
+            }
+        }
+
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            var normalized = value with { ProviderOrder = CopilotFeatures.NormalizeOrder(value.ProviderOrder) };
+            lock (_gate)
+            {
+                if (_settings.Features.SameAs(normalized))
+                {
+                    return;
+                }
+
+                _settings = _settings.With(normalized);
+            }
+
+            // Only the feature values are written, on top of the file (other writers own other values).
+            _settingsStore.Update(s => s.With(normalized));
+            RaiseStateChanged();
+            foreach (var session in SessionList())
+            {
+                session.RaiseStateChanged();
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public bool EmitNoticesAsText
+    {
+        get => _emitNoticesAsText;
+        set => _emitNoticesAsText = value;
+    }
+
+    /// <inheritdoc />
+    public IAsyncEnumerable<AgentEvent> ReviewAsync(string? focus, CancellationToken cancellationToken) =>
+        DefaultSession.ReviewAsync(focus, cancellationToken);
+
+    /// <summary>
+    /// The provider that takes over a job: the first of <paramref name="order"/> (then the remaining runners) that has a
+    /// runner, was not <paramref name="tried"/> yet and is installed and not signed out. Null when there is none.
+    /// </summary>
+    internal async Task<ProviderId?> FindNextProviderAsync(IReadOnlyList<ProviderId> order, IReadOnlyCollection<ProviderId> tried, CancellationToken cancellationToken)
+    {
+        foreach (var candidate in CopilotFeatures.NormalizeOrder(order))
+        {
+            if (tried.Contains(candidate) || !_runnersById.ContainsKey(candidate))
+            {
+                continue;
+            }
+
+            if (await IsUsableAsync(candidate, cancellationToken).ConfigureAwait(false))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The reviewer for a chat working with <paramref name="current"/>: preferably another usable provider (a real second
+    /// opinion), else <paramref name="current"/> itself in a fresh session.
+    /// </summary>
+    internal async Task<ProviderId> PickReviewerAsync(ProviderId current, IReadOnlyList<ProviderId> order, CancellationToken cancellationToken) =>
+        await FindNextProviderAsync(order, [current], cancellationToken).ConfigureAwait(false) ?? current;
+
+    private async Task<bool> IsUsableAsync(ProviderId provider, CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(StatusProbeTimeout);
+        try
+        {
+            var status = await Runner(provider).GetStatusAsync(timeout.Token).ConfigureAwait(false);
+            return status.IsUsable;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            CopilotLog.Warn($"{provider}: the status check did not answer in time; not used for a takeover.");
+            return false;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            CopilotLog.Warn($"{provider}: the status check failed; not used for a takeover", ex);
+            return false;
+        }
+    }
 
     /// <inheritdoc />
     public IReadOnlyList<ICopilotSession> Sessions
@@ -414,10 +534,23 @@ public sealed class CopilotBackend : ICopilotBackend, ICopilotHub
     }
 
     /// <summary>The bridge launch for a turn of session <paramref name="sessionId"/>: the base launch plus <c>--session &lt;id&gt;</c>.</summary>
-    internal McpServerLaunch CreateLaunch(string sessionId)
+    internal McpServerLaunch CreateLaunch(string sessionId) => CreateLaunch(sessionId, readOnly: false);
+
+    /// <summary>
+    /// The bridge launch for a CLI call of session <paramref name="sessionId"/>. <paramref name="readOnly"/> (the reviewer):
+    /// without <c>--panel</c> (no questions, no task list) and with <c>--readonly</c>, so the bridge lists and runs only
+    /// tools that read.
+    /// </summary>
+    internal McpServerLaunch CreateLaunch(string sessionId, bool readOnly)
     {
         var launch = _acadMcp();
-        return launch with { Arguments = [.. launch.Arguments, "--session", sessionId] };
+        IEnumerable<string> arguments = launch.Arguments;
+        if (readOnly)
+        {
+            arguments = arguments.Where(a => a != "--panel").Append("--readonly");
+        }
+
+        return launch with { Arguments = [.. arguments, "--session", sessionId] };
     }
 
     /// <summary>Takes a running-turn slot; false when <see cref="MaxRunningSessions"/> turns run already.</summary>

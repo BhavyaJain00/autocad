@@ -30,7 +30,16 @@ public sealed record PanelSettings
 
     /// <summary>Voice input language (BCP-47, "en-IN"); null = the Windows speech / display language.</summary>
     public string? VoiceLanguage { get; init; }
+
+    /// <summary>The user's own quick prompts (the composer's ⚡ menu), in menu order.</summary>
+    public IReadOnlyList<SavedQuickPrompt> QuickPrompts { get; init; } = [];
 }
+
+/// <summary>One quick prompt the user saved.</summary>
+/// <param name="Id">Stable id (a GUID without dashes).</param>
+/// <param name="Title">Menu text.</param>
+/// <param name="Text">The message it puts in the message box.</param>
+public sealed record SavedQuickPrompt(string Id, string Title, string Text);
 
 /// <summary>Loads/saves <see cref="PanelSettings"/> as JSON (%LOCALAPPDATA%\AcadCopilot\panel.json by default).</summary>
 public sealed class PanelSettingsStore

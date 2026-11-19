@@ -124,6 +124,9 @@ public sealed record StepReport
     /// <summary>Error that stopped the step, if any.</summary>
     public string? Error { get; init; }
 
+    /// <summary>Syntax fixes the copilot applied in this step (<see cref="InputFix.Describe"/>), in order.</summary>
+    public IReadOnlyList<string>? AutoFixed { get; init; }
+
     /// <summary>Milliseconds the step took.</summary>
     public long ElapsedMs { get; init; }
 }
@@ -172,6 +175,13 @@ public sealed record RunCommandsReport
 
     /// <summary>Notes for the LLM (replaced commands, settings, problems).</summary>
     public IReadOnlyList<string>? Warnings { get; init; }
+
+    /// <summary>The checkpoint created before this call was typed (restore_checkpoint goes back to it), if any.</summary>
+    public string? Checkpoint { get; init; }
+
+    /// <summary>Every syntax fix the copilot applied, as "step N COMMAND: ..." lines (self-healing).</summary>
+    public IReadOnlyList<string> AutoFixes() =>
+        Steps.SelectMany(s => (s.AutoFixed ?? []).Select(f => $"step {s.Step} {s.Command}: {f}")).ToList();
 
     /// <summary>Milliseconds the call took.</summary>
     public long ElapsedMs { get; init; }
@@ -231,6 +241,12 @@ public sealed record RunCommandsReport
             text.Append(" No objects were created or changed.");
         }
 
+        var fixes = AutoFixes();
+        if (fixes.Count > 0)
+        {
+            text.Append(" Auto-fixed: ").Append(string.Join("; ", fixes.Select(f => f.TrimEnd('.')))).Append('.');
+        }
+
         if (problems.Count > 0)
         {
             text.Append(" PROBLEMS: ").Append(string.Join(" ", problems));
@@ -239,6 +255,11 @@ public sealed record RunCommandsReport
         if (OneUndoStep && CreatedCount + ModifiedCount + ErasedCount > 0)
         {
             text.Append(" The whole call is one undo step.");
+        }
+
+        if (Checkpoint is not null)
+        {
+            text.Append(" Checkpoint '").Append(Checkpoint).Append("' was created before it (restore_checkpoint goes back there).");
         }
 
         return text.ToString();
@@ -300,6 +321,7 @@ public sealed class StepRecorder
     private readonly List<RejectedInput> _rejected = [];
     private readonly List<string> _messages = [];
     private readonly List<string> _notTyped = [];
+    private readonly List<string> _autoFixed = [];
     private int _omittedMessages;
 
     /// <summary>Starts recording <paramref name="step"/>.</summary>
@@ -370,6 +392,19 @@ public sealed class StepRecorder
             });
         }
     }
+
+    /// <summary>Records a syntax fix the copilot applied (self-healing).</summary>
+    public void AutoFixed(InputFix fix)
+    {
+        ArgumentNullException.ThrowIfNull(fix);
+        if (_autoFixed.Count < 20)
+        {
+            _autoFixed.Add(fix.Describe());
+        }
+    }
+
+    /// <summary>Number of fixes recorded so far.</summary>
+    public int AutoFixCount => _autoFixed.Count;
 
     /// <summary>Records informative command-line messages (duplicates in a row are dropped).</summary>
     public void Messages(IEnumerable<string> lines)
@@ -454,6 +489,7 @@ public sealed class StepRecorder
             Erased = NullIfEmpty(erased?.Take(MaxEntitiesListed).ToList()),
             ErasedCount = erasedCount,
             Error = Error,
+            AutoFixed = NullIfEmpty(_autoFixed.ToList()),
             ElapsedMs = ElapsedMs,
         };
     }

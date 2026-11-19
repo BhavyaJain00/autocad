@@ -23,7 +23,7 @@ namespace AcadCopilot.Plugin.ViewModels;
 /// the WPF dispatcher thread except the <see cref="ICopilotUi"/> and <see cref="IToolActivitySink"/> methods, which
 /// marshal themselves.
 /// </summary>
-public sealed class ChatViewModel : ObservableObject, ICopilotUi, IToolActivitySink, IVoiceTarget, IDisposable
+public sealed partial class ChatViewModel : ObservableObject, ICopilotUi, IToolActivitySink, IVoiceTarget, IDisposable
 {
     /// <summary>Most files that can be attached to one message.</summary>
     public const int MaxAttachments = 10;
@@ -170,6 +170,7 @@ public sealed class ChatViewModel : ObservableObject, ICopilotUi, IToolActivityS
         }
 
         UpdateDocumentText();
+        InitAssist();
         backend.StateChanged += OnBackendStateChanged;
         backend.AttachUi(this);
     }
@@ -706,11 +707,22 @@ public sealed class ChatViewModel : ObservableObject, ICopilotUi, IToolActivityS
 
         var text = ComposerText.Trim();
         var attachments = Attachments.Select(a => a.Path).ToList();
+        var (sent, selectionNote) = WithSelection(text);
         ComposerText = string.Empty;
         Attachments.Clear();
+        await RunTurnAsync(text, sent, attachments, selectionNote, fromQueue: false);
+    }
+
+    /// <summary>
+    /// Shows <paramref name="displayText"/> as the user's message, sends <paramref name="sentText"/> (with the selection
+    /// block, when there is one) and renders the turn until it ends; then the queue may start its next request.
+    /// </summary>
+    private async Task RunTurnAsync(string displayText, string sentText, IReadOnlyList<string> attachments, string? selectionNote, bool fromQueue)
+    {
+        var text = sentText;
         SetNotice(null);
         IsSettingsOpen = false;
-        Items.Add(new UserMessageItem(text, attachments));
+        Items.Add(new UserMessageItem(displayText, attachments) { SelectionNote = selectionNote, FromQueue = fromQueue });
 
         var provider = SelectedProvider;
         var model = SelectedModel;
@@ -722,6 +734,7 @@ public sealed class ChatViewModel : ObservableObject, ICopilotUi, IToolActivityS
         _turnRows.Clear();
         _pendingReports.Clear();
         Plan.Clear();
+        _lastOutcome = null;
         using var cts = new CancellationTokenSource();
         _turnCts = cts;
         IsBusy = true;
@@ -763,6 +776,7 @@ public sealed class ChatViewModel : ObservableObject, ICopilotUi, IToolActivityS
             if (generation == _generation)
             {
                 IsBusy = false;
+                OnTurnEndedForQueue(_lastOutcome);
             }
         }
     }
@@ -788,6 +802,11 @@ public sealed class ChatViewModel : ObservableObject, ICopilotUi, IToolActivityS
 
     private void ApplyCore(AgentEvent agentEvent, TurnInfo turn)
     {
+        if (ApplyAssistEvent(agentEvent))
+        {
+            return;
+        }
+
         switch (agentEvent)
         {
             case TextDelta delta:
@@ -881,6 +900,8 @@ public sealed class ChatViewModel : ObservableObject, ICopilotUi, IToolActivityS
     /// <summary>Stops the running turn; pending questions and approvals are cancelled.</summary>
     public void Stop()
     {
+        // Stop also pauses the queue: nothing else starts until the user resumes it.
+        PauseQueue("you pressed Stop");
         CancelPendingCards("Stopped");
         try
         {
@@ -902,6 +923,7 @@ public sealed class ChatViewModel : ObservableObject, ICopilotUi, IToolActivityS
 
         _generation++;
         _turn = null;
+        ClearQueue();
         _backend.NewChat();
         CancelPendingCards("Cancelled");
         _currentAssistant = null;
@@ -1094,6 +1116,7 @@ public sealed class ChatViewModel : ObservableObject, ICopilotUi, IToolActivityS
         }
 
         _disposed = true;
+        DisposeComposer();
         Voice?.Dispose();
         _activityTimer?.Stop();
         DraftingPace.Changed -= OnPaceChanged;
@@ -1208,6 +1231,12 @@ public sealed class ChatViewModel : ObservableObject, ICopilotUi, IToolActivityS
         OnPropertyChanged(nameof(AcadTurn));
         RefreshActivity();
         OnPropertyChanged(nameof(SelectedModel));
+        RefreshFeatures();
+        if (!IsBusy && !IsQueuePaused && Queue.Count > 0)
+        {
+            // A chat elsewhere finished: a request waiting for a free slot can start now.
+            TryRunNextQueued();
+        }
         if (_paceChanged)
         {
             // The backend rewrites settings.json from the copy it loaded at start-up when the provider or model changes;
@@ -1441,6 +1470,7 @@ public sealed class ChatViewModel : ObservableObject, ICopilotUi, IToolActivityS
     private void FinishTurn(TurnInfo turn, TurnOutcome outcome, TurnFailed? failure)
     {
         turn.Finished = true;
+        _lastOutcome = outcome;
         CloseAssistant();
         foreach (var activity in _activities.Values)
         {
@@ -1631,6 +1661,7 @@ public sealed class ChatViewModel : ObservableObject, ICopilotUi, IToolActivityS
         StopCommand.NotifyCanExecuteChanged();
         SelectProviderCommand.NotifyCanExecuteChanged();
         AttachCommand.NotifyCanExecuteChanged();
+        RefreshComposerCommands();
     }
 
     /// <summary>One plug-in report: a tool call starting (no result yet) or finished.</summary>

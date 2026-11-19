@@ -846,6 +846,9 @@ public static class ToolActivityText
         [KnowledgeTools.LearnStyleFromDrawing] = ("Learning your style from this drawing", "Learned your style from this drawing", "Learn your style from this drawing"),
         [KnowledgeTools.ListRecordings] = ("Looking for your recordings", "Looked at your recordings", "Look at your recordings"),
         [KnowledgeTools.ReadRecording] = ("Reading your recording", "Read your recording", "Read your recording"),
+        ["pick_point"] = ("Waiting for your click in the drawing", "Got your click", "Ask you to click a point"),
+        ["get_selection"] = ("Reading your selection", "Read your selection", "Read your selection"),
+        ["select_objects"] = ("Selecting objects to show you", "Selected objects to show you", "Select objects to show you"),
     };
 
     /// <summary>True for the learning tools (their result message is shown under the row).</summary>

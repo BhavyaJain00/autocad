@@ -54,6 +54,14 @@
             <Geometry x:Key="IconPlay">M5,3 L12.5,8 L5,13 Z</Geometry>
             <Geometry x:Key="IconStopFilled">M4,4 H12 V12 H4 Z</Geometry>
             <Geometry x:Key="IconTrash">M2.8,4.2 H13.2 M6.2,4.2 V2.6 H9.8 V4.2 M4.2,4.2 L5,13.4 H11 L11.8,4.2 M6.8,6.6 V11 M9.2,6.6 V11</Geometry>
+            <Geometry x:Key="IconPin">M8,14.4 C8,14.4 3.2,9.6 3.2,6.4 C3.2,3.7 5.4,1.6 8,1.6 C10.6,1.6 12.8,3.7 12.8,6.4 C12.8,9.6 8,14.4 8,14.4 Z M8,4.7 C8.9,4.7 9.7,5.5 9.7,6.4 C9.7,7.3 8.9,8.1 8,8.1 C7.1,8.1 6.3,7.3 6.3,6.4 C6.3,5.5 7.1,4.7 8,4.7 Z</Geometry>
+            <Geometry x:Key="IconQueueAdd">M2.2,3.8 H10.6 M2.2,7.6 H10.6 M2.2,11.4 H7 M12.4,8.8 V14 M9.8,11.4 H15</Geometry>
+            <Geometry x:Key="IconQueue">M5.4,4 H13.6 M5.4,8 H13.6 M5.4,12 H13.6 M2.4,4 H2.6 M2.4,8 H2.6 M2.4,12 H2.6</Geometry>
+            <Geometry x:Key="IconGrip">M5.2,4.6 H10.8 M5.2,8 H10.8 M5.2,11.4 H10.8</Geometry>
+            <Geometry x:Key="IconArrowUp">M8,12.6 V3.6 M4.6,7 L8,3.6 L11.4,7</Geometry>
+            <Geometry x:Key="IconArrowDown">M8,3.4 V12.4 M4.6,9 L8,12.4 L11.4,9</Geometry>
+            <Geometry x:Key="IconEdit">M10.7,2.7 L13.3,5.3 L5.6,13 L2.6,13.4 L3,10.4 Z M9.3,4.1 L11.9,6.7</Geometry>
+            <Geometry x:Key="IconCursor">M3.4,2.6 L12.4,7.1 L8.4,8.5 L6.6,12.6 Z M8.4,8.5 L11.6,13.2</Geometry>
             <Geometry x:Key="IconLearn">M8,2.6 L14.6,5.8 L8,9 L1.4,5.8 Z M4.4,7.3 V10.6 C5.3,11.8 6.6,12.4 8,12.4 C9.4,12.4 10.7,11.8 11.6,10.6 V7.3 M14.6,5.8 V9.6</Geometry>
 
             <!-- Focus ring for keyboard navigation. -->
@@ -847,6 +855,20 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                            <!-- The message carried the user's AutoCAD selection. -->
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding HasSelectionNote, Converter={StaticResource Vis}}"
+                                        ToolTip="The handles and a short description of these objects went with the message">
+                                <v:Icon Data="{StaticResource IconCursor}" Width="12" Height="12" Foreground="{DynamicResource UserBubbleText}" Opacity="0.75" />
+                                <TextBlock Text="{Binding SelectionNote}" Margin="5,0,0,0" FontSize="11" Foreground="{DynamicResource UserBubbleText}" Opacity="0.85" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-7,6,0" Padding="5,0,6,1" CornerRadius="6"
+                            Background="{DynamicResource SurfaceAltBackground}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                            Visibility="{Binding FromQueue, Converter={StaticResource Vis}}" ToolTip="Started from this chat's queue">
+                        <StackPanel Orientation="Horizontal">
+                            <v:Icon Data="{StaticResource IconQueue}" Width="10" Height="10" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
+                            <TextBlock Text="from queue" FontSize="9.5" Margin="3,0,0,0" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -1282,6 +1304,133 @@
 
             <DataTemplate DataType="{x:Type vm:PlanCardItem}">
                 <ContentControl Content="{Binding Plan}" Margin="0,4,0,6" Focusable="False" />
+            </DataTemplate>
+
+            <!-- AI switching: one line where another AI took over. -->
+            <DataTemplate DataType="{x:Type vm:SwitchNoticeItem}">
+                <Border Margin="0,4,0,6" Padding="9,6" CornerRadius="6" Background="{DynamicResource WarningSoft}" BorderBrush="{DynamicResource WarningLine}"
+                        BorderThickness="1" ToolTip="{Binding Detail}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <v:Icon Data="{StaticResource IconRefresh}" Width="13" Height="13" Foreground="{DynamicResource Warning}" VerticalAlignment="Top" Margin="0,1,0,0" />
+                        <TextBlock Grid.Column="1" Text="{Binding Message}" TextWrapping="Wrap" Margin="8,0,0,0" FontSize="11.5" />
+                    </Grid>
+                </Border>
+            </DataTemplate>
+
+            <!-- Second-opinion review: verdict, findings, Fix these. -->
+            <DataTemplate DataType="{x:Type vm:ReviewCardItem}">
+                <Border Style="{StaticResource Card}" Margin="0,4,0,6" Padding="12,10">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <v:Icon Data="{StaticResource IconShield}" Foreground="{DynamicResource AccentText}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Title}" FontWeight="SemiBold" Margin="7,0,6,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <Border Grid.Column="2" CornerRadius="8" Padding="7,1" VerticalAlignment="Center">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="{DynamicResource WarningSoft}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsClean}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="{Binding CountText}" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" />
+                            </Border>
+                        </Grid>
+                        <TextBox Style="{StaticResource SelectableText}" Text="{Binding Summary, Mode=OneWay}" Margin="0,6,0,0" Foreground="{DynamicResource TextSecondary}" />
+                        <ItemsControl ItemsSource="{Binding Findings}" Margin="0,6,0,0" Focusable="False" Visibility="{Binding HasFindings, Converter={StaticResource Vis}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:ReviewFindingRow}">
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="46" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border x:Name="Badge" CornerRadius="3" Padding="0,1" VerticalAlignment="Top" Margin="0,1,6,0" Background="{DynamicResource SurfaceAltBackground}">
+                                            <TextBlock x:Name="BadgeText" Text="{Binding Badge}" FontSize="9.5" FontWeight="SemiBold" HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource TextSecondary}" />
+                                        </Border>
+                                        <TextBox Grid.Column="1" Style="{StaticResource SelectableText}" Text="{Binding Text, Mode=OneWay}" FontSize="11.5" />
+                                    </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsMajor}" Value="True">
+                                            <Setter TargetName="Badge" Property="Background" Value="{DynamicResource DangerSoft}" />
+                                            <Setter TargetName="BadgeText" Property="Foreground" Value="{DynamicResource Danger}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Orientation="Horizontal" Margin="0,9,0,0" Visibility="{Binding HasFindings, Converter={StaticResource Vis}}">
+                            <Button Style="{StaticResource PrimaryButton}" Command="{Binding FixCommand}" Padding="11,4" AutomationProperties.Name="Fix these"
+                                    ToolTip="Ask the drafting AI to correct these findings (queued while this chat is still working)">
+                                <StackPanel Orientation="Horizontal">
+                                    <v:Icon Data="{StaticResource IconDraft}" Width="12" Height="12" />
+                                    <TextBlock Text="{Binding FixButtonText}" Margin="6,0,0,0" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+
+            <!-- An unfinished drafting job from the journal: Resume or Dismiss. -->
+            <DataTemplate DataType="{x:Type vm:ResumeCardItem}">
+                <Border Margin="0,4,0,6" Padding="12,10" CornerRadius="6" BorderThickness="1"
+                        Background="{DynamicResource AccentSoft}" BorderBrush="{DynamicResource AccentSoftLine}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <v:Icon Data="{StaticResource IconRefresh}" Foreground="{DynamicResource AccentText}" VerticalAlignment="Top" Margin="0,1,0,0" />
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                           Visibility="{Binding HasSubtitle, Converter={StaticResource Vis}}" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Text="{Binding ProgressText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentText}" Margin="0,7,0,0" TextWrapping="Wrap" />
+                        <ItemsControl ItemsSource="{Binding RemainingTasks}" Margin="0,4,0,0" Focusable="False"
+                                      Visibility="{Binding HasRemainingTasks, Converter={StaticResource Vis}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,1">
+                                        <Ellipse Width="9" Height="9" Stroke="{DynamicResource StrongLineBrush}" StrokeThickness="1.3" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding}" FontSize="11.5" Margin="7,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBox Style="{StaticResource SelectableText}" Text="{Binding Summary, Mode=OneWay}" Margin="0,6,0,0" FontSize="11" Foreground="{DynamicResource TextSecondary}" />
+                        <StackPanel Orientation="Horizontal" Margin="0,9,0,0" Visibility="{Binding IsOpen, Converter={StaticResource Vis}}">
+                            <Button Style="{StaticResource PrimaryButton}" Command="{Binding ResumeCommand}" Padding="11,4" AutomationProperties.Name="Resume job"
+                                    ToolTip="The AI checks the drawing, then continues with what is left">
+                                <StackPanel Orientation="Horizontal">
+                                    <v:Icon Data="{StaticResource IconPlay}" IsFilled="True" Width="10" Height="10" VerticalAlignment="Center" />
+                                    <TextBlock Text="Resume" Margin="6,0,0,0" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource MutedGhostButton}" Content="Dismiss" Padding="9,4" Margin="6,0,0,0" Command="{Binding DismissCommand}"
+                                    ToolTip="Forget this unfinished job" AutomationProperties.Name="Dismiss job" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding HasOutcome, Converter={StaticResource Vis}}">
+                            <v:Icon Data="{StaticResource IconCheck}" Width="12" Height="12" Foreground="{DynamicResource TextMuted}" />
+                            <TextBlock Text="{Binding Outcome}" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="5,0,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
             </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
@@ -1727,6 +1876,39 @@
                     </StackPanel>
                 </RadioButton>
 
+                <!-- AI BEHAVIOUR: the backend's shared switches (CopilotFeatures, settings.json), applied from the next message. -->
+                <StackPanel Margin="0,14,0,0" Visibility="{Binding HasFeatures, Converter={StaticResource Vis}}">
+                    <TextBlock Text="AI BEHAVIOUR" Style="{StaticResource SectionTitle}" />
+                    <CheckBox Style="{StaticResource ThemedCheck}" IsChecked="{Binding AskBeforeDrawing, Mode=TwoWay}" Margin="0,0,0,7"
+                              AutomationProperties.Name="Ask before drawing">
+                        <StackPanel>
+                            <TextBlock Text="Ask before drawing" TextWrapping="Wrap" />
+                            <TextBlock Text="Shows the room schedule and asks &quot;Shall I draw this?&quot; once before a new plan is drawn." Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </CheckBox>
+                    <CheckBox Style="{StaticResource ThemedCheck}" IsChecked="{Binding AutoSwitchProvider, Mode=TwoWay}" Margin="0,0,0,7"
+                              AutomationProperties.Name="Switch AI when one stops">
+                        <StackPanel>
+                            <TextBlock Text="Switch AI when one stops" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding ProviderOrderText}" Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </CheckBox>
+                    <CheckBox Style="{StaticResource ThemedCheck}" IsChecked="{Binding AutoReview, Mode=TwoWay}" Margin="0,0,0,7"
+                              AutomationProperties.Name="Second opinion after each drawing">
+                        <StackPanel>
+                            <TextBlock Text="Second opinion after each drawing" TextWrapping="Wrap" />
+                            <TextBlock Text="Another AI checks the finished drawing (read-only) and lists what to fix. &quot;Review this plan&quot; does it any time." Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </CheckBox>
+                    <CheckBox Style="{StaticResource ThemedCheck}" IsChecked="{Binding TutorMode, Mode=TwoWay}"
+                              AutomationProperties.Name="Tutor mode">
+                        <StackPanel>
+                            <TextBlock Text="Tutor mode" TextWrapping="Wrap" />
+                            <TextBlock Text="The AI explains each AutoCAD command it uses in one short line, so you learn as it draws." Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </CheckBox>
+                </StackPanel>
+
                 <StackPanel Margin="0,14,0,0" Visibility="{Binding HasVoice, Converter={StaticResource Vis}}">
                     <TextBlock Text="VOICE INPUT" Style="{StaticResource SectionTitle}" />
                     <CheckBox Style="{StaticResource ThemedCheck}" IsChecked="{Binding VoiceAutoSend, Mode=TwoWay}" Margin="0,0,0,8"
@@ -1930,6 +2112,230 @@
                     </Style>
                 </ContentControl.Resources>
             </ContentControl>
+
+            <!-- TASK QUEUE: requests that run one after another in this chat. Drag the grip (or use the arrows) to reorder. -->
+            <Border x:Name="QueuePanel" Style="{StaticResource Card}" Margin="10,2,10,6" Padding="0"
+                    Visibility="{Binding HasQueue, Converter={StaticResource Vis}}" AutomationProperties.Name="{Binding QueueHeader}">
+                <StackPanel>
+                    <Grid Margin="4,3,4,3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button Style="{StaticResource RowButton}" Padding="6,3" Command="{Binding ToggleQueueCommand}" ToolTip="Show or hide the queue">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <v:Icon Data="{StaticResource IconQueue}" Width="14" Height="14" Foreground="{DynamicResource AccentText}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding QueueHeader}" FontWeight="SemiBold" Margin="7,0,8,0" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="{Binding QueueStatusText}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding QueueStatusText}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsQueuePaused}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource Warning}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Button>
+                        <Button Grid.Column="1" Style="{StaticResource GhostButton}" FontSize="11" Padding="7,2" Margin="4,0,0,0" VerticalAlignment="Center"
+                                Command="{Binding ResumeQueueCommand}" Visibility="{Binding IsQueuePaused, Converter={StaticResource Vis}}"
+                                ToolTip="Continue: the next request starts when this chat is free" AutomationProperties.Name="Resume queue">
+                            <StackPanel Orientation="Horizontal">
+                                <v:Icon Data="{StaticResource IconPlay}" IsFilled="True" Width="9" Height="9" VerticalAlignment="Center" />
+                                <TextBlock Text="Resume" Margin="5,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="2" Style="{StaticResource MutedGhostButton}" FontSize="11" Padding="7,2" Margin="2,0,0,0" VerticalAlignment="Center"
+                                Command="{Binding ClearQueueCommand}" ToolTip="Remove every waiting request" AutomationProperties.Name="Clear queue">
+                            <TextBlock Text="Clear" />
+                        </Button>
+                    </Grid>
+                    <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                                  Margin="0,0,0,4" Visibility="{Binding IsQueueExpanded, Converter={StaticResource Vis}}">
+                        <ItemsControl ItemsSource="{Binding Queue}" Focusable="False" Margin="4,0,6,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:QueuedRequest}">
+                                    <Border x:Name="QueueRow" Background="Transparent" CornerRadius="4" Padding="0,1" AllowDrop="True"
+                                            DragOver="OnQueueRowDragOver" Drop="OnQueueRowDrop" ToolTip="{Binding ToolTip}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="16" Height="22" Background="Transparent" Cursor="SizeNS" ToolTip="Drag to change the order"
+                                                    PreviewMouseLeftButtonDown="OnQueueGripMouseDown" PreviewMouseMove="OnQueueGripMouseMove">
+                                                <v:Icon Data="{StaticResource IconGrip}" Width="11" Height="11" Foreground="{DynamicResource TextMuted}" />
+                                            </Border>
+                                            <Border Grid.Column="1" MinWidth="16" Height="16" CornerRadius="8" Padding="4,0" Margin="2,0,7,0" VerticalAlignment="Center"
+                                                    Background="{DynamicResource SurfaceAltBackground}">
+                                                <TextBlock Text="{Binding Position}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <TextBlock Grid.Column="2" Text="{Binding Title}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            <Button Grid.Column="3" x:Name="UpButton" Style="{StaticResource IconButton}" Width="20" Height="20" Margin="4,0,0,0"
+                                                    Command="{Binding DataContext.MoveQueuedUpCommand, ElementName=Root}" CommandParameter="{Binding}"
+                                                    ToolTip="Move up" AutomationProperties.Name="Move up" Visibility="Hidden">
+                                                <v:Icon Data="{StaticResource IconArrowUp}" Width="11" Height="11" />
+                                            </Button>
+                                            <Button Grid.Column="4" x:Name="DownButton" Style="{StaticResource IconButton}" Width="20" Height="20"
+                                                    Command="{Binding DataContext.MoveQueuedDownCommand, ElementName=Root}" CommandParameter="{Binding}"
+                                                    ToolTip="Move down" AutomationProperties.Name="Move down" Visibility="Hidden">
+                                                <v:Icon Data="{StaticResource IconArrowDown}" Width="11" Height="11" />
+                                            </Button>
+                                            <Button Grid.Column="5" Style="{StaticResource IconButton}" Width="20" Height="20"
+                                                    Command="{Binding DataContext.RemoveQueuedCommand, ElementName=Root}" CommandParameter="{Binding}"
+                                                    ToolTip="Remove from the queue" AutomationProperties.Name="Remove from queue">
+                                                <v:Icon Data="{StaticResource IconCross}" Width="9" Height="9" />
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <Trigger SourceName="QueueRow" Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="QueueRow" Property="Background" Value="{DynamicResource HoverBackground}" />
+                                            <Setter TargetName="UpButton" Property="Visibility" Value="Visible" />
+                                            <Setter TargetName="DownButton" Property="Visibility" Value="Visible" />
+                                        </Trigger>
+                                        <Trigger SourceName="QueueRow" Property="IsKeyboardFocusWithin" Value="True">
+                                            <Setter TargetName="UpButton" Property="Visibility" Value="Visible" />
+                                            <Setter TargetName="DownButton" Property="Visibility" Value="Visible" />
+                                        </Trigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
+            <!-- QUICK PROMPTS (⚡): built-in and saved prompts; an inline editor saves the current message or edits one. -->
+            <Border x:Name="QuickMenu" Style="{StaticResource Card}" Margin="10,2,10,6" Padding="0,0,0,6"
+                    Visibility="{Binding IsQuickMenuOpen, Converter={StaticResource Vis}}" AutomationProperties.Name="Quick prompts">
+                <StackPanel DataContext="{Binding QuickPrompts}">
+                    <Grid Margin="10,6,4,2">
+                        <TextBlock Text="QUICK PROMPTS" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" />
+                        <Button Style="{StaticResource IconButton}" Width="20" Height="20" HorizontalAlignment="Right"
+                                Command="{Binding DataContext.ToggleQuickMenuCommand, ElementName=Root}" ToolTip="Close (Esc)" AutomationProperties.Name="Close quick prompts">
+                            <v:Icon Data="{StaticResource IconCross}" Width="9" Height="9" />
+                        </Button>
+                    </Grid>
+
+                    <!-- The list. -->
+                    <ScrollViewer MaxHeight="230" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                                  Visibility="{Binding IsMenuListVisible, Converter={StaticResource Vis}}">
+                        <StackPanel Margin="4,0,6,0">
+                            <ItemsControl ItemsSource="{Binding BuiltIns}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:QuickPromptItem}">
+                                        <Button Style="{StaticResource RowButton}" Padding="6,4" ToolTip="{Binding ToolTip}" AutomationProperties.Name="{Binding Title}"
+                                                Command="{Binding DataContext.UseQuickPromptCommand, ElementName=Root}" CommandParameter="{Binding}" Cursor="Hand">
+                                            <StackPanel Orientation="Horizontal">
+                                                <v:Icon Data="{StaticResource IconBolt}" Width="12" Height="12" Foreground="{DynamicResource AccentText}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Title}" Margin="7,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="YOURS" Style="{StaticResource SectionTitle}" Margin="6,8,0,2" Visibility="{Binding HasSaved, Converter={StaticResource Vis}}" />
+                            <ItemsControl ItemsSource="{Binding Saved}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:QuickPromptItem}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Button Style="{StaticResource RowButton}" Padding="6,4" ToolTip="{Binding ToolTip}" AutomationProperties.Name="{Binding Title}"
+                                                    Command="{Binding DataContext.UseQuickPromptCommand, ElementName=Root}" CommandParameter="{Binding}" Cursor="Hand">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <v:Icon Data="{StaticResource IconSparkle}" IsFilled="True" Width="10" Height="10" Foreground="{DynamicResource AccentText}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Title}" Margin="8,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Grid.Column="1" Style="{StaticResource IconButton}" Width="22" Height="22"
+                                                    Command="{Binding DataContext.QuickPrompts.EditCommand, ElementName=Root}" CommandParameter="{Binding}"
+                                                    ToolTip="Edit" AutomationProperties.Name="Edit quick prompt">
+                                                <v:Icon Data="{StaticResource IconEdit}" Width="11" Height="11" />
+                                            </Button>
+                                            <Button Grid.Column="2" Style="{StaticResource IconButton}" Width="22" Height="22"
+                                                    Command="{Binding DataContext.QuickPrompts.DeleteCommand, ElementName=Root}" CommandParameter="{Binding}"
+                                                    ToolTip="Delete" AutomationProperties.Name="Delete quick prompt">
+                                                <v:Icon Data="{StaticResource IconTrash}" Width="11" Height="11" />
+                                            </Button>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Border Height="1" Background="{DynamicResource LineBrush}" Margin="6,6,0,4" />
+                            <Button Style="{StaticResource LinkButton}" Margin="3,0,0,0" Padding="4,2"
+                                    Command="{Binding DataContext.SaveQuickPromptCommand, ElementName=Root}" ToolTipService.ShowOnDisabled="True"
+                                    ToolTip="Type a message first, then save it here to reuse it with one click" AutomationProperties.Name="Save current message as a quick prompt">
+                                <StackPanel Orientation="Horizontal">
+                                    <v:Icon Data="{StaticResource IconPlus}" Width="11" Height="11" Foreground="{DynamicResource AccentText}" />
+                                    <TextBlock Text="Save current message as a quick prompt" Margin="5,0,0,0" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- The editor. -->
+                    <StackPanel Margin="10,2,10,0" Visibility="{Binding IsEditorOpen, Converter={StaticResource Vis}}">
+                        <TextBlock Text="{Binding EditorHeader}" FontWeight="SemiBold" Margin="0,0,0,6" />
+                        <TextBlock Text="Name in the menu" Style="{StaticResource Caption}" Margin="0,0,0,3" />
+                        <TextBox Style="{StaticResource InputBox}" Text="{Binding EditTitle, UpdateSourceTrigger=PropertyChanged}" MaxLength="60"
+                                 AutomationProperties.Name="Quick prompt name" />
+                        <TextBlock Text="Message" Style="{StaticResource Caption}" Margin="0,7,0,3" />
+                        <TextBox Style="{StaticResource InputBox}" Text="{Binding EditText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                                 MinHeight="54" MaxHeight="120" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Quick prompt message" />
+                        <TextBlock Text="{Binding EditError}" Style="{StaticResource Caption}" Foreground="{DynamicResource Danger}" Margin="0,5,0,0"
+                                   Visibility="{Binding HasEditError, Converter={StaticResource Vis}}" />
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button Style="{StaticResource PrimaryButton}" Content="Save" FontSize="11" Padding="12,3" Command="{Binding CommitEditCommand}"
+                                    AutomationProperties.Name="Save quick prompt" />
+                            <Button Style="{StaticResource MutedGhostButton}" Content="Cancel" FontSize="11" Padding="8,3" Margin="6,0,0,0" Command="{Binding CancelEditCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- CLICK TO POINT: AutoCAD waits for a click in the drawing (the user's 📍 Point, or the AI's pick_point). -->
+            <Border x:Name="PickBanner" Margin="10,2,10,6" Padding="10,7,6,7" CornerRadius="6" BorderThickness="1"
+                    Background="{DynamicResource AccentSoft}" BorderBrush="{DynamicResource AccentSoftLine}"
+                    Visibility="{Binding ShowPickBanner, Converter={StaticResource Vis}}"
+                    AutomationProperties.LiveSetting="Assertive" AutomationProperties.Name="{Binding PickBannerText}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid Width="16" Height="16" VerticalAlignment="Top" Margin="0,1,0,0">
+                        <v:PulseRing Foreground="{DynamicResource Accent}" Growth="1.8" />
+                        <v:Icon Data="{StaticResource IconPin}" Width="15" Height="15" Foreground="{DynamicResource AccentText}" StrokeThickness="1.6" />
+                    </Grid>
+                    <StackPanel Grid.Column="1" Margin="9,0,6,0">
+                        <TextBlock Text="{Binding PickBannerText}" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource TextPrimary}" />
+                        <TextBlock Text="{Binding PickBannerHint}" Style="{StaticResource Caption}" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Content="Cancel" FontSize="11" Padding="9,2" VerticalAlignment="Top"
+                            Command="{Binding CancelPickCommand}" ToolTip="Stop waiting for a click (Esc)" AutomationProperties.Name="Cancel pick" />
+                </Grid>
+            </Border>
         </StackPanel>
 
         <!-- Composer. -->
@@ -2046,6 +2452,22 @@
                                    Visibility="{Binding Voice.HasEngineNotice, Converter={StaticResource Vis}, FallbackValue=Collapsed}" />
                     </Grid>
                 </Border>
+                <!-- SELECT AND ASK: objects selected in AutoCAD go with the next message (handles + a short description). -->
+                <Border x:Name="SelectionChip" Margin="8,8,8,0" Padding="7,2,2,2" CornerRadius="11" HorizontalAlignment="Left"
+                        Background="{DynamicResource AccentSoft}" BorderBrush="{DynamicResource AccentSoftLine}" BorderThickness="1"
+                        Visibility="{Binding HasSelectionChip, Converter={StaticResource Vis}}" ToolTip="{Binding SelectionChipToolTip}"
+                        AutomationProperties.Name="{Binding SelectionChipText}">
+                    <StackPanel Orientation="Horizontal">
+                        <v:Icon Data="{StaticResource IconCursor}" Width="12" Height="12" Foreground="{DynamicResource AccentText}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding SelectionChipText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentText}"
+                                   Margin="5,0,2,0" VerticalAlignment="Center" />
+                        <TextBlock Text="· goes with your message" FontSize="10.5" Foreground="{DynamicResource TextSecondary}" Margin="2,0,2,0" VerticalAlignment="Center" />
+                        <Button Style="{StaticResource IconButton}" Width="18" Height="18" Margin="2,0,0,0" Command="{Binding DismissSelectionCommand}"
+                                ToolTip="Leave the selection out of this message" AutomationProperties.Name="Leave the selection out">
+                            <v:Icon Data="{StaticResource IconCross}" Width="8" Height="8" />
+                        </Button>
+                    </StackPanel>
+                </Border>
                 <TextBox x:Name="Composer" Style="{StaticResource ComposerBox}"
                          Text="{Binding ComposerText, UpdateSourceTrigger=PropertyChanged}"
                          IsReadOnly="{Binding Voice.IsActive, Mode=OneWay, FallbackValue=False}"
@@ -2057,7 +2479,10 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Button Style="{StaticResource IconButton}" Command="{Binding AttachCommand}"
@@ -2071,8 +2496,34 @@
                             Visibility="{Binding HasVoice, Converter={StaticResource Vis}}">
                         <v:Icon Data="{StaticResource IconMic}" Width="15" Height="15" />
                     </Button>
+                    <!-- Click to point: click points in the drawing; their coordinates go into the message. -->
+                    <Button x:Name="PointButton" Grid.Column="2" Style="{StaticResource IconButton}" Width="Auto" Padding="5,0,7,0" Margin="1,0,0,0"
+                            Command="{Binding PickPointCommand}" Visibility="{Binding CanPickPoint, Converter={StaticResource Vis}}"
+                            ToolTip="Point: click one or more points in the drawing (Enter when done, Esc cancels). Their coordinates go into your message, e.g. [point 12'-6&quot;,30'-0&quot; (150,360)]."
+                            AutomationProperties.Name="Point">
+                        <StackPanel Orientation="Horizontal">
+                            <v:Icon Data="{StaticResource IconPin}" Width="14" Height="14" />
+                            <TextBlock x:Name="PointLabel" Text="Point" FontSize="11" Margin="3,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <!-- Quick prompts. -->
+                    <Button x:Name="QuickPromptButton" Grid.Column="3" Command="{Binding ToggleQuickMenuCommand}" Margin="1,0,0,0"
+                            Visibility="{Binding HasQuickPrompts, Converter={StaticResource Vis}}"
+                            ToolTip="Quick prompts (⚡): ready-made requests and your saved ones" AutomationProperties.Name="Quick prompts">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsQuickMenuOpen}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <v:Icon Data="{StaticResource IconSparkle}" IsFilled="True" Width="13" Height="13" Foreground="{DynamicResource AccentText}" />
+                    </Button>
                     <!-- Drafting speed: Watch (pauses so you can follow every input) or Fast. -->
-                    <Border Grid.Column="2" Background="{DynamicResource SegmentTrack}" CornerRadius="6" Padding="2" Margin="4,0,0,0"
+                    <Border Grid.Column="4" Background="{DynamicResource SegmentTrack}" CornerRadius="6" Padding="2" Margin="4,0,0,0"
                             VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
                             <RadioButton Style="{StaticResource SegmentRadio}" GroupName="ComposerPace" IsChecked="{Binding IsWatchPace, Mode=TwoWay}"
@@ -2080,7 +2531,7 @@
                                          AutomationProperties.Name="Watch mode">
                                 <StackPanel Orientation="Horizontal">
                                     <v:Icon Data="{StaticResource IconEye}" Width="13" Height="13" StrokeThickness="1.4" />
-                                    <TextBlock Text="Watch" Margin="4,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="WatchLabel" Text="Watch" Margin="4,0,0,0" VerticalAlignment="Center" />
                                 </StackPanel>
                             </RadioButton>
                             <RadioButton Style="{StaticResource SegmentRadio}" GroupName="ComposerPace" IsChecked="{Binding IsFastPace, Mode=TwoWay}"
@@ -2088,18 +2539,21 @@
                                          AutomationProperties.Name="Fast mode">
                                 <StackPanel Orientation="Horizontal">
                                     <v:Icon Data="{StaticResource IconBolt}" Width="13" Height="13" StrokeThickness="1.4" />
-                                    <TextBlock Text="Fast" Margin="4,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="FastLabel" Text="Fast" Margin="4,0,0,0" VerticalAlignment="Center" />
                                 </StackPanel>
                             </RadioButton>
                         </StackPanel>
                     </Border>
-                    <TextBlock Grid.Column="3" FontSize="10.5" Foreground="{DynamicResource TextMuted}"
+                    <TextBlock Grid.Column="5" FontSize="10.5" Foreground="{DynamicResource TextMuted}"
                                VerticalAlignment="Center" HorizontalAlignment="Right" Margin="6,0,8,0" TextTrimming="CharacterEllipsis"
-                               ToolTip="Enter sends · Shift+Enter adds a new line · Ctrl+Space speaks · Esc stops">
+                               ToolTip="Enter sends (while the AI works: adds to the queue) · Shift+Enter adds a new line · Ctrl+Space speaks · Esc stops">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Text" Value="Enter to send" />
                                 <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                        <Setter Property="Text" Value="Enter queues it" />
+                                    </DataTrigger>
                                     <DataTrigger Binding="{Binding Voice.IsActive}" Value="True">
                                         <Setter Property="Text" Value="Pause to finish" />
                                     </DataTrigger>
@@ -2107,7 +2561,15 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
-                    <Button Grid.Column="4" Width="30" Height="30" Command="{Binding SendCommand}"
+                    <!-- While this chat works, the message can wait in its queue (Enter does the same). -->
+                    <Button Grid.Column="6" Style="{StaticResource IconButton}" Width="30" Height="30" Margin="0,0,4,0"
+                            Command="{Binding AddToQueueCommand}" ToolTipService.ShowOnDisabled="True"
+                            ToolTip="Add to queue (Enter): it runs by itself when this answer is done"
+                            AutomationProperties.Name="Add to queue"
+                            Visibility="{Binding IsBusy, Converter={StaticResource Vis}}">
+                        <v:Icon Data="{StaticResource IconQueueAdd}" Width="16" Height="16" />
+                    </Button>
+                    <Button Grid.Column="7" Width="30" Height="30" Command="{Binding SendCommand}"
                             ToolTip="Send (Enter)" AutomationProperties.Name="Send"
                             Visibility="{Binding IsIdle, Converter={StaticResource Vis}}">
                         <Button.Style>
@@ -2137,7 +2599,7 @@
                         </Button.Style>
                         <v:Icon Data="{StaticResource IconSend}" Width="15" Height="15" StrokeThickness="1.9" />
                     </Button>
-                    <Button Grid.Column="4" Width="30" Height="30" Command="{Binding StopCommand}"
+                    <Button Grid.Column="7" Width="30" Height="30" Command="{Binding StopCommand}"
                             ToolTip="Stop (Esc)" AutomationProperties.Name="Stop"
                             Visibility="{Binding IsBusy, Converter={StaticResource Vis}}">
                         <Button.Style>

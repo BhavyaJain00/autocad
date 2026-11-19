@@ -19,4 +19,9 @@
     <InternalsVisibleTo Include="AcadCopilot.Core.Tests" />
   </ItemGroup>
 
+  <!-- Built-in knowledge recipes, copied into the knowledge folder on first start (Learning/BuiltInKnowledge.cs). -->
+  <ItemGroup>
+    <EmbeddedResource Include="Learning\BuiltIn\*.md" LogicalName="AcadCopilot.Core.Learning.BuiltIn.%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>

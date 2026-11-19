@@ -35,6 +35,15 @@ public sealed class UserMessageItem : ChatItem
 
     /// <summary>True when files were attached.</summary>
     public bool HasAttachments => AttachmentNames.Count > 0;
+
+    /// <summary>"5 objects selected" when the message carried the user's AutoCAD selection, else null.</summary>
+    public string? SelectionNote { get; init; }
+
+    /// <summary>True when <see cref="SelectionNote"/> is shown.</summary>
+    public bool HasSelectionNote => !string.IsNullOrEmpty(SelectionNote);
+
+    /// <summary>True when the message came from the chat's queue.</summary>
+    public bool FromQueue { get; init; }
 }
 
 /// <summary>Assistant text (Markdown), streamed or complete.</summary>
