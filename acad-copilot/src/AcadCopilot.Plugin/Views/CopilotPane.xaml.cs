@@ -318,6 +318,12 @@ public partial class CopilotPane : UserControl
     {
         var labels = width > 0 && width < CompactComposerWidth ? Visibility.Collapsed : Visibility.Visible;
         PointLabel.Visibility = labels;
+        WebLabel.Visibility = labels;
+
+        // Icon only: centre the icon in the button (the labelled padding leaves room for the text on the right).
+        var padding = labels == Visibility.Visible ? new Thickness(5, 0, 7, 0) : new Thickness(6, 0, 6, 0);
+        PointButton.Padding = padding;
+        WebButton.Padding = padding;
         WatchLabel.Visibility = labels;
         FastLabel.Visibility = labels;
     }

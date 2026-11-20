@@ -23,6 +23,9 @@ public sealed record CopilotFeatures
     /// <summary>The AI explains each AutoCAD command it uses in one short line (default off).</summary>
     public bool TutorMode { get; init; }
 
+    /// <summary>The AI may search the internet and read web pages for ideas (read-only web tools; default off).</summary>
+    public bool WebResearch { get; init; }
+
     /// <summary>True when <paramref name="other"/> has the same values (the order compared item by item).</summary>
     public bool SameAs(CopilotFeatures? other) =>
         other is not null
@@ -30,10 +33,11 @@ public sealed record CopilotFeatures
         && AskBeforeDrawing == other.AskBeforeDrawing
         && AutoReview == other.AutoReview
         && TutorMode == other.TutorMode
+        && WebResearch == other.WebResearch
         && NormalizeOrder(ProviderOrder).SequenceEqual(NormalizeOrder(other.ProviderOrder));
 
     /// <summary>The per-turn instruction switches of these features.</summary>
-    public TurnOptions TurnOptions => new() { AskBeforeDrawing = AskBeforeDrawing, TutorMode = TutorMode };
+    public TurnOptions TurnOptions => new() { AskBeforeDrawing = AskBeforeDrawing, TutorMode = TutorMode, WebResearch = WebResearch };
 
     /// <summary>
     /// <paramref name="order"/> without duplicates, followed by the providers it leaves out (in the default order), so every

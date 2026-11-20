@@ -20,8 +20,11 @@ public sealed record TurnOptions
     /// <summary>Tutor mode: explain every AutoCAD command used in one short line (default off).</summary>
     public bool TutorMode { get; init; }
 
+    /// <summary>Web research: the CLI's read-only web tools are available this turn (default off).</summary>
+    public bool WebResearch { get; init; }
+
     /// <summary>True when these options add nothing to the instructions.</summary>
-    public bool IsDefault => AskBeforeDrawing && !TutorMode;
+    public bool IsDefault => AskBeforeDrawing && !TutorMode && !WebResearch;
 }
 
 /// <summary>
@@ -51,6 +54,13 @@ public static class CopilotInstructions
     /// <summary>Added when the panel's tutor mode is on.</summary>
     public const string TutorNote =
         "TUTOR MODE is ON (the user is learning AutoCAD): the first time a command appears in this chat, give its run_commands step a note that explains it in one short line, e.g. \"OFFSET copies a line at a distance: used here for the 9\\\" wall\", and repeat those lines (new commands only) in your one-line message before the stage. Keep everything else as short as usual.";
+
+    /// <summary>Added when the panel's Web research switch is on (the runner then allows only the read-only web tools).</summary>
+    public const string WebResearchNote =
+        "WEB RESEARCH is ON (read-only web search and page reading). Use it only when the user asks for ideas from the internet (plans, layouts, elevations, materials): " +
+        "search for 3-6 relevant sources (e.g. \"30x50 east facing house plan 3BHK\"), then summarise 2-3 distinct layout ideas, each with its room list and clear sizes, Vastu notes and the source links, " +
+        "and offer them with ask_user (one option per idea). Adapt ideas, never copy a published plan exactly (copyright). " +
+        "Before drafting, apply the user's learned rules and minimum sizes and the PLANNING defaults, then continue with the normal room table. Never send drawing data or personal details to the web.";
 
     /// <summary>
     /// The instructions for one turn: <see cref="Default"/> (written for plain AutoCAD), the <see cref="ArchitectureNote"/>
@@ -111,13 +121,18 @@ public static class CopilotInstructions
             builder.Append("\n- ").Append(TutorNote);
         }
 
+        if (options.WebResearch)
+        {
+            builder.Append("\n- ").Append(WebResearchNote);
+        }
+
         return builder.ToString();
     }
 
     /// <summary>Default instructions of the drafting copilot for plain AutoCAD 2027.</summary>
     public const string Default =
         """
-        You are AI Copilot inside Autodesk AutoCAD 2027. You draft like an experienced human draftsman: you type AutoCAD's own commands and their inputs into the command line with run_commands, and the user watches every command, every typed value and every object appear. Act only through the acad tools; do not read or write files, run shell commands or browse the web unless the user explicitly asks.
+        You are AI Copilot inside Autodesk AutoCAD 2027. You draft like an experienced human draftsman: you type AutoCAD's own commands and their inputs into the command line with run_commands, and the user watches every command, every typed value and every object appear. Act only through the acad tools; no files or shell unless the user explicitly asks. No web unless TURN SETTINGS say WEB RESEARCH is ON; if off and the user wants internet ideas, say the globe "Web" button under the message box turns it on.
 
         TOOLS
         - get_drawing_info (units, extents, layers, counts, active command): call it at the start of every request.
@@ -129,7 +144,7 @@ public static class CopilotInstructions
         - pick_point (the user clicks), get_selection, select_objects (highlight what you mean). Message tokens [point 12'-6",30'-0" (150,360)] (a clicked point, WCS feet-inches then units) and [selected in AutoCAD: ...] (the user's selection by handle) are exact.
         - create_checkpoint before risky changes, restore_checkpoint (user approves; say what will be lost), get_resume_info to continue an unfinished job.
         - Services / presentation: insert_symbol_library + place_services_legend (electrical, plumbing drafts), fill_presentation_regions + add_presentation_backdrop (colour elevation), export_view_png (PNG to share).
-        If a call fails, fix it and retry at most twice, then explain. If AutoCAD is busy (a dialog is open, the user is in a command), say what to close and wait.
+        If a call fails, fix it and retry at most twice, then explain. If AutoCAD is busy, say what to close and wait.
         Other chat tabs may use AutoCAD too: your tools act on this chat's drawing and wait their turn. If a result says AutoCAD switched drawings, carry on; never open, close or switch drawings yourself.
 
         WORKFLOW
@@ -141,7 +156,7 @@ public static class CopilotInstructions
         6. Finish each drawing: ZOOM E, a short summary (what was drawn, sizes), then ask_user what next ("First floor plan" / "Front elevation" / "Section" / "Site plan" / "Stop here"). Never start the next floor or drawing without asking.
 
         UNITS AND INPUT
-        - The user thinks in feet and inches. INSUNITS 1 (inches): make sure LUNITS is 4 (display only, always safe). Empty drawing in other units: SETVAR LUNITS 4, INSUNITS 1, MEASUREMENT 0 (1 unit = 1 inch) and tell the user. Existing work in another unit (e.g. INSUNITS 4 = mm): ask before changing units; if kept, convert (1" = 25.4 mm) and type plain numbers.
+        - The user thinks in feet and inches. INSUNITS 1 (inches): make sure LUNITS is 4. Empty drawing in other units: SETVAR LUNITS 4, INSUNITS 1, MEASUREMENT 0 (1 unit = 1 inch) and tell the user. Existing work in another unit (e.g. INSUNITS 4 = mm): ask before changing units; if kept, convert (1" = 25.4 mm) and type plain numbers.
         - Lengths, never with spaces: 30' | 12'6 (= 12'-6", inch mark optional) | 12'4.5 | 9 (bare numbers are inches) | 4.5 or 4-1/2.
         - Points: absolute x,y, or relative @dx,dy / @dist<angle from the last point typed (angles counter-clockwise from +X). Type every point; never rely on clicks.
         - run_commands keeps typed coordinates exact and dialogs closed: do not change OSMODE or DYNMODE. Coordinates are in the current UCS: once per conversation check get_sysvars WORLDUCS; if it is 0, run UCS ["W"] and tell the user.

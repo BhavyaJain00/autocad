@@ -455,13 +455,14 @@ public sealed class ToolActivityItem : ObservableObject
     /// </summary>
     public string Title => Kind == ActivityKind.Commands
         ? _callTitle ?? "AutoCAD commands"
-        : ToolActivityText.Title(Name, State);
+        : ToolActivityText.WebTitle(Name, Summary, State) ?? ToolActivityText.Title(Name, State);
 
     /// <summary>Muted text after the title: "3 commands" for run_commands, nothing for capture_view, else the argument summary.</summary>
     public string SubtitleText => Kind switch
     {
         ActivityKind.Commands => StepCountText ?? string.Empty,
         ActivityKind.Look => string.Empty,
+        _ when ToolActivityText.IsWebTool(Name) => string.Empty,
         _ => Summary,
     };
 
@@ -906,7 +907,7 @@ public sealed class ActivityGroupItem : ChatItem
 }
 
 /// <summary>Titles and outcome texts of "CAD activity" rows.</summary>
-public static class ToolActivityText
+public static partial class ToolActivityText
 {
     /// <summary>Name of the tool that returns a picture of the drawing view.</summary>
     public const string CaptureView = "capture_view";
@@ -935,6 +936,84 @@ public static class ToolActivityText
         ["get_selection"] = ("Reading your selection", "Read your selection", "Read your selection"),
         ["select_objects"] = ("Selecting objects to show you", "Selected objects to show you", "Select objects to show you"),
     };
+
+    /// <summary>The CLIs' web search tools (Claude Code, Codex, Gemini CLI).</summary>
+    public static bool IsWebSearch(string name) => name is "WebSearch" or "web_search" or "google_web_search";
+
+    /// <summary>The CLIs' read-a-web-page tools (Claude Code, Gemini CLI).</summary>
+    public static bool IsWebFetch(string name) => name is "WebFetch" or "web_fetch";
+
+    /// <summary>True for any of the CLIs' web tools (Web research).</summary>
+    public static bool IsWebTool(string name) => IsWebSearch(name) || IsWebFetch(name);
+
+    /// <summary>
+    /// Title of a web tool row: "Searching the web: 30x50 east facing plan" / "Searched the web: ..." and "Reading
+    /// houseplans.com" / "Read houseplans.com", from the CLI's argument summary. Null for other tools.
+    /// </summary>
+    public static string? WebTitle(string name, string? summary, ActivityState state)
+    {
+        if (IsWebSearch(name))
+        {
+            var query = WebQuery(summary);
+            var verb = state switch
+            {
+                ActivityState.Running => "Searching the web",
+                ActivityState.Succeeded => "Searched the web",
+                _ => "Search the web",
+            };
+            return query is null ? verb : $"{verb}: {query}";
+        }
+
+        if (IsWebFetch(name))
+        {
+            var site = WebSite(summary) ?? "a web page";
+            return state switch
+            {
+                ActivityState.Running => "Reading " + site,
+                ActivityState.Succeeded => "Read " + site,
+                _ => "Read " + site,
+            };
+        }
+
+        return null;
+    }
+
+    // "query: 30x50 east facing plan, allowed_domains: 1 item" (Claude / Gemini) or the bare query (Codex).
+    private static string? WebQuery(string? summary)
+    {
+        if (string.IsNullOrWhiteSpace(summary))
+        {
+            return null;
+        }
+
+        var match = WebQueryPattern().Match(summary);
+        var query = (match.Success ? match.Groups[1].Value : summary).Trim();
+        return query.Length == 0 ? null : query;
+    }
+
+    // The host of the first http(s) address in the summary, without "www.".
+    private static string? WebSite(string? summary)
+    {
+        if (string.IsNullOrWhiteSpace(summary))
+        {
+            return null;
+        }
+
+        var match = WebHostPattern().Match(summary);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var host = match.Groups[1].Value.TrimEnd('.', '…');
+        return host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? host[4..] : host;
+    }
+
+    [GeneratedRegex(@"^\s*query:\s*(.*?)(?:,\s*[a-z_]+:\s.*)?$", RegexOptions.Singleline)]
+    private static partial Regex WebQueryPattern();
+
+    [GeneratedRegex(@"https?://([^/\s,?#…]+)", RegexOptions.IgnoreCase)]
+    private static partial Regex WebHostPattern();
 
     /// <summary>True for the learning tools (their result message is shown under the row).</summary>
     public static bool IsLearning(string name) => name is KnowledgeTools.RecallKnowledge or KnowledgeTools.RememberRule

@@ -509,7 +509,7 @@ public sealed class CopilotSession : ICopilotSession, ICopilotAssist
             }
 
             AgentEvent? terminal = null;
-            await foreach (var agentEvent in RunProviderAsync(provider, prompt, attachments, resume, () => _hub.BuildInstructions(features.TurnOptions), () => _hub.CreateLaunch(Id), keepSession: true, cancellationToken).ConfigureAwait(false))
+            await foreach (var agentEvent in RunProviderAsync(provider, prompt, attachments, resume, () => _hub.BuildInstructions(features.TurnOptions), () => _hub.CreateLaunch(Id), keepSession: true, webResearch: features.WebResearch, cancellationToken).ConfigureAwait(false))
             {
                 if (agentEvent is TurnCompleted or TurnFailed)
                 {
@@ -591,7 +591,7 @@ public sealed class CopilotSession : ICopilotSession, ICopilotAssist
         var texts = new List<string>();
         var streamed = new StringBuilder();
         AgentEvent? terminal = null;
-        await foreach (var agentEvent in RunProviderAsync(reviewer, prompt, [], null, _hub.BuildReviewerInstructions, () => _hub.CreateLaunch(Id, readOnly: true), keepSession: false, cancellationToken).ConfigureAwait(false))
+        await foreach (var agentEvent in RunProviderAsync(reviewer, prompt, [], null, _hub.BuildReviewerInstructions, () => _hub.CreateLaunch(Id, readOnly: true), keepSession: false, webResearch: false, cancellationToken).ConfigureAwait(false))
         {
             switch (agentEvent)
             {
@@ -695,6 +695,7 @@ public sealed class CopilotSession : ICopilotSession, ICopilotAssist
         Func<string> instructions,
         Func<McpServerLaunch> launch,
         bool keepSession,
+        bool webResearch,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var runner = _hub.Runner(provider);
@@ -711,6 +712,7 @@ public sealed class CopilotSession : ICopilotSession, ICopilotAssist
                 AcadMcp = launch(),
                 WorkingDirectory = AppPaths.Ensure(_hub.Workspace),
                 Instructions = instructions(),
+                WebResearch = webResearch,
             };
         }
         catch (Exception ex)

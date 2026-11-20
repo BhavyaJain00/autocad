@@ -417,7 +417,7 @@ public sealed class CopilotPanelViewModel : ObservableObject, IDisposable
                 }
 
                 break;
-            case nameof(ChatViewModel.AutoSwitchProvider) or nameof(ChatViewModel.AskBeforeDrawing) or nameof(ChatViewModel.AutoReview) or nameof(ChatViewModel.TutorMode) when !_syncing:
+            case nameof(ChatViewModel.AutoSwitchProvider) or nameof(ChatViewModel.AskBeforeDrawing) or nameof(ChatViewModel.AutoReview) or nameof(ChatViewModel.TutorMode) or nameof(ChatViewModel.WebResearch) when !_syncing:
                 // The switches are shared by every tab (one backend setting): show the new value everywhere.
                 _syncing = true;
                 try

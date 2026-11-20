@@ -136,11 +136,12 @@ public sealed class ClaudeCodeRunner : IAgentRunner
             "--include-partial-messages",
             "--mcp-config", mcpConfigPath,
             "--strict-mcp-config",
-            "--allowedTools", $"mcp__{request.AcadMcp.ServerName}__*",
+            "--allowedTools", AllowedTools(request),
             "--permission-mode", "dontAsk",
             "--permission-prompts", "none",
-            // Built-in tools off (no shell, no file edits, no web); Read only to open attached files.
-            "--tools", attachmentFolders.Count > 0 ? "Read" : string.Empty,
+            // Built-in tools off (no shell, no file edits); Read only to open attached files, the read-only web tools
+            // only while Web research is on.
+            "--tools", BuiltInTools(request, attachmentFolders),
             // Leave out the user's own settings, hooks and plugins; the private folder has none.
             "--setting-sources", "project,local",
             "--disable-slash-commands",
@@ -165,6 +166,30 @@ public sealed class ClaudeCodeRunner : IAgentRunner
         }
 
         return arguments;
+    }
+
+    /// <summary>Claude Code's read-only web tools, allowed only while Web research is on.</summary>
+    internal static readonly string[] WebTools = ["WebSearch", "WebFetch"];
+
+    /// <summary>--allowedTools: the AutoCAD tools, plus WebSearch and WebFetch while Web research is on.</summary>
+    internal static string AllowedTools(TurnRequest request) =>
+        string.Join(",", new[] { $"mcp__{request.AcadMcp.ServerName}__*" }.Concat(request.WebResearch ? WebTools : []));
+
+    /// <summary>--tools: Read when files are attached, WebSearch and WebFetch while Web research is on, else none ("").</summary>
+    internal static string BuiltInTools(TurnRequest request, IReadOnlyList<string> attachmentFolders)
+    {
+        var tools = new List<string>();
+        if (attachmentFolders.Count > 0)
+        {
+            tools.Add("Read");
+        }
+
+        if (request.WebResearch)
+        {
+            tools.AddRange(WebTools);
+        }
+
+        return string.Join(",", tools);
     }
 
     /// <summary>The --mcp-config document: only the AutoCAD bridge, with a long per-call timeout (ask_user waits for a person).</summary>

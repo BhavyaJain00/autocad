@@ -32,6 +32,13 @@ public sealed class GeminiRunner : IAgentRunner
         "invoke_agent", "activate_skill", "enter_plan_mode", "exit_plan_mode",
     ];
 
+    /// <summary>Gemini CLI's read-only web tools, allowed only while Web research is on.</summary>
+    internal static readonly string[] WebTools = ["google_web_search", "web_fetch"];
+
+    /// <summary>The built-in tools denied for a turn: all of <see cref="ExcludedTools"/>, without the web tools while Web research is on.</summary>
+    internal static IReadOnlyList<string> DeniedTools(bool webResearch) =>
+        webResearch ? [.. ExcludedTools.Except(WebTools, StringComparer.Ordinal)] : ExcludedTools;
+
     private static readonly TimeSpan WorkspaceRetention = TimeSpan.FromDays(14);
     private readonly CliRunnerOptions _options;
 
@@ -128,10 +135,10 @@ public sealed class GeminiRunner : IAgentRunner
         var usePolicy = !policyPath.Contains(',', StringComparison.Ordinal);
         if (usePolicy)
         {
-            WriteAtomically(policyPath, BuildPolicy());
+            WriteAtomically(policyPath, BuildPolicy(request.WebResearch));
         }
 
-        WriteAtomically(Path.Combine(settingsDirectory, "settings.json"), BuildSettings(request.AcadMcp, excludeToolsInSettings: !usePolicy).ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+        WriteAtomically(Path.Combine(settingsDirectory, "settings.json"), BuildSettings(request.AcadMcp, excludeToolsInSettings: !usePolicy, request.WebResearch).ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
         WriteAtomically(Path.Combine(workDirectory, "GEMINI.md"), request.Instructions);
 
         var attachments = CliText.ClassifyAttachments(request.Attachments);
@@ -203,17 +210,32 @@ public sealed class GeminiRunner : IAgentRunner
 
     /// <summary>
     /// Policy (Gemini CLI policy engine, TOML) that denies the built-in tools the panel never needs; denied tools are
-    /// not offered to the model at all.
+    /// not offered to the model at all. While Web research is on, google_web_search and web_fetch are allowed instead
+    /// (headless runs refuse anything that would ask); shell and file-writing tools stay denied.
     /// </summary>
-    internal static string BuildPolicy() =>
-        "# AI Copilot for AutoCAD 2027: built-in Gemini CLI tools that the AutoCAD panel never uses.\n" +
-        "[[rule]]\n" +
-        "toolName = " + CliText.TomlArray(ExcludedTools) + "\n" +
-        "decision = \"deny\"\n" +
-        "priority = 900\n";
+    internal static string BuildPolicy(bool webResearch = false)
+    {
+        var policy =
+            "# AI Copilot for AutoCAD 2027: built-in Gemini CLI tools that the AutoCAD panel never uses.\n" +
+            "[[rule]]\n" +
+            "toolName = " + CliText.TomlArray(DeniedTools(webResearch)) + "\n" +
+            "decision = \"deny\"\n" +
+            "priority = 900\n";
+        if (webResearch)
+        {
+            policy +=
+                "\n# Web research is on: the read-only web tools may run without asking.\n" +
+                "[[rule]]\n" +
+                "toolName = " + CliText.TomlArray(WebTools) + "\n" +
+                "decision = \"allow\"\n" +
+                "priority = 900\n";
+        }
+
+        return policy;
+    }
 
     /// <summary>Project-level settings of the private workspace: the trusted AutoCAD bridge (and, without a policy file, the excluded tools).</summary>
-    internal static JsonObject BuildSettings(McpServerLaunch server, bool excludeToolsInSettings = false)
+    internal static JsonObject BuildSettings(McpServerLaunch server, bool excludeToolsInSettings = false, bool webResearch = false)
     {
         var entry = new JsonObject
         {
@@ -240,7 +262,7 @@ public sealed class GeminiRunner : IAgentRunner
         };
         if (excludeToolsInSettings)
         {
-            settings["tools"] = new JsonObject { ["exclude"] = new JsonArray([.. ExcludedTools.Select(t => (JsonNode?)JsonValue.Create(t))]) };
+            settings["tools"] = new JsonObject { ["exclude"] = new JsonArray([.. DeniedTools(webResearch).Select(t => (JsonNode?)JsonValue.Create(t))]) };
         }
 
         return settings;

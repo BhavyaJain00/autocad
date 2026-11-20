@@ -87,9 +87,9 @@
   "project": {
     "version": "0.1.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\pc\\Desktop\\AUTOCAD\\acad-copilot\\src\\AcadCopilot.Plugin\\AcadCopilot.Plugin_w33wqggd_wpftmp.csproj",
+      "projectUniqueName": "c:\\Users\\pc\\Desktop\\AUTOCAD\\acad-copilot\\src\\AcadCopilot.Plugin\\AcadCopilot.Plugin_v10w0anu_wpftmp.csproj",
       "projectName": "AcadCopilot.Plugin",
-      "projectPath": "c:\\Users\\pc\\Desktop\\AUTOCAD\\acad-copilot\\src\\AcadCopilot.Plugin\\AcadCopilot.Plugin_w33wqggd_wpftmp.csproj",
+      "projectPath": "c:\\Users\\pc\\Desktop\\AUTOCAD\\acad-copilot\\src\\AcadCopilot.Plugin\\AcadCopilot.Plugin_v10w0anu_wpftmp.csproj",
       "packagesPath": "C:\\Users\\pc\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\pc\\Desktop\\AUTOCAD\\acad-copilot\\artifacts\\build\\obj\\AcadCopilot.Plugin\\",
       "projectStyle": "PackageReference",

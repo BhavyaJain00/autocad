@@ -147,6 +147,8 @@ public sealed partial class CodexRunner : IAgentRunner
             "-c", "sandbox_mode=\"read-only\"",
             "-c", "features.shell_tool=false",
             "-c", "features.apps=false",
+            // Web research on: live web search (the native read-only web_search tool); off: no web search at all.
+            "-c", request.WebResearch ? "web_search=\"live\"" : "web_search=\"disabled\"",
             "-c", "check_for_update_on_startup=false",
             "-c", $"{key}.command={CliText.TomlString(server.Command)}",
             "-c", $"{key}.args={CliText.TomlArray(server.Arguments)}",

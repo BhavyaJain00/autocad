@@ -39,6 +39,12 @@ public sealed record CopilotSettings
     /// <summary>Tutor mode: the AI explains every AutoCAD command it uses in one short line (default off).</summary>
     public bool TutorMode { get; init; }
 
+    /// <summary>
+    /// Web research: the AI may use its CLI's read-only web tools (search, read a page) to find ideas on the internet
+    /// (default off: no web access at all).
+    /// </summary>
+    public bool WebResearch { get; init; }
+
     /// <summary>The default <see cref="ProviderOrder"/>.</summary>
     public static IReadOnlyList<ProviderId> DefaultProviderOrder { get; } = [ProviderId.Claude, ProviderId.Codex, ProviderId.Gemini];
 
@@ -51,6 +57,7 @@ public sealed record CopilotSettings
         AskBeforeDrawing = AskBeforeDrawing,
         AutoReview = AutoReview,
         TutorMode = TutorMode,
+        WebResearch = WebResearch,
     };
 
     /// <summary>These settings with <paramref name="features"/> applied.</summary>
@@ -64,6 +71,7 @@ public sealed record CopilotSettings
             AskBeforeDrawing = features.AskBeforeDrawing,
             AutoReview = features.AutoReview,
             TutorMode = features.TutorMode,
+            WebResearch = features.WebResearch,
         };
     }
 

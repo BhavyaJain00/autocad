@@ -33,6 +33,18 @@ public sealed record PanelSettings
 
     /// <summary>The user's own quick prompts (the composer's ⚡ menu), in menu order.</summary>
     public IReadOnlyList<SavedQuickPrompt> QuickPrompts { get; init; } = [];
+
+    /// <summary>
+    /// Focus mode whenever the AI Copilot opens (default on): the ribbon is minimised to its tab names and the ViewCube
+    /// and navigation bar are hidden while the panel is open (<see cref="Palette.FocusLayoutController"/>).
+    /// </summary>
+    public bool FocusModeOnOpen { get; init; } = true;
+
+    /// <summary>
+    /// Follow the AI's drawing (default on): after a run_commands call that created objects which are off screen or too
+    /// small to see, the view zooms to them with a 10% margin (never while the user is in a command).
+    /// </summary>
+    public bool FollowAiDrawing { get; init; } = true;
 }
 
 /// <summary>One quick prompt the user saved.</summary>

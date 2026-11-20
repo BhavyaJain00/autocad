@@ -601,6 +601,78 @@ public sealed class ComposerFeaturesTests : IDisposable
         pane.Shell.Dispose();
     });
 
+    [Fact]
+    public void Web_button_toggles_the_shared_web_research_setting() => Sta.Run(() =>
+    {
+        var backend = new AssistBackend();
+        var pane = new CopilotPane(backend, new CopilotPaneOptions
+        {
+            PanelSettingsPath = Path.Combine(_temp, Guid.NewGuid().ToString("N") + ".json"),
+            SettingsPath = Path.Combine(_temp, Guid.NewGuid().ToString("N") + "-settings.json"),
+            CheckProviderStatusOnLoad = false,
+            EnableVoice = false,
+            OpenFolder = _ => { },
+        });
+        var vm = pane.ViewModel;
+        Assert.False(vm.WebResearch);
+        Assert.StartsWith("Web search OFF", vm.WebResearchToolTip, StringComparison.Ordinal);
+        Assert.True(vm.ToggleWebResearchCommand.CanExecute(null));
+
+        vm.ToggleWebResearchCommand.Execute(null);
+        Assert.True(backend.Features.WebResearch);
+        Assert.True(vm.WebResearch);
+        Assert.StartsWith("Web search ON - the AI may search the internet for ideas", vm.WebResearchToolTip, StringComparison.Ordinal);
+
+        vm.WebResearch = false; // the Settings check box binds to the same value
+        Assert.False(backend.Features.WebResearch);
+        Assert.False(vm.WebResearch);
+        pane.Shell.Dispose();
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public void Web_tool_rows_say_what_was_searched_and_read()
+    {
+        Assert.Equal("Searching the web: 30x50 east facing house plan", ToolActivityText.WebTitle("WebSearch", "query: 30x50 east facing house plan", ActivityState.Running));
+        Assert.Equal("Searched the web: 3BHK vastu plan", ToolActivityText.WebTitle("google_web_search", "query: 3BHK vastu plan, allowed_domains: 1 item", ActivityState.Succeeded));
+        Assert.Equal("Searching the web: duplex elevation ideas", ToolActivityText.WebTitle("web_search", "duplex elevation ideas", ActivityState.Running));
+        Assert.Equal("Reading houseplans.com", ToolActivityText.WebTitle("WebFetch", "url: https://www.houseplans.com/plan/30x50, prompt: rooms", ActivityState.Running));
+        Assert.Equal("Read example.org", ToolActivityText.WebTitle("web_fetch", "prompt: Summarise https://example.org/a and list the rooms", ActivityState.Succeeded));
+        Assert.Equal("Reading a web page", ToolActivityText.WebTitle("WebFetch", string.Empty, ActivityState.Running));
+        Assert.Null(ToolActivityText.WebTitle("capture_view", "x", ActivityState.Running));
+    }
+
+    [Theory]
+    [InlineData(PanelTheme.Light)]
+    [InlineData(PanelTheme.Dark)]
+    public void Renders_the_web_button_off_and_on(PanelTheme theme) => Sta.Run(async () =>
+    {
+        var backend = new AssistBackend();
+        var pane = new CopilotPane(backend, new CopilotPaneOptions
+        {
+            Theme = theme,
+            PanelSettingsPath = Path.Combine(_temp, Guid.NewGuid().ToString("N") + ".json"),
+            SettingsPath = Path.Combine(_temp, Guid.NewGuid().ToString("N") + "-settings.json"),
+            CheckProviderStatusOnLoad = false,
+            EnableVoice = false,
+            OpenFolder = _ => { },
+            Interaction = new FakeInteraction(),
+        });
+        await pane.ViewModel.RefreshStatusesAsync();
+        await Sta.Settle();
+        Save(pane, "20-web-button-off", theme, Width, 420);
+
+        pane.ViewModel.ToggleWebResearchCommand.Execute(null);
+        await Sta.Settle();
+        Save(pane, "20-web-button-on", theme, Width, 420);
+        Save(pane, "20-web-button-on-narrow", theme, 340, 420);
+
+        pane.ViewModel.IsSettingsOpen = true;
+        await Sta.Settle();
+        Save(pane, "20-web-research-setting", theme, Width, 900);
+        pane.Shell.Dispose();
+    });
+
     // ------------------------------------------------------------------ helpers
 
     private static SelectionSnapshot Selection(int count) => new()

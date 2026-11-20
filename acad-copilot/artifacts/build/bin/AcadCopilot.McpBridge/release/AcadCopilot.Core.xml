@@ -168,6 +168,12 @@
         <member name="P:AcadCopilot.Core.Agents.TurnRequest.Instructions">
             <summary>Extra system instructions (AutoCAD copilot behaviour); pass via the CLI's system-prompt mechanism.</summary>
         </member>
+        <member name="P:AcadCopilot.Core.Agents.TurnRequest.WebResearch">
+            <summary>
+            Web research is on: the runner also allows the CLI's read-only web tools (Claude Code WebSearch / WebFetch, Codex
+            live web search, Gemini google_web_search / web_fetch). False (default): no web tools at all.
+            </summary>
+        </member>
         <member name="T:AcadCopilot.Core.Agents.AgentFailureKind">
             <summary>Why a turn failed.</summary>
         </member>
@@ -482,6 +488,15 @@
         </member>
         <member name="M:AcadCopilot.Core.Agents.ClaudeCodeRunner.BuildArguments(AcadCopilot.Core.Agents.TurnRequest,System.String,System.String,System.String,System.Collections.Generic.IReadOnlyList{System.String})">
             <summary>Command-line arguments of one turn. The prompt is NOT among them (it goes to stdin).</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Agents.ClaudeCodeRunner.WebTools">
+            <summary>Claude Code's read-only web tools, allowed only while Web research is on.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Agents.ClaudeCodeRunner.AllowedTools(AcadCopilot.Core.Agents.TurnRequest)">
+            <summary>--allowedTools: the AutoCAD tools, plus WebSearch and WebFetch while Web research is on.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Agents.ClaudeCodeRunner.BuiltInTools(AcadCopilot.Core.Agents.TurnRequest,System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>--tools: Read when files are attached, WebSearch and WebFetch while Web research is on, else none ("").</summary>
         </member>
         <member name="M:AcadCopilot.Core.Agents.ClaudeCodeRunner.BuildMcpConfig(AcadCopilot.Core.Agents.McpServerLaunch)">
             <summary>The --mcp-config document: only the AutoCAD bridge, with a long per-call timeout (ask_user waits for a person).</summary>
@@ -1183,6 +1198,9 @@
         <member name="P:AcadCopilot.Core.Agents.TurnOptions.TutorMode">
             <summary>Tutor mode: explain every AutoCAD command used in one short line (default off).</summary>
         </member>
+        <member name="P:AcadCopilot.Core.Agents.TurnOptions.WebResearch">
+            <summary>Web research: the CLI's read-only web tools are available this turn (default off).</summary>
+        </member>
         <member name="P:AcadCopilot.Core.Agents.TurnOptions.IsDefault">
             <summary>True when these options add nothing to the instructions.</summary>
         </member>
@@ -1210,6 +1228,9 @@
         </member>
         <member name="F:AcadCopilot.Core.Agents.CopilotInstructions.TutorNote">
             <summary>Added when the panel's tutor mode is on.</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Agents.CopilotInstructions.WebResearchNote">
+            <summary>Added when the panel's Web research switch is on (the runner then allows only the read-only web tools).</summary>
         </member>
         <member name="M:AcadCopilot.Core.Agents.CopilotInstructions.Compose(System.String,System.String)">
             <summary>
@@ -1298,6 +1319,12 @@
         <member name="F:AcadCopilot.Core.Agents.GeminiRunner.ExcludedTools">
             <summary>Built-in Gemini CLI tools the panel never needs (shell, file edits, web, memory, sub-agents).</summary>
         </member>
+        <member name="F:AcadCopilot.Core.Agents.GeminiRunner.WebTools">
+            <summary>Gemini CLI's read-only web tools, allowed only while Web research is on.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Agents.GeminiRunner.DeniedTools(System.Boolean)">
+            <summary>The built-in tools denied for a turn: all of <see cref="F:AcadCopilot.Core.Agents.GeminiRunner.ExcludedTools"/>, without the web tools while Web research is on.</summary>
+        </member>
         <member name="M:AcadCopilot.Core.Agents.GeminiRunner.#ctor">
             <summary>Creates the runner.</summary>
         </member>
@@ -1336,13 +1363,14 @@
             <param name="attachmentFolders">Folders of attached files (added as workspace directories).</param>
             <param name="policyPath">Policy file that denies the unneeded built-in tools, or null.</param>
         </member>
-        <member name="M:AcadCopilot.Core.Agents.GeminiRunner.BuildPolicy">
+        <member name="M:AcadCopilot.Core.Agents.GeminiRunner.BuildPolicy(System.Boolean)">
             <summary>
             Policy (Gemini CLI policy engine, TOML) that denies the built-in tools the panel never needs; denied tools are
-            not offered to the model at all.
+            not offered to the model at all. While Web research is on, google_web_search and web_fetch are allowed instead
+            (headless runs refuse anything that would ask); shell and file-writing tools stay denied.
             </summary>
         </member>
-        <member name="M:AcadCopilot.Core.Agents.GeminiRunner.BuildSettings(AcadCopilot.Core.Agents.McpServerLaunch,System.Boolean)">
+        <member name="M:AcadCopilot.Core.Agents.GeminiRunner.BuildSettings(AcadCopilot.Core.Agents.McpServerLaunch,System.Boolean,System.Boolean)">
             <summary>Project-level settings of the private workspace: the trusted AutoCAD bridge (and, without a policy file, the excluded tools).</summary>
         </member>
         <member name="M:AcadCopilot.Core.Agents.GeminiRunner.CliEnvironment">
@@ -6953,6 +6981,9 @@
         <member name="P:AcadCopilot.Core.Panel.CopilotFeatures.TutorMode">
             <summary>The AI explains each AutoCAD command it uses in one short line (default off).</summary>
         </member>
+        <member name="P:AcadCopilot.Core.Panel.CopilotFeatures.WebResearch">
+            <summary>The AI may search the internet and read web pages for ideas (read-only web tools; default off).</summary>
+        </member>
         <member name="M:AcadCopilot.Core.Panel.CopilotFeatures.SameAs(AcadCopilot.Core.Panel.CopilotFeatures)">
             <summary>True when <paramref name="other"/> has the same values (the order compared item by item).</summary>
         </member>
@@ -7129,7 +7160,7 @@
             <paramref name="final"/> also the terminal event (otherwise a failure becomes a note).
             </summary>
         </member>
-        <member name="M:AcadCopilot.Core.Panel.CopilotSession.RunProviderAsync(AcadCopilot.Core.Agents.ProviderId,System.String,System.Collections.Generic.IReadOnlyList{System.String},System.String,System.Func{System.String},System.Func{AcadCopilot.Core.Agents.McpServerLaunch},System.Boolean,System.Threading.CancellationToken)">
+        <member name="M:AcadCopilot.Core.Panel.CopilotSession.RunProviderAsync(AcadCopilot.Core.Agents.ProviderId,System.String,System.Collections.Generic.IReadOnlyList{System.String},System.String,System.Func{System.String},System.Func{AcadCopilot.Core.Agents.McpServerLaunch},System.Boolean,System.Boolean,System.Threading.CancellationToken)">
             <summary>
             Runs one CLI call of <paramref name="provider"/> and streams its events: ask_user / update_plan calls hidden, only
             the first terminal event kept, runner exceptions and a missing terminal turned into <see cref="T:AcadCopilot.Core.Agents.TurnFailed"/>.
@@ -7169,6 +7200,12 @@
         </member>
         <member name="P:AcadCopilot.Core.Panel.CopilotSettings.TutorMode">
             <summary>Tutor mode: the AI explains every AutoCAD command it uses in one short line (default off).</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Panel.CopilotSettings.WebResearch">
+            <summary>
+            Web research: the AI may use its CLI's read-only web tools (search, read a page) to find ideas on the internet
+            (default off: no web access at all).
+            </summary>
         </member>
         <member name="P:AcadCopilot.Core.Panel.CopilotSettings.DefaultProviderOrder">
             <summary>The default <see cref="P:AcadCopilot.Core.Panel.CopilotSettings.ProviderOrder"/>.</summary>

@@ -374,6 +374,15 @@ Settings (gear icon) > **AI BEHAVIOUR**. The switches are shared by all tabs and
   only read the drawing, never change it) and a **review card** lists the problems, major ones first, each with where
   it is and how to fix it. **Fix these** sends them to the AI that drew it. You can ask for a review any time with the
   quick prompt *Review this plan*, or by typing exactly "Review this plan".
+- **Web research** (off by default). The globe **Web** button under the message box (in every tab; grey = off,
+  blue = on) and the check box *Web research (let the AI search the internet for ideas)* are the same switch. When it
+  is on, the AI may **search the internet and read web pages** for ideas, nothing else (no downloads, no logins, no
+  sending your drawing anywhere). Ask for example *"find ideas on the internet for a 30x50 east-facing 3BHK"*: the
+  CAD activity shows *Searching the web: ...* and *Reading <site>*, then the AI shows 2-3 different layout ideas
+  (rooms, sizes, Vastu notes, links to the sources) as option cards. It adapts the ideas to your plot and your rules
+  instead of copying a published plan, and still shows the room table before drawing. When the switch is off, the AI
+  never goes on the internet and tells you where to turn it on. The change applies to your next message. In a narrow
+  panel the button shows only the globe.
 - **Tutor mode** (off by default). For people learning AutoCAD: the first time the AI uses a command it explains it
   in one short line, for example *"OFFSET copies a line at a distance: used here for the 9" wall"*. The explanation
   also shows in the tooltip of that command in the CAD activity.
@@ -525,7 +534,7 @@ Server", which is also installed on this PC. The two do not interfere.
 | **Inside AutoCAD** | **Compile-verified only, waiting for the first real run:** loading, the panel and ribbon tab, typing commands on the command line, the picture check, undo grouping and approvals have not run inside AutoCAD yet. |
 | Plain AutoCAD 2027 + learning (2026-11-19) | Retargeted from AutoCAD Architecture to plain AutoCAD 2027 (manifest platform `AutoCAD\|AutoCAD*`, no AEC assemblies needed, instructions without Architecture objects). Tested without AutoCAD: the knowledge files (rules, style, lessons, recipes: dedupe, newest wins, size caps, parallel writers), keyword recall, the per-turn "WHAT YOU HAVE LEARNED" summary and its size limits (including the Codex command-line limit), the style analysis (layers, text, dimensions, wall thicknesses, door swings, blocks) and the learning tools through the built `AcadCopilotMcp.exe`. **Compile-verified only:** `learn_style_from_drawing` reading a real drawing, and the product detection inside AutoCAD. |
 | Teach it by drawing (2026-11-19) | Tested without AutoCAD: the recording (commands with their answers, objects, layer changes, pause, the 2,000-action limit, the AI's own commands left out), the grouping into steps, the Markdown file, `list_recordings` / `read_recording` (also through the built `AcadCopilotMcp.exe`), and the Learning bar rendered off-screen (`artifacts\ui\15-learn-from-me-*.png`). **Compile-verified only:** capturing your commands, the command line and the objects from AutoCAD's events, and the style of your new objects. |
-| AI behaviour, recovery, services (2026-11-20) | Tested without AutoCAD: AI switching and handover, Ask before drawing, the review (report parsing, Fix these), tutor mode, the self-healing rules, the checkpoint catalog and job journal, the resume text, the symbol library and presentation colour maths, the panel cards and activity rows (Auto-fixed, checkpoint, Open exports folder), the quick prompts. **Compile-verified only:** everything inside AutoCAD (undo marks and restore, the drawing copies, the Resume card appearing after a crash, inserting the blocks, the colour fills, the PNG export). |
+| AI behaviour, recovery, services (2026-11-20) | Tested without AutoCAD: the Web research switch (what each AI app is allowed with it on and off, the button and the setting), AI switching and handover, Ask before drawing, the review (report parsing, Fix these), tutor mode, the self-healing rules, the checkpoint catalog and job journal, the resume text, the symbol library and presentation colour maths, the panel cards and activity rows (Auto-fixed, checkpoint, Open exports folder), the quick prompts. **Compile-verified only:** everything inside AutoCAD (undo marks and restore, the drawing copies, the Resume card appearing after a crash, inserting the blocks, the colour fills, the PNG export). |
 | Chat tabs (2026-11-18) | Tested without AutoCAD: parallel turns, the 4-at-once limit, per-tab provider / history / approvals, the turn queue (order, Stop leaves it), routing of questions and plans to their tab over the real pipe, the bridge's `--session` (built `AcadCopilotMcp.exe`), and the tab strip rendered off-screen. **Compile-verified only:** binding a tab to its AutoCAD drawing and switching AutoCAD to that drawing (`DocumentCollection.MdiActiveDocument`) when its turn comes. |
 
 ### First-run checklist
@@ -560,6 +569,10 @@ Server", which is also installed on this PC. The two do not interfere.
 9e. AI behaviour: turn on **Tutor mode** and **Second opinion after each drawing** (Settings), ask for a small room,
     and check the one-line explanations and the review card (**Fix these** sends the findings). Turn **Ask before
     drawing** off and check that it draws right after the table.
+9e2. Web research: click the globe **Web** button (it turns blue; Settings shows the same box ticked) and ask
+    *"find ideas on the internet for a 30x50 east-facing 3BHK house"*. Expect *Searching the web: ...* rows, 2-3 ideas
+    with links as option cards, and no drawing until you pick one. Click **Web** again (grey) and ask the same: the AI
+    should say web research is off. Try it with Claude, ChatGPT and Gemini.
 9f. Checkpoints and resume: ask for a stage of 10+ commands and check the line *Checkpoint 'before: ...' saved first*
     and any **Auto-fixed** lines. Ask *"make a checkpoint called test"*, draw something, then *"restore checkpoint
     test"* (Approve) and check that only the later work is gone. Then, while it draws a long plan, end AutoCAD from

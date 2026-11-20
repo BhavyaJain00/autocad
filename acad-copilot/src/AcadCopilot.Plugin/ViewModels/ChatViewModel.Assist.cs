@@ -15,6 +15,7 @@ public sealed partial class ChatViewModel
     public const string ReviewPrompt = "Review this plan";
 
     private RelayCommand? _secondOpinionCommand;
+    private RelayCommand? _toggleWebResearchCommand;
 
     private ICopilotAssist? Assist => _backend as ICopilotAssist;
 
@@ -49,6 +50,26 @@ public sealed partial class ChatViewModel
         set => UpdateFeatures(f => f.TutorMode == value ? f : f with { TutorMode = value });
     }
 
+    /// <summary>
+    /// Web research: the AI may search the internet and read web pages for ideas (the CLI's read-only web tools). Shared by
+    /// every tab, persisted in settings.json, applied to the next message sent. Off by default.
+    /// </summary>
+    public bool WebResearch
+    {
+        get => Assist?.Features.WebResearch ?? false;
+        set => UpdateFeatures(f => f.WebResearch == value ? f : f with { WebResearch = value });
+    }
+
+    /// <summary>Tooltip of the composer's globe "Web" button.</summary>
+    public string WebResearchToolTip => WebResearch
+        ? "Web search ON - the AI may search the internet for ideas. Click to turn it off (applies to your next message)."
+        : "Web search OFF - click to let the AI search the internet for ideas (applies to your next message).";
+
+    /// <summary>The composer's one-click globe "Web" button: turns <see cref="WebResearch"/> on or off.</summary>
+    public RelayCommand ToggleWebResearchCommand => _toggleWebResearchCommand ??= new RelayCommand(
+        () => WebResearch = !WebResearch,
+        () => HasFeatures);
+
     /// <summary>"Takes over in this order: Claude, ChatGPT, Gemini".</summary>
     public string ProviderOrderText
     {
@@ -74,7 +95,7 @@ public sealed partial class ChatViewModel
 
     /// <summary>Re-reads the switches (another tab changed them; they are shared).</summary>
     public void RefreshFeatures() =>
-        OnPropertiesChanged(nameof(AutoSwitchProvider), nameof(AskBeforeDrawing), nameof(AutoReview), nameof(TutorMode), nameof(ProviderOrderText));
+        OnPropertiesChanged(nameof(AutoSwitchProvider), nameof(AskBeforeDrawing), nameof(AutoReview), nameof(TutorMode), nameof(WebResearch), nameof(WebResearchToolTip), nameof(ProviderOrderText));
 
     /// <summary>
     /// Shows the "Resume previous job" card for <paramref name="info"/> (unless one for the same journal is already shown).

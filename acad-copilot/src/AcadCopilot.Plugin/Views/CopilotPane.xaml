@@ -62,6 +62,7 @@
             <Geometry x:Key="IconArrowDown">M8,3.4 V12.4 M4.6,9 L8,12.4 L11.4,9</Geometry>
             <Geometry x:Key="IconEdit">M10.7,2.7 L13.3,5.3 L5.6,13 L2.6,13.4 L3,10.4 Z M9.3,4.1 L11.9,6.7</Geometry>
             <Geometry x:Key="IconCursor">M3.4,2.6 L12.4,7.1 L8.4,8.5 L6.6,12.6 Z M8.4,8.5 L11.6,13.2</Geometry>
+            <Geometry x:Key="IconGlobe">M8,1.8 C11.4,1.8 14.2,4.6 14.2,8 C14.2,11.4 11.4,14.2 8,14.2 C4.6,14.2 1.8,11.4 1.8,8 C1.8,4.6 4.6,1.8 8,1.8 Z M1.8,8 H14.2 M2.7,4.9 H13.3 M2.7,11.1 H13.3 M8,1.8 C6.3,3.6 5.5,5.7 5.5,8 C5.5,10.3 6.3,12.4 8,14.2 M8,1.8 C9.7,3.6 10.5,5.7 10.5,8 C10.5,10.3 9.7,12.4 8,14.2</Geometry>
             <Geometry x:Key="IconLearn">M8,2.6 L14.6,5.8 L8,9 L1.4,5.8 Z M4.4,7.3 V10.6 C5.3,11.8 6.6,12.4 8,12.4 C9.4,12.4 10.7,11.8 11.6,10.6 V7.3 M14.6,5.8 V9.6</Geometry>
 
             <!-- Focus ring for keyboard navigation. -->
@@ -1911,11 +1912,18 @@
                             <TextBlock Text="Another AI checks the finished drawing (read-only) and lists what to fix. &quot;Review this plan&quot; does it any time." Style="{StaticResource Caption}" />
                         </StackPanel>
                     </CheckBox>
-                    <CheckBox Style="{StaticResource ThemedCheck}" IsChecked="{Binding TutorMode, Mode=TwoWay}"
+                    <CheckBox Style="{StaticResource ThemedCheck}" IsChecked="{Binding TutorMode, Mode=TwoWay}" Margin="0,0,0,7"
                               AutomationProperties.Name="Tutor mode">
                         <StackPanel>
                             <TextBlock Text="Tutor mode" TextWrapping="Wrap" />
                             <TextBlock Text="The AI explains each AutoCAD command it uses in one short line, so you learn as it draws." Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </CheckBox>
+                    <CheckBox Style="{StaticResource ThemedCheck}" IsChecked="{Binding WebResearch, Mode=TwoWay}"
+                              AutomationProperties.Name="Web research">
+                        <StackPanel>
+                            <TextBlock Text="Web research (let the AI search the internet for ideas)" TextWrapping="Wrap" />
+                            <TextBlock Text="Only web search and reading pages, never anything else. Same as the globe &quot;Web&quot; button under the message box; applies to your next message." Style="{StaticResource Caption}" />
                         </StackPanel>
                     </CheckBox>
                 </StackPanel>
@@ -2492,6 +2500,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
@@ -2517,8 +2526,29 @@
                             <TextBlock x:Name="PointLabel" Text="Point" FontSize="11" Margin="3,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
+                    <!-- Web research: one click lets the AI search the internet for ideas (shared by all tabs, next message on). -->
+                    <Button x:Name="WebButton" Grid.Column="3" Width="Auto" Padding="5,0,7,0" Margin="1,0,0,0"
+                            Command="{Binding ToggleWebResearchCommand}" ToolTip="{Binding WebResearchToolTip}"
+                            Visibility="{Binding HasFeatures, Converter={StaticResource Vis}}"
+                            AutomationProperties.Name="Web research" AutomationProperties.HelpText="{Binding WebResearchToolTip}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                                <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WebResearch}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <v:Icon Data="{StaticResource IconGlobe}" Width="14" Height="14" StrokeThickness="1.4" />
+                            <TextBlock x:Name="WebLabel" Text="Web" FontSize="11" Margin="3,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                     <!-- Quick prompts. -->
-                    <Button x:Name="QuickPromptButton" Grid.Column="3" Command="{Binding ToggleQuickMenuCommand}" Margin="1,0,0,0"
+                    <Button x:Name="QuickPromptButton" Grid.Column="4" Command="{Binding ToggleQuickMenuCommand}" Margin="1,0,0,0"
                             Visibility="{Binding HasQuickPrompts, Converter={StaticResource Vis}}"
                             ToolTip="Quick prompts (⚡): ready-made requests and your saved ones" AutomationProperties.Name="Quick prompts">
                         <Button.Style>
@@ -2534,7 +2564,7 @@
                         <v:Icon Data="{StaticResource IconSparkle}" IsFilled="True" Width="13" Height="13" Foreground="{DynamicResource AccentText}" />
                     </Button>
                     <!-- Drafting speed: Watch (pauses so you can follow every input) or Fast. -->
-                    <Border Grid.Column="4" Background="{DynamicResource SegmentTrack}" CornerRadius="6" Padding="2" Margin="4,0,0,0"
+                    <Border Grid.Column="5" Background="{DynamicResource SegmentTrack}" CornerRadius="6" Padding="2" Margin="4,0,0,0"
                             VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
                             <RadioButton Style="{StaticResource SegmentRadio}" GroupName="ComposerPace" IsChecked="{Binding IsWatchPace, Mode=TwoWay}"
@@ -2555,7 +2585,7 @@
                             </RadioButton>
                         </StackPanel>
                     </Border>
-                    <TextBlock Grid.Column="5" FontSize="10.5" Foreground="{DynamicResource TextMuted}"
+                    <TextBlock Grid.Column="6" FontSize="10.5" Foreground="{DynamicResource TextMuted}"
                                VerticalAlignment="Center" HorizontalAlignment="Right" Margin="6,0,8,0" TextTrimming="CharacterEllipsis"
                                ToolTip="Enter sends (while the AI works: adds to the queue) · Shift+Enter adds a new line · Ctrl+Space speaks · Esc stops">
                         <TextBlock.Style>
@@ -2573,14 +2603,14 @@
                         </TextBlock.Style>
                     </TextBlock>
                     <!-- While this chat works, the message can wait in its queue (Enter does the same). -->
-                    <Button Grid.Column="6" Style="{StaticResource IconButton}" Width="30" Height="30" Margin="0,0,4,0"
+                    <Button Grid.Column="7" Style="{StaticResource IconButton}" Width="30" Height="30" Margin="0,0,4,0"
                             Command="{Binding AddToQueueCommand}" ToolTipService.ShowOnDisabled="True"
                             ToolTip="Add to queue (Enter): it runs by itself when this answer is done"
                             AutomationProperties.Name="Add to queue"
                             Visibility="{Binding IsBusy, Converter={StaticResource Vis}}">
                         <v:Icon Data="{StaticResource IconQueueAdd}" Width="16" Height="16" />
                     </Button>
-                    <Button Grid.Column="7" Width="30" Height="30" Command="{Binding SendCommand}"
+                    <Button Grid.Column="8" Width="30" Height="30" Command="{Binding SendCommand}"
                             ToolTip="Send (Enter)" AutomationProperties.Name="Send"
                             Visibility="{Binding IsIdle, Converter={StaticResource Vis}}">
                         <Button.Style>
@@ -2610,7 +2640,7 @@
                         </Button.Style>
                         <v:Icon Data="{StaticResource IconSend}" Width="15" Height="15" StrokeThickness="1.9" />
                     </Button>
-                    <Button Grid.Column="7" Width="30" Height="30" Command="{Binding StopCommand}"
+                    <Button Grid.Column="8" Width="30" Height="30" Command="{Binding StopCommand}"
                             ToolTip="Stop (Esc)" AutomationProperties.Name="Stop"
                             Visibility="{Binding IsBusy, Converter={StaticResource Vis}}">
                         <Button.Style>

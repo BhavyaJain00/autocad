@@ -115,6 +115,12 @@ public sealed record TurnRequest
 
     /// <summary>Extra system instructions (AutoCAD copilot behaviour); pass via the CLI's system-prompt mechanism.</summary>
     public string Instructions { get; init; } = CopilotInstructions.Default;
+
+    /// <summary>
+    /// Web research is on: the runner also allows the CLI's read-only web tools (Claude Code WebSearch / WebFetch, Codex
+    /// live web search, Gemini google_web_search / web_fetch). False (default): no web tools at all.
+    /// </summary>
+    public bool WebResearch { get; init; }
 }
 
 /// <summary>Why a turn failed.</summary>
