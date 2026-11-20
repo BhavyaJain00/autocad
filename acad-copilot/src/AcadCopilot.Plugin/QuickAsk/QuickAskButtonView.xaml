@@ -27,7 +27,7 @@
             <Geometry x:Key="IconWarning">M8,2.2 L14.3,13.3 H1.7 Z M8,6.5 V9.4 M8,11.4 V11.5</Geometry>
             <Geometry x:Key="IconQuestion">M8,1.8 C11.4,1.8 14.2,4.6 14.2,8 C14.2,11.4 11.4,14.2 8,14.2 C4.6,14.2 1.8,11.4 1.8,8 C1.8,4.6 4.6,1.8 8,1.8 Z M6.2,6.3 C6.2,5.3 7,4.6 8,4.6 C9,4.6 9.8,5.3 9.8,6.2 C9.8,7.6 8,7.6 8,9.1 M8,11.3 V11.4</Geometry>
 
-            <DropShadowEffect x:Key="Shadow" BlurRadius="10" ShadowDepth="1.5" Direction="270" Opacity="0.35" Color="{DynamicResource ShadowColorBrushColor}" />
+            <DropShadowEffect x:Key="Shadow" BlurRadius="10" ShadowDepth="1.5" Direction="270" Opacity="0.35" Color="Black" />
 
             <ControlTemplate x:Key="PillButtonTemplate" TargetType="ButtonBase">
                 <Border x:Name="Bd"

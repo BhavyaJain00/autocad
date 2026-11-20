@@ -80,6 +80,8 @@ public sealed class QuickAskController : ObservableObject, IDisposable
         Options = options;
         Status = new QuickAskStatusViewModel(host, dispatcher);
         ToggleBoxCommand = new RelayCommand(() => ToggleBox(QuickAskOpenReason.Button));
+        OpenPanelCommand = new RelayCommand(OpenPanel);
+        HideButtonCommand = new RelayCommand(() => Options.ShowButton = false);
         options.PropertyChanged += OnOptionsChanged;
     }
 
@@ -111,6 +113,15 @@ public sealed class QuickAskController : ObservableObject, IDisposable
 
     /// <summary>The floating button: opens the box, or closes it when open.</summary>
     public RelayCommand ToggleBoxCommand { get; }
+
+    /// <summary>The button's menu: shows the side panel (on the chat of the active drawing when there is one).</summary>
+    public RelayCommand OpenPanelCommand { get; }
+
+    /// <summary>The button's menu: hides the floating button (the AIBUTTON command or the panel's Settings bring it back).</summary>
+    public RelayCommand HideButtonCommand { get; }
+
+    /// <summary>"Shortcut: Ctrl+Shift+Space" (the button's menu).</summary>
+    public string ShortcutMenuText => $"Shortcut: {Options.Shortcut} (change it in the panel's Settings)";
 
     /// <summary>"Ask the AI (Ctrl+Shift+Space)" for the button's tool tip.</summary>
     public string ButtonToolTip => $"Ask the AI right here ({Options.Shortcut}, or type AI). Right-click for options.";
@@ -332,7 +343,26 @@ public sealed class QuickAskController : ObservableObject, IDisposable
     {
         if (e.PropertyName == nameof(QuickAskOptions.Shortcut))
         {
-            OnPropertyChanged(nameof(ButtonToolTip));
+            OnPropertiesChanged(nameof(ButtonToolTip), nameof(ShortcutMenuText));
+        }
+    }
+
+    private void OpenPanel()
+    {
+        if (_host.Shell is not { } shell)
+        {
+            return;
+        }
+
+        var drawing = _host.ActiveDrawingId;
+        var chat = (string.IsNullOrWhiteSpace(drawing) ? null : shell.TabForDrawing(drawing)) ?? shell.SelectedTab;
+        try
+        {
+            _host.ShowChat(chat);
+        }
+        catch (Exception ex)
+        {
+            CopilotLog.Warn("Quick Ask: could not open the chat panel", ex);
         }
     }
 
