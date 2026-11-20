@@ -76,29 +76,8 @@ public static class SheetPlanner
         ArgumentNullException.ThrowIfNull(options);
         var block = TitleBlockDesign.For(options.Paper);
         var area = block.Drawable;
-        var room = (W: area.Width - (2 * ViewportPad), H: area.Height - (2 * ViewportPad));
         var warnings = new List<string>();
-
-        // Scale per drawing: the automatic choice, shared within plans, elevations, sections and layouts.
-        var scales = new Dictionary<int, DrawingScale>();
-        foreach (var drawing in drawings)
-        {
-            scales[drawing.Number] = options.Scale ?? DrawingScales.Choose(
-                drawing.Kind, drawing.ModelBox.Width, drawing.ModelBox.Height, options.InchesPerUnit, room.W, room.H, options.System);
-        }
-
-        if (options.Scale is null)
-        {
-            foreach (var kind in new[] { DrawingKind.FloorPlan, DrawingKind.Elevation, DrawingKind.Section, DrawingKind.Layout })
-            {
-                var same = drawings.Where(d => d.Kind == kind).ToList();
-                if (same.Count > 1)
-                {
-                    var common = same.Select(d => scales[d.Number]).MaxBy(s => s.Ratio)!;
-                    same.ForEach(d => scales[d.Number] = common);
-                }
-            }
-        }
+        var scales = ChooseScales(drawings, options);
 
         var sheets = new List<SheetSpec>();
         foreach (var series in drawings.GroupBy(d => SheetNames.Series(d.Kind)).OrderBy(g => g.Key))
@@ -157,8 +136,43 @@ public static class SheetPlanner
     }
 
     /// <summary>
-    /// The title of a sheet: the drawing's title, "FRONT & REAR ELEVATIONS" for two elevations, the titles joined with
-    /// " & " when short, else the plural of the kind ("ELEVATIONS").
+    /// The scale of each drawing (by number): <see cref="SheetOptions.Scale"/> when given, else the largest standard
+    /// scale at which it fits the sheet's drawable area (<see cref="DrawingScales.Choose"/>), shared within the floor
+    /// plans, the elevations, the sections and the layouts (the smallest of the group wins).
+    /// </summary>
+    public static IReadOnlyDictionary<int, DrawingScale> ChooseScales(IReadOnlyList<SheetDrawing> drawings, SheetOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(drawings);
+        ArgumentNullException.ThrowIfNull(options);
+        var area = TitleBlockDesign.For(options.Paper).Drawable;
+        var roomW = area.Width - (2 * ViewportPad);
+        var roomH = area.Height - (2 * ViewportPad);
+        var scales = new Dictionary<int, DrawingScale>();
+        foreach (var drawing in drawings)
+        {
+            scales[drawing.Number] = options.Scale ?? DrawingScales.Choose(
+                drawing.Kind, drawing.ModelBox.Width, drawing.ModelBox.Height, options.InchesPerUnit, roomW, roomH, options.System);
+        }
+
+        if (options.Scale is null)
+        {
+            foreach (var kind in new[] { DrawingKind.FloorPlan, DrawingKind.Elevation, DrawingKind.Section, DrawingKind.Layout })
+            {
+                var same = drawings.Where(d => d.Kind == kind).ToList();
+                if (same.Count > 1)
+                {
+                    var common = same.Select(d => scales[d.Number]).MaxBy(s => s.Ratio)!;
+                    same.ForEach(d => scales[d.Number] = common);
+                }
+            }
+        }
+
+        return scales;
+    }
+
+    /// <summary>
+    /// The title of a sheet: the drawing's title, "FRONT &amp; REAR ELEVATIONS" for two elevations, the titles joined with
+    /// " &amp; " when short, else the plural of the kind ("ELEVATIONS").
     /// </summary>
     public static string SheetTitle(IReadOnlyList<SheetDrawing> drawings)
     {

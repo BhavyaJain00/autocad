@@ -230,13 +230,13 @@ public static partial class QuickAskText
             "m" or "meter" or "meters" or "metre" or "metres" => $"{a}x{b} m",
             "mm" => $"{a}x{b} mm",
             "cm" => $"{a}x{b} cm",
-            "in" or "inch" or "inches" or "\"" => $"{a}\"x{b}\"",
+            "inch" or "inches" or "\"" => $"{a}\"x{b}\"",
             _ => match.Value,
         };
     }
 
     // "10 by 20", "10x20", "10 X 20 ft", "10' x 20'", "10 into 20 feet" (Indian usage).
-    [GeneratedRegex("""(?<a>\d+(?:\.\d+)?)'?\s*(?:by|x|X|×|into|\*)\s*(?<b>\d+(?:\.\d+)?)(?<unit>'|"|\s*(?:feet|foot|ft|meters?|metres?|mm|cm|m|inches|inch|in)\b)?""", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("""(?<a>\d+(?:\.\d+)?)'?\s*(?:by|x|X|×|into|\*)\s*(?<b>\d+(?:\.\d+)?)(?<unit>'|"|\s*(?:feet|foot|ft|meters?|metres?|mm|cm|m|inches|inch)\b)?""", RegexOptions.CultureInvariant)]
     private static partial Regex Sizes();
 
     // "4 ft", "4 feet" -> 4'.

@@ -281,6 +281,9 @@ public sealed class CopilotApp : IExtensionApplication
         // Crash recovery: offer an unfinished job of the open drawing (and of drawings opened later) in the panel.
         // After the palette exists, so its "Resume previous job" card hears the first offer. Never throws.
         AcadCopilot.Plugin.Recovery.ResumeMonitor.Start();
+
+        // Quick Ask: the floating AI button in the drawing area, its shortcut and box (after the palette exists). Never throws.
+        AcadCopilot.Plugin.QuickAsk.QuickAskService.Start(this);
     }
 
     private PaletteHost? EnsurePalette()
@@ -393,6 +396,7 @@ public sealed class CopilotApp : IExtensionApplication
         }
 
         AcadCopilot.Plugin.Recovery.ResumeMonitor.Stop();
+        AcadCopilot.Plugin.QuickAsk.QuickAskService.Stop();
 
         try
         {

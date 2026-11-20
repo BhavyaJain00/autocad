@@ -80,15 +80,15 @@ public static class ModelArrangement
         var g = gap is > 0 ? gap.Value : AutomaticGap(clusters, inchesPerUnit);
         SheetRect BoxOf(DrawingCluster c) => boxes is not null && boxes.TryGetValue(c.Number, out var b) ? b.Union(c.Box) : c.Box;
 
-        var rows = new List<List<DrawingCluster>>
-        {
+        List<List<DrawingCluster>> rows =
+        [
             [.. clusters.Where(c => c.Kind == DrawingKind.FloorPlan).OrderBy(c => c.Order).ThenBy(c => c.Box.MinX)],
             [.. clusters.Where(c => c.Kind == DrawingKind.Elevation).OrderBy(c => c.Order).ThenBy(c => c.Number)
                 .Concat(clusters.Where(c => c.Kind == DrawingKind.Section).OrderBy(c => c.Order).ThenBy(c => c.Number))
                 .Concat(clusters.Where(c => c.Kind == DrawingKind.SitePlan).OrderBy(c => c.Number))],
             [.. clusters.Where(c => c.Kind is DrawingKind.Layout or DrawingKind.Schedule or DrawingKind.Other)
                 .OrderBy(c => c.Kind == DrawingKind.Other ? 1 : 0).ThenBy(c => c.Order).ThenBy(c => c.Number)],
-        };
+        ];
 
         var result = new List<ArrangedDrawing>();
         double? startX = null;

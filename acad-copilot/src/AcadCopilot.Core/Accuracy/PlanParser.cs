@@ -168,7 +168,7 @@ public static class PlanParser
             // Wall thickness defaults: on the outline -> outer, otherwise inner.
             foreach (var wall in walls.Where(w => !w.ThicknessGiven))
             {
-                wall.Thickness = outline is not null && IsOnOutline(wall, outline, outer) ? outer : inner;
+                wall.Thickness = outline is not null && FloorAnalysis.OnOutline(wall, outline, outer) ? outer : inner;
             }
 
             var rooms = new List<PlanRoom>();
@@ -371,22 +371,6 @@ public static class PlanParser
             var box = Box.Of(walls.SelectMany(w => new[] { w.From, w.To }));
             var half = outer / 2;
             return Polygon.Rect(box.Inflate(half));
-        }
-
-        private static bool IsOnOutline(PlanWall wall, Polygon outline, double outer)
-        {
-            var mid = wall.At(wall.Length / 2);
-            foreach (var (a, b) in outline.Edges())
-            {
-                var edge = (b - a).Unit();
-                var parallel = Math.Abs((edge.X * wall.Direction.Y) - (edge.Y * wall.Direction.X)) < 1e-6;
-                if (parallel && Polygon.SegmentDistance(mid, a, b) <= outer / 2 + 0.6)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private Polygon? Points(JsonArray array, string path)
