@@ -1,11 +1,14 @@
 {
   "version": 2,
-  "dgSpecHash": "dnPLwRFGAl4=",
+  "dgSpecHash": "U3dE38SQn3Y=",
   "success": true,
   "projectFilePath": "C:\\Users\\pc\\Desktop\\AUTOCAD\\acad-copilot\\src\\AcadCopilot.Plugin\\AcadCopilot.Plugin.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\pc\\.nuget\\packages\\system.speech\\10.0.15\\system.speech.10.0.15.nupkg.sha512",
-    "C:\\Users\\pc\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
+    "C:\\Users\\pc\\.nuget\\packages\\microsoft.netcore.app.ref\\10.0.15\\microsoft.netcore.app.ref.10.0.15.nupkg.sha512",
+    "C:\\Users\\pc\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\10.0.15\\microsoft.windowsdesktop.app.ref.10.0.15.nupkg.sha512",
+    "C:\\Users\\pc\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\10.0.15\\microsoft.aspnetcore.app.ref.10.0.15.nupkg.sha512",
+    "C:\\Users\\pc\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.87\\microsoft.windows.sdk.net.ref.10.0.19041.87.nupkg.sha512"
   ],
   "logs": []
 }

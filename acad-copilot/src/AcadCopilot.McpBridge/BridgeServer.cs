@@ -35,7 +35,9 @@ public static class BridgeServer
         "If tools report that AutoCAD is not reachable, call acad_status. " +
         "5) Learn: recall_knowledge before drawing and follow the user's rules and style; remember_rule when the user " +
         "corrects you or states a preference, save_recipe after a stage works, save_lesson after fixing a mistake, " +
-        "learn_style_from_drawing on the user's own finished drawing (local Markdown files the user can edit).";
+        "learn_style_from_drawing on the user's own finished drawing (local Markdown files the user can edit). " +
+        "6) Also: pick_point / get_selection / select_objects (the user's clicks and selection), create_checkpoint / " +
+        "restore_checkpoint / get_resume_info (recovery), and the services and presentation tools (see their descriptions).";
 
     /// <summary>Bridge version (assembly informational version).</summary>
     public static string Version { get; } =

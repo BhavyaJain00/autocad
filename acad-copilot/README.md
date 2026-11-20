@@ -41,8 +41,10 @@ docs/USER-GUIDE.md section 9).
 | CLIs | The runners were verified live with Claude Code and Codex CLI in the Revit version. Gemini CLI on this PC is in "API key" mode without a key: not verified live. |
 | Chat tabs (2026-11-18) | Several conversations in parallel, one per tab, each bound to a drawing; drawing actions take turns in AutoCAD (see "Chat tabs" below). Tested without AutoCAD (queue, sessions, routing over the real pipe, bridge `--session`, view models, off-screen renders `artifacts\ui\11-chat-tabs-*.png`, `12-close-working-tab-*.png`). Binding to a document and switching the active document are compile-verified only. |
 | Plain AutoCAD 2027 + learning (2026-11-19) | Retargeted from AutoCAD Architecture (removed from this PC) to plain AutoCAD 2027: manifest `Platform="AutoCAD\|AutoCAD*"`, no AEC references anywhere (the plug-in references only `acmgd`, `acdbmgd`, `accoremgd`, `AdWindows`), product detection via `AcadProduct`, instructions without Architecture objects unless the host is AutoCAD Architecture. Continuous learning (see "Learning"): Core 619 and bridge 67 tests green, including the learning tools through the built `AcadCopilotMcp.exe`. `learn_style_from_drawing` and the product detection inside AutoCAD are compile-verified only. |
-| Composer helpers (2026-11-19) | **Point** (click points in the drawing, `[point 12'-6",30'-0" (150,360)]` goes into the message; `Plugin/Interaction/AcadDrawingInteraction.cs` runs `Editor.GetPoint` inside `DocumentCollection.ExecuteInCommandContextAsync`, waits for its turn in the AutoCAD queue), **selection chip** (pickfirst selection via `Document.ImpliedSelectionChanged` + `Editor.SelectImplied`; the message carries handles + short summaries), **task queue** per tab (Enter while busy queues; drag / arrows reorder; Stop or a failure pauses, Resume continues), **quick prompts** (built-ins + the user's own in `panel.json`), Settings **AI behaviour** switches (agent B's `ICopilotAssist.Features`), **review card** with Fix these (`ReviewCompleted`), **switch notice** (`ProviderSwitched`), **Resume previous job** card (agent A's `JobJournalStore.FindUnfinished`, wired in `PaletteHost`). UI 222 tests green, renders `artifacts\ui\16-*` .. `19-*.png`. The AutoCAD side (picking, selection events, `pick_point` / `get_selection` / `select_objects` bodies) is compile-verified only. |
+| Composer helpers (2026-11-19) | **Point** (click points in the drawing, `[point 12'-6",30'-0" (150,360)]` goes into the message; `Plugin/Interaction/AcadDrawingInteraction.cs` runs `Editor.GetPoint` inside `DocumentCollection.ExecuteInCommandContextAsync`, waits for its turn in the AutoCAD queue), **selection chip** (pickfirst selection via `Document.ImpliedSelectionChanged` + `Editor.SelectImplied`; the message carries handles + short summaries), **task queue** per tab (Enter while busy queues; drag / arrows reorder; Stop or a failure pauses, Resume continues), **quick prompts** (built-ins + the user's own in `panel.json`), Settings **AI behaviour** switches (agent B's `ICopilotAssist.Features`), **review card** with Fix these (`ReviewCompleted`), **switch notice** (`ProviderSwitched`), **Resume previous job** card (crash recovery's `ResumeMonitor.OfferChanged`, wired in `PaletteHost`). UI 222 tests green, renders `artifacts\ui\16-*` .. `19-*.png`. The AutoCAD side (picking, selection events, `pick_point` / `get_selection` / `select_objects` bodies) is compile-verified only. |
 | Learn from me (2026-11-19) | Recorder of the user's own manual work (see "Learn from me" below): Core 642, bridge 68, UI 196 tests green (recording model, steps, Markdown, caps, copilot actions ignored, `list_recordings` / `read_recording` also through the built `AcadCopilotMcp.exe`, Learning bar renders `artifacts\ui\15-learn-from-me-*.png`). The AutoCAD event capture (`Plugin/Learning/ActionRecorder.cs`) is compile-verified only. |
+| Assistant, recovery, services (2026-11-19) | Four parts added in parallel: **AI switching** (another signed-in AI continues a job after a usage limit, sign-in problem or repeated failure, with a HANDOVER message built from the tab's `ConversationJournal`), **Ask before drawing**, **second-opinion review** (a separate read-only CLI call, `--readonly` bridge, review card with Fix these), **tutor mode**; **self-healing input** ("Auto-fixed"), **checkpoints** and **crash recovery** (job journal, `get_resume_info`, Resume card); **electrical / plumbing first-draft layouts** (block library + legend) and **colour presentation elevations** with PNG export. Everything that touches AutoCAD in these parts is compile-verified only. |
+| Integration (2026-11-20) | Recovery wired into the pipe handler (`RecoveryContext.SessionId` around every tool handler, `RecoveryHooks.PlanUpdated` on `update_plan`) and `CopilotApp` (`ResumeMonitor.Start` after the palette exists, `Stop` at shutdown); the Resume card listens to `ResumeMonitor.OfferChanged` and resumes in a tab bound to that drawing; the panel's in-memory handover journal renamed `ConversationJournal` (the on-disk crash-recovery journal is `Core.Recovery.JobJournal` in `journal\`); activity rows show "Auto-fixed" lines, the checkpoint made before a call and an **Open exports folder** link; two quick prompts (electrical draft, colour elevation + PNG); instructions, guides and docs for the new tools. Release build of the whole solution 0 warnings / 0 errors; tests green: Core 803, bridge 75, UI 228. |
 | **Compile-verified only (needs AutoCAD)** | Everything that runs inside AutoCAD: loading from the bundle, the palette and ribbon tab, the main-thread dispatcher, `run_commands` (typing, prompts, undo grouping, approvals), `capture_view` and the other inspect tools, `COPILOT` / `COPILOTSTATUS`. None of it has run inside AutoCAD yet. |
 
 ## Repository layout
@@ -104,8 +106,13 @@ powershell -ExecutionPolicy Bypass -File scripts\install.ps1
     checkpoints\<drawing>_<hash>\ copies of the drawing per checkpoint (*.dwg) + index.json; max 20 per drawing, 7 days
     journal\<session>.json       job journal per chat session (or "drawing-<drawing>_<hash>"): plan tasks, run_commands
                                  calls and finished steps, drawing path, AutoCAD pid; deleted after 7 days
-    settings.json                selected provider + model per provider (no secrets)
+    settings.json                selected provider + model per provider, AI behaviour switches (no secrets)
+%USERPROFILE%\Documents\AcadCopilot Exports\   PNGs written by export_view_png (<name>_<yyyyMMdd-HHmmss>.png)
 ```
+
+The bundle also carries `Contents\Blocks\AcadCopilot-Services.dxf` (the electrical / plumbing block library, made by
+`scripts\make-symbol-library.ps1`), and the built-in recipes "Electrical layout (first draft)", "Plumbing layout (first
+draft)" and "Colour presentation elevation" are seeded into `knowledge\recipes\` at start-up.
 
 AutoCAD 2027 does not trust `%APPDATA%\Autodesk\ApplicationPlugins` by default, and the DLL is not signed. So with
 `SECURELOAD` = 1 the user answers a security prompt once (or adds `...\AcadCopilot.bundle\Contents` to Trusted
@@ -136,6 +143,11 @@ started with `DOTNET_ROOT` set to the runtime AutoCAD itself runs on. Override i
 | `pick_point` | Write (takes a turn; changes nothing) | `Tools/ToolRegistry.Interaction.cs` | `{prompt, count? 1-20, timeoutSeconds? 5-600}`: asks the USER to click points (prompt in the command line and a banner in the panel; Enter finishes, Esc cancels / fails); returns WCS points with feet-inches |
 | `get_selection` | Read | `Tools/ToolRegistry.Interaction.cs` | `{which? auto/current/last, limit?}`: the user's pickfirst selection (or the last one), counts by type / layer, `EntitySummary` per object |
 | `select_objects` | Write (takes a turn; changes nothing) | `Tools/ToolRegistry.Interaction.cs` | `{handles[]}`: selects + highlights objects for the user (grips), `[]` clears |
+| `insert_symbol_library` | Write | `Tools/ToolRegistry.Services.cs` | imports the 20 electrical / plumbing blocks (bundle `Contents\Blocks\AcadCopilot-Services.dxf`, R12 DXF via `Database.DxfIn` + `WblockCloneObjects`) and the layers E-LITE, E-POWR, E-SWCH, E-ANNO, P-WATR, P-DRAN, P-FIXT, P-ANNO; optional own `.dwg` / `.dxf` library |
+| `place_services_legend` | Write | `Tools/ToolRegistry.Services.cs` | legend table (real blocks) + "DRAFT - TO BE CHECKED BY A QUALIFIED ... ENGINEER" note |
+| `fill_presentation_regions` | Write | `Tools/ToolRegistry.Services.cs` | true-colour solid / gradient / pattern hatches by internal point or boundary handle on A-ELEV-PRES-* layers, behind the linework |
+| `add_presentation_backdrop` | Write | `Tools/ToolRegistry.Services.cs` | sky gradient, ground band, 45-degree shadows of projections |
+| `export_view_png` | Write | `Tools/ToolRegistry.Services.cs` | PNG (default 2400 px, white paper, exact fill colours) to `Documents\AcadCopilot Exports`; result data `file`, `folder` and a preview image (the panel shows **Open exports folder**) |
 
 `get_drawing_info` also returns `product` ("AutoCAD 2027" for plain AutoCAD, the vertical's name otherwise) and
 `architectureObjects` (true only in AutoCAD Architecture / MEP).
@@ -188,6 +200,18 @@ Every `run_commands` step is checked before anything is typed. Command names are
   that has ended as `CurrentOffer` / `OfferChanged` for a "Resume previous job" card; `Dismiss(session)` retires it, and
   a new plan on the same drawing retires older ended jobs. Journals and checkpoint copies older than 7 days are deleted
   once per session.
+- **Wiring**: `PluginPipeHandler` sets `RecoveryContext.SessionId` (AsyncLocal, flows into the main-thread items) to
+  the chat tab around every tool handler and resets it afterwards, also on exceptions, so each tab's calls journal
+  under its own key (calls without a tab journal under one key per drawing); `UpdatePlanAsync` calls
+  `RecoveryHooks.PlanUpdated`. `CopilotApp` starts `ResumeMonitor` at the end of its first-idle start-up (after the
+  palette exists) and stops it at shutdown. `PaletteHost` subscribes to `ResumeMonitor.OfferChanged` (and shows a
+  `CurrentOffer` made before the palette existed): the card goes into the tab bound to that drawing, else the tab shown.
+  **Resume** sends `ResumeMonitor.ResumePrompt(offer)` in a tab bound to the job's drawing (a new tab when none is and
+  that drawing is active; otherwise the card asks the user to switch to it first and stays open), then
+  `ResumeMonitor.Dismiss`; **Dismiss** retires the journal.
+- **Two journals, no overlap**: `Core/Recovery/JobJournal*.cs` is the on-disk crash-recovery journal (`journal\`);
+  `Core/Panel/ConversationJournal.cs` is the in-memory record of a tab's conversation (recent messages, task list, tool
+  calls) used for AI-switch handovers and the reviewer. It writes no files.
 - Compile-verified only (needs AutoCAD): the engine integration, UNDO Mark/Back/REDO/MREDO, Wblock/SaveAs/Insert, the
   monitor's document events. The pure rules, catalog, store, journal and resume text are unit-tested.
 
@@ -219,7 +243,16 @@ backend composes each turn's text with `CopilotInstructions.Compose(product, lea
 host product (`AcadSessionInfo.Product`, from `AcadHost.ProductName` / `AcadCopilot.Core.AcadProduct`) is AutoCAD
 Architecture or MEP, plus the "WHAT YOU HAVE LEARNED" digest (below), read fresh for every turn.
 
-Default is about 15,450 characters; keep it under 15,500 (test). The digest is at most 4,000 and the composed text
+The TOOLS section names the newer tools in one line each (`pick_point` / `get_selection` / `select_objects` and the
+`[point ...]` / `[selected in AutoCAD: ...]` message tokens; `create_checkpoint` / `restore_checkpoint` /
+`get_resume_info`; the services and presentation tools); "Auto-fixed" notes, the IF POINTS LAND WRONG advice and the
+details live in the tool descriptions. SAFETY says electrical / plumbing layouts are first drafts with the DRAFT note.
+`DraftingGuides` (returned by `recall_knowledge`) has guides for the dog-legged stair, elevation, section, site plan,
+furniture, hatching, electrical layout, plumbing layout, presentation elevation and Vastu. Turn settings from the panel
+("Ask before drawing" off, tutor mode on) are added as a TURN SETTINGS block; the reviewer gets its own read-only
+instructions (`CopilotInstructions.Reviewer`).
+
+Default is about 15,380 characters; keep it under 15,500 (test). The digest is at most 4,000 and the composed text
 at most 20,000 (`MaxComposedLength`): Codex receives it on its command line, which Windows limits to 32,767
 characters after quoting (a test builds the worst case).
 
@@ -325,6 +358,10 @@ the CLIs also die if AutoCAD exits).
 - `PluginPipeHandler`: unknown tool -> error listing the tools; JSON-schema validation; approval card for
   `Destructive` tools (`run_commands` asks itself, per dangerous command, through `ToolContext.ApproveAsync`); writes
   serialised; `ToolException` -> failed result; busy -> -32004; revision on every result.
+- Activity rows (`ViewModels/ActivityItems.cs`): per `run_commands` command its outcome, problem and "Auto-fixed: ..."
+  line; the checkpoint made before the call; the `capture_view` / `export_view_png` picture; for `export_view_png` an
+  **Open exports folder** link (`explorer /select,<file>`). Quick prompts (`QuickPromptsViewModel.BuiltIns`): 30x40 G+1
+  plan, Add dimensions, Review this plan, Learn my style, Plot to PDF, Electrical layout (draft), Colour elevation + PNG.
 - Watch / Fast: `AcadCopilot.Core.Drafting.DraftingPace` (watch = 450 ms between typed inputs, 900 ms before each
   command; fast = no pauses), bound to the panel switch; a change applies to the next input.
 - `run_commands` (definition and LLM description in `Core/Drafting/DraftingTools.cs`, request limits in

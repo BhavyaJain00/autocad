@@ -350,7 +350,7 @@ public sealed class ComposerFeaturesTests : IDisposable
         var prompts = new QuickPromptsViewModel(store);
         var (vm, _) = CreateChat(null, prompts, store);
 
-        Assert.Equal(["30x40 G+1 standard plan", "Add dimensions", "Review this plan", "Learn my style from this drawing", "Plot to PDF"], prompts.BuiltIns.Select(b => b.Title));
+        Assert.Equal(["30x40 G+1 standard plan", "Add dimensions", "Review this plan", "Learn my style from this drawing", "Plot to PDF", "Electrical layout (draft)", "Colour elevation + PNG"], prompts.BuiltIns.Select(b => b.Title));
         Assert.Equal(ChatViewModel.ReviewPrompt, prompts.BuiltIns[2].Text);
         vm.ToggleQuickMenuCommand.Execute(null);
         Assert.True(vm.IsQuickMenuOpen);
@@ -471,9 +471,27 @@ public sealed class ComposerFeaturesTests : IDisposable
         vm.ShowResumeOffer(SampleResume("s2"), info => dismissed.Add(info.Session));
         var second = vm.Items.OfType<ResumeCardItem>().Last();
         second.DismissCommand.Execute(null);
-        Assert.Equal(["s2"], dismissed);
+        Assert.Equal(["s1", "s2"], dismissed); // a resumed job is forgotten too
         Assert.Equal("Dismissed", second.Outcome);
         await Sta.WaitUntil(() => !vm.IsBusy, "the resume turn to end");
+
+        // Inside AutoCAD the host resumes in the tab of the job's drawing; false (not possible now) keeps the card open.
+        var answers = new Queue<bool>([false, true]);
+        var resumed = new List<string>();
+        vm.ShowResumeOffer(SampleResume("s3"), info => dismissed.Add(info.Session), info =>
+        {
+            resumed.Add(info.Session);
+            return answers.Dequeue();
+        });
+        var third = vm.Items.OfType<ResumeCardItem>().Last();
+        third.ResumeCommand.Execute(null);
+        Assert.True(third.IsOpen);
+        Assert.Equal(["s1", "s2"], dismissed);
+        third.ResumeCommand.Execute(null);
+        Assert.Equal(["s3", "s3"], resumed);
+        Assert.Equal("Resuming", third.Outcome);
+        Assert.Equal(["s1", "s2", "s3"], dismissed);
+        Assert.Single(backend.Sent); // the host sent it, not this tab
         vm.Dispose();
     });
 
@@ -568,10 +586,9 @@ public sealed class ComposerFeaturesTests : IDisposable
             CheckProviderStatusOnLoad = false,
             EnableVoice = false,
             OpenFolder = _ => { },
-            ResumableJobs = () => [SampleResume("s9")],
         });
         await pane.ViewModel.RefreshStatusesAsync();
-        pane.OfferResumableJobs();
+        pane.ViewModel.ShowResumeOffer(SampleResume("s9"));
         pane.ViewModel.ComposerText = ChatViewModel.ReviewPrompt;
         await pane.ViewModel.SendAsync();
         await Sta.Settle();

@@ -108,6 +108,12 @@ public sealed class QuickPromptsViewModel : ObservableObject
         new("builtin-plot-pdf", "Plot to PDF",
             "Plot the current layout to PDF (DWG To PDF.pc3, fit to paper) and save the PDF next to the drawing.",
             isBuiltIn: true),
+        new("builtin-electrical-draft", "Electrical layout (draft)",
+            "Draw a first-draft electrical layout of this floor plan for my electrician: switchboards, lights, fans, sockets, AC and geyser points, DB, with the legend and the draft note.",
+            isBuiltIn: true),
+        new("builtin-colour-elevation", "Colour elevation + PNG",
+            "Make a colour presentation version of this elevation (soft palette, sky, ground and shadows) and export it as a PNG I can share.",
+            isBuiltIn: true),
     ];
 
     /// <summary>The user's own prompts, in menu order.</summary>

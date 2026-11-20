@@ -64,6 +64,32 @@ public static class DraftingGuides
             ["hatch", "hatching", "pattern", "patterns", "fill", "solid", "materials"],
             "-HATCH [\"P\",<pattern>,<scale>,<angle>,<point inside>,\"\"]; SOLID: [\"P\",\"S\",<point>,\"\"]. The area must be closed and on screen (ZOOM W first); one area per -HATCH; layer A-HATCH. " +
             "Patterns at 1/4\"=1'-0\": ANSI31 24 brick, AR-CONC 1 RCC, EARTH 24 ground, AR-SAND 1 plaster, ANSI37 24 tiles, AR-PARQ1 1 wood. If a hatch fails (\"no valid boundary\"), close the gap or ZOOM in and pick a point further inside."),
+        new(
+            "Electrical layout",
+            ["electrical", "electric", "wiring", "switchboard", "socket", "sockets", "light", "lights", "fan", "fans", "db", "earthing"],
+            "First draft for the electrician, on a COPY of the floor plan. insert_symbol_library, then -INSERT the E-* blocks on E-SWCH / E-LITE / E-POWR " +
+            "(switchboard 4'-0\" high on the door latch side, sockets 1'-0\", a fan and a light per room, 15A points for kitchen, geyser and washing machine, " +
+            "AC 7'-0\", DB near the main door), wiring as ARCs from the switchboards, then place_services_legend (legend + the DRAFT note). " +
+            "Never give loads, wire sizes or MCB ratings as designed. Full norms: recipe \"Electrical layout (first draft)\"."),
+        new(
+            "Plumbing layout",
+            ["plumbing", "drainage", "drain", "water", "supply", "pipe", "pipes", "stack", "shaft", "trap", "chamber", "tank", "sewer"],
+            "First draft for the plumber, on a COPY of the floor plan. insert_symbol_library, then the P-* blocks (P-FIXT fixtures and traps, " +
+            "P-DRAN stacks / drains / inspection chambers, P-WATR supply / tank); stacks on outer walls or shafts, slopes 1:40-1:60 written on the " +
+            "outlet arrows, inspection chambers in the setback, then place_services_legend (legend + the DRAFT note). Never give pipe sizes, slopes " +
+            "or venting as designed. Full norms: recipe \"Plumbing layout (first draft)\"."),
+        new(
+            "Presentation elevation",
+            ["presentation", "colour", "color", "colored", "coloured", "render", "rendering", "png", "export"],
+            "COPY the finished line elevation aside (keep the original), then fill_presentation_regions (walls, cladding, bands, glass, wood, metal, " +
+            "roof; fills go on A-ELEV-PRES-* layers behind the lines), add_presentation_backdrop (sky, ground, 45-degree shadows), capture_view to " +
+            "check, and export_view_png for a shareable PNG (Documents\\AcadCopilot Exports). 2D only, no RENDER. Recipe \"Colour presentation elevation\"."),
+        new(
+            "Vastu",
+            ["vastu", "vaastu"],
+            "Only when the user asks for it. Usual placements: entrance E or N, kitchen SE (cooking facing east), master bedroom SW, pooja NE, " +
+            "toilets NW or W, stair S, SW or W, overhead tank SW, underground sump NE. Treat them as preferences after the plot, road side and " +
+            "light; say which ones could not be met."),
     ];
 
     /// <summary>The guides whose keywords appear in <paramref name="query"/> (best first, at most <see cref="MaxPerQuery"/>).</summary>

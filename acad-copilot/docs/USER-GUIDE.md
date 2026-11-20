@@ -349,14 +349,79 @@ Drag a row by its grip (or use the arrows) to change the order, **x** removes on
 pauses the queue (so does a failed answer); **Resume** continues it.
 
 **Quick prompts (⚡).** The lightning button opens ready-made requests: *30x40 G+1 standard plan*, *Add dimensions*,
-*Review this plan* (a second AI checks the drawing), *Learn my style from this drawing*, *Plot to PDF*. A click puts the
+*Review this plan* (a second AI checks the drawing), *Learn my style from this drawing*, *Plot to PDF*, *Electrical
+layout (draft)* and *Colour elevation + PNG* (section 6f). A click puts the
 text in the message box so you can change it before sending. **Save current message as a quick prompt** keeps your own
 requests (edit with the pencil, delete with the bin); they are kept on this PC (`panel.json`).
 
-**AI behaviour** (Settings): *Ask before drawing* (room schedule and "Shall I draw this?" first), *Switch AI when one
-stops* (another signed-in AI continues the job when one hits its limit), *Second opinion after each drawing* (a review
-card lists what to fix, with **Fix these**), *Tutor mode* (one short line per AutoCAD command it uses). When AutoCAD
-closed in the middle of a job, the panel offers **Resume previous job** for that drawing.
+**AI behaviour** (Settings): see section 6d. When AutoCAD closed in the middle of a job, the panel offers **Resume
+previous job** for that drawing (section 6e).
+
+---
+
+## 6d. AI behaviour: switching, asking first, second opinion, tutor
+
+Settings (gear icon) > **AI BEHAVIOUR**. The switches are shared by all tabs and apply from your next message.
+
+- **Switch AI when one stops** (on by default). When the AI you use hits its usage limit, loses its sign-in or fails
+  twice, the next signed-in AI takes the job over and carries on from the first unfinished stage: an amber line in the
+  chat says *"Claude reached its usage limit, so ChatGPT continues this job"*. The order is shown under the switch
+  (Claude, ChatGPT, Gemini); only AIs you are signed in to take part. The new AI gets a short handover (your request,
+  the task list, what was drawn) and looks at the drawing before it continues, so nothing is drawn twice.
+- **Ask before drawing** (on by default). For a new plan the AI first shows the room table and asks **"Shall I draw
+  this?"**. Turn it off and it draws right after the table. It still asks when a fact is really missing.
+- **Second opinion after each drawing** (off by default). When a drawing is finished, another AI looks at it (it can
+  only read the drawing, never change it) and a **review card** lists the problems, major ones first, each with where
+  it is and how to fix it. **Fix these** sends them to the AI that drew it. You can ask for a review any time with the
+  quick prompt *Review this plan*, or by typing exactly "Review this plan".
+- **Tutor mode** (off by default). For people learning AutoCAD: the first time the AI uses a command it explains it
+  in one short line, for example *"OFFSET copies a line at a distance: used here for the 9" wall"*. The explanation
+  also shows in the tooltip of that command in the CAD activity.
+
+---
+
+## 6e. Checkpoints, restore and "Resume previous job"
+
+- **Fixes it makes by itself.** Small typing slips are repaired automatically (a forgotten Enter, `10 20` instead of
+  `10,20`, a misspelt option, a command that opened a dialog box). Each repair shows as an **Auto-fixed: ...** line
+  under that command in the CAD activity, so you can see exactly what was typed.
+- **Checkpoints.** Before a long stage (10 commands or more) the AI saves a checkpoint, shown under the stage as
+  *Checkpoint 'before: Outer walls' saved first*. You can also ask for one: *"make a checkpoint called walls done"*. A
+  checkpoint is an AutoCAD undo mark plus a copy of the drawing in the copilot's own folder; your drawing file is not
+  saved or changed.
+- **Restore.** *"Go back to the checkpoint walls done"*: the AI says what will be lost and an **Approval needed** card
+  asks first. Everything done after the checkpoint is undone, including your own changes, and the result is checked;
+  if it does not match, the undo is reversed and nothing is lost. After AutoCAD was restarted it can restore from the
+  saved copy instead (it asks you).
+- **Resume previous job.** While the AI draws, the copilot keeps a small journal of the job (the task list, each
+  stage and the commands that finished). If AutoCAD closes or crashes in the middle, then the next time you open that
+  drawing the panel shows a **Resume previous job** card: what was done, what is left, and where the last stage
+  stopped. **Resume** continues in a chat tab of that drawing: the AI reads the journal, looks at the drawing and
+  draws only what is left. **Dismiss** forgets the job. If the card asks you to switch to the drawing first, click its
+  file tab in AutoCAD, then **Resume** again. You can also just ask *"continue where you stopped"*.
+- Journals and checkpoint copies are deleted after 7 days (`%LOCALAPPDATA%\AcadCopilot\journal` and `checkpoints`).
+
+---
+
+## 6f. Electrical and plumbing drafts, colour elevations and PNG export
+
+- **Electrical layout (first draft).** Open a finished floor plan and ask *"draw a first-draft electrical layout of
+  this floor plan for my electrician"* (or use the quick prompt). The AI copies the plan aside, imports a small symbol
+  library (switchboards, lights, fans, 5A / 15A sockets, AC and geyser points, DB ...) on layers E-LITE, E-POWR, E-SWCH,
+  E-ANNO, shows a point schedule per room and asks before drawing, then places the symbols, the wiring arcs, a legend
+  and the note **DRAFT - TO BE CHECKED BY A QUALIFIED ELECTRICAL ENGINEER**.
+- **Plumbing layout (first draft).** *"Draw a plumbing layout of the ground floor"*: fixtures, traps, stacks, drains,
+  inspection chambers, water supply and tank on layers P-FIXT, P-DRAN, P-WATR, P-ANNO, with a legend and the plumbing
+  DRAFT note.
+- These are **first drafts** to give your electrician or plumber. Loads, wire and pipe sizes, MCB ratings, slopes and
+  venting are not designed or checked by the AI; a qualified engineer must check them.
+- **Colour presentation elevation.** On a finished front elevation ask *"make a colour presentation version of this
+  elevation"* (or the quick prompt *Colour elevation + PNG*). The AI copies the elevation aside, fills walls, bands,
+  glass, wood and roof with soft colours behind the lines (layers A-ELEV-PRES-*), adds sky, ground and shadows, and
+  looks at the result. It is 2D drafting, not a 3D render.
+- **PNG export.** *"Export it as a PNG"*: a sharp picture (about 2400 px wide, white paper, dark lines) is saved in
+  `Documents\AcadCopilot Exports`. The CAD activity shows a preview and an **Open exports folder** link that opens
+  Explorer with the file selected, ready to send on WhatsApp or e-mail.
 
 ---
 
@@ -369,6 +434,7 @@ that write files or remove things:
   `ETRANSMIT`
 - `PURGE`, `LAYDEL`, `LAYMRG`, `AUDIT`
 - `ERASE` with `ALL`
+- restoring a checkpoint (`restore_checkpoint`: it undoes everything done after the checkpoint)
 
 If you reject, the AI does not try again; it asks you what to do instead. In the panel settings (gear icon) you can
 switch to **Never ask (auto-approve)**. Saving cannot be undone.
@@ -459,6 +525,7 @@ Server", which is also installed on this PC. The two do not interfere.
 | **Inside AutoCAD** | **Compile-verified only, waiting for the first real run:** loading, the panel and ribbon tab, typing commands on the command line, the picture check, undo grouping and approvals have not run inside AutoCAD yet. |
 | Plain AutoCAD 2027 + learning (2026-11-19) | Retargeted from AutoCAD Architecture to plain AutoCAD 2027 (manifest platform `AutoCAD\|AutoCAD*`, no AEC assemblies needed, instructions without Architecture objects). Tested without AutoCAD: the knowledge files (rules, style, lessons, recipes: dedupe, newest wins, size caps, parallel writers), keyword recall, the per-turn "WHAT YOU HAVE LEARNED" summary and its size limits (including the Codex command-line limit), the style analysis (layers, text, dimensions, wall thicknesses, door swings, blocks) and the learning tools through the built `AcadCopilotMcp.exe`. **Compile-verified only:** `learn_style_from_drawing` reading a real drawing, and the product detection inside AutoCAD. |
 | Teach it by drawing (2026-11-19) | Tested without AutoCAD: the recording (commands with their answers, objects, layer changes, pause, the 2,000-action limit, the AI's own commands left out), the grouping into steps, the Markdown file, `list_recordings` / `read_recording` (also through the built `AcadCopilotMcp.exe`), and the Learning bar rendered off-screen (`artifacts\ui\15-learn-from-me-*.png`). **Compile-verified only:** capturing your commands, the command line and the objects from AutoCAD's events, and the style of your new objects. |
+| AI behaviour, recovery, services (2026-11-20) | Tested without AutoCAD: AI switching and handover, Ask before drawing, the review (report parsing, Fix these), tutor mode, the self-healing rules, the checkpoint catalog and job journal, the resume text, the symbol library and presentation colour maths, the panel cards and activity rows (Auto-fixed, checkpoint, Open exports folder), the quick prompts. **Compile-verified only:** everything inside AutoCAD (undo marks and restore, the drawing copies, the Resume card appearing after a crash, inserting the blocks, the colour fills, the PNG export). |
 | Chat tabs (2026-11-18) | Tested without AutoCAD: parallel turns, the 4-at-once limit, per-tab provider / history / approvals, the turn queue (order, Stop leaves it), routing of questions and plans to their tab over the real pipe, the bridge's `--session` (built `AcadCopilotMcp.exe`), and the tab strip rendered off-screen. **Compile-verified only:** binding a tab to its AutoCAD drawing and switching AutoCAD to that drawing (`DocumentCollection.MdiActiveDocument`) when its turn comes. |
 
 ### First-run checklist
@@ -487,4 +554,21 @@ Server", which is also installed on this PC. The two do not interfere.
     one OFFSET, then **Stop & learn**. Check the file in `knowledge\recordings\` (your commands, what you typed, the
     objects), that the chat says what it learned, and that a drawing step of the AI made while recording is not in
     the file.
+9d. Click to point and select: click **Point**, click a corner of a room, and ask *"put a 3 foot door here"*; then
+    select two lines and ask *"what are these?"*. Ask *"show me the outer walls"*: the AI should highlight them
+    (`select_objects`).
+9e. AI behaviour: turn on **Tutor mode** and **Second opinion after each drawing** (Settings), ask for a small room,
+    and check the one-line explanations and the review card (**Fix these** sends the findings). Turn **Ask before
+    drawing** off and check that it draws right after the table.
+9f. Checkpoints and resume: ask for a stage of 10+ commands and check the line *Checkpoint 'before: ...' saved first*
+    and any **Auto-fixed** lines. Ask *"make a checkpoint called test"*, draw something, then *"restore checkpoint
+    test"* (Approve) and check that only the later work is gone. Then, while it draws a long plan, end AutoCAD from
+    Task Manager, start it again and open the same drawing: expect the **Resume previous job** card; **Resume** should
+    continue only what was left.
+9g. Electrical and plumbing: on a finished plan *"insert the symbol library"* (blocks in the drawing: `-INSERT` then
+    `?` lists them; layers E-* / P-*), then the quick prompt *Electrical layout (draft)*. Check the symbols, the legend
+    and the DRAFT note. Repeat with *"plumbing layout"*.
+9h. Colour elevation: on a closed front elevation use *Colour elevation + PNG*. Fills should appear behind the lines on
+    A-ELEV-PRES-* layers, with sky, ground and shadows; the PNG lands in `Documents\AcadCopilot Exports` with exact
+    colours and dark lines on white, and **Open exports folder** selects it in Explorer.
 10. If anything fails, keep `%LOCALAPPDATA%\AcadCopilot\logs\addin.log` and `bridge.log` and describe what you saw.

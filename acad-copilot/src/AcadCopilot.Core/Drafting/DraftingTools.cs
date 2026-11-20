@@ -120,6 +120,8 @@ public static class DraftingTools
         "Spaces act like Enter at every prompt except text prompts (TEXT's text, attribute values), so put each answer in its own input.\n" +
         "SELECTING: at 'Select objects:' type a point exactly on an object, W or C then two corners, L (last), P (previous), then \"\" to " +
         "finish. Selecting by point needs the object visible on screen, so ZOOM to the area first if needed.\n" +
+        "IF POINTS LAND WRONG: read the step's transcript and check get_sysvars WORLDUCS (0: run UCS W and tell the user); if points " +
+        "were still pulled to nearby objects, set OSMODE to OSMODE+16384 (running object snaps off, like F3) and tell the user; undo, redo.\n" +
         "\n" +
         "WORK STYLE: batch a whole stage into one call (up to 30 steps; fewer calls = faster), use sensible layers (-LAYER M name C colour " +
         "name \"\"), then call capture_view to look at the result and fix mistakes before the next stage. Never draw the same thing twice: " +

@@ -266,6 +266,78 @@ public sealed class ToolActivityTests : IDisposable
     });
 
     [Fact]
+    public void Run_commands_row_shows_auto_fixes_and_the_checkpoint_and_export_rows_link_the_png() => Sta.Run(async () =>
+    {
+        var backend = FakeBackend.Create();
+        var revealed = new List<string>();
+        var vm = new ChatViewModel(
+            backend,
+            Dispatcher.CurrentDispatcher,
+            null,
+            new PanelSettingsStore(Path.Combine(_temp, Guid.NewGuid().ToString("N") + ".json")),
+            new CopilotSettingsStore(Path.Combine(_temp, Guid.NewGuid().ToString("N") + "-settings.json")))
+        {
+            FileRevealer = revealed.Add,
+        };
+        backend.HoldOpen = true;
+        backend.Script.Add(new ToolCallStarted("c1", "run_commands", "title: Outer walls, steps: 2 items", "acad"));
+        backend.Script.Add(new ToolCallStarted("e1", "export_view_png", "name: front", "acad"));
+        vm.ComposerText = "Draw the outer walls and export a PNG";
+        var send = vm.SendAsync();
+        await Sta.WaitUntil(() => vm.Items.OfType<ActivityGroupItem>().Any(g => g.Rows.Count == 2), "rows");
+        var rows = vm.Items.OfType<ActivityGroupItem>().Single().Rows;
+
+        var arguments = OuterWalls();
+        var report = new RunCommandsReport
+        {
+            Title = "Outer walls",
+            Outcome = RunOutcome.Completed,
+            Pace = "watch",
+            StepsTotal = 2,
+            StepsRun = 2,
+            Checkpoint = "before: Outer walls",
+            Steps =
+            [
+                new StepReport { Step = 1, Command = "PLINE", Status = StepStatus.Finished, CreatedCount = 1, AutoFixed = ["added the finishing Enter."] },
+                new StepReport { Step = 2, Command = "OFFSET", Status = StepStatus.Finished },
+            ],
+            CreatedCount = 2,
+        };
+        IToolActivitySink sink = vm;
+        sink.OnToolCallStarting("run_commands", arguments);
+        sink.OnToolCallFinished("run_commands", arguments, new ToolResult { Success = true, Message = report.Summarize(), Data = CopilotJson.ToNode(report) });
+
+        var file = Path.Combine(_temp, "front_20261120-101500.png");
+        sink.OnToolCallFinished("export_view_png", new JsonObject { ["name"] = "front" }, new ToolResult
+        {
+            Success = true,
+            Message = "Exported.",
+            Data = new JsonObject { ["file"] = file, ["folder"] = _temp },
+        });
+        await Sta.Settle();
+
+        var walls = rows[0];
+        Assert.True(walls.Steps[0].HasAutoFixed);
+        Assert.Equal("Auto-fixed: added the finishing Enter.", walls.Steps[0].AutoFixedText);
+        Assert.Contains("Auto-fixed", walls.Steps[0].ToolTip, StringComparison.Ordinal);
+        Assert.False(walls.Steps[1].HasAutoFixed);
+        Assert.True(walls.HasCheckpoint);
+        Assert.Contains("'before: Outer walls'", walls.CheckpointText, StringComparison.Ordinal);
+        Assert.False(walls.HasExportFile);
+
+        var export = rows[1];
+        Assert.True(export.HasExportFile);
+        Assert.Equal("front_20261120-101500.png", export.ExportFileName);
+        Assert.True(vm.OpenExportFolderCommand.CanExecute(export.ExportFile));
+        vm.OpenExportFolderCommand.Execute(export.ExportFile);
+        Assert.Equal([file], revealed);
+
+        backend.Release();
+        await send;
+        vm.Dispose();
+    });
+
+    [Fact]
     public void Inspect_tools_get_readable_titles()
     {
         Assert.Equal("Listed layers", ToolActivityText.Title("list_layers", ActivityState.Succeeded));
