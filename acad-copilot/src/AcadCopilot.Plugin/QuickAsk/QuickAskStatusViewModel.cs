@@ -58,6 +58,8 @@ public sealed class QuickAskStatusViewModel : ObservableObject, IDisposable
     private UserMessageItem? _userItem;
     private bool _queuedCheckPending;
     private bool _shownChatForAnswer;
+    private bool _finished;
+    private bool _undoStarted;
     private QuickAskState _state;
     private string _text = string.Empty;
     private int _undoCalls;
@@ -184,6 +186,8 @@ public sealed class QuickAskStatusViewModel : ObservableObject, IDisposable
         _chat = chat;
         _message = message;
         _shownChatForAnswer = false;
+        _finished = false;
+        _undoStarted = false;
         UndoCalls = 0;
         _userItem = delivery == QuickAskDelivery.Started
             ? chat.Items.OfType<UserMessageItem>().LastOrDefault(i => string.Equals(i.Text, message.DisplayText, StringComparison.Ordinal))
@@ -200,6 +204,7 @@ public sealed class QuickAskStatusViewModel : ObservableObject, IDisposable
     public void ShowProblem(string text, ChatViewModel? chat = null)
     {
         Detach();
+        _finished = true;
         _chat = chat;
         _message = null;
         OnPropertiesChanged(nameof(Chat), nameof(ToolTip), nameof(ShowOpenChat));
@@ -212,16 +217,14 @@ public sealed class QuickAskStatusViewModel : ObservableObject, IDisposable
     /// <summary>Recomputes the bubble from the chat (public for tests; the chat's events call it).</summary>
     public void Refresh()
     {
-        if (_disposed || _chat is not { } chat || _message is not { } message || State is QuickAskState.Undoing or QuickAskState.Undone)
+        if (_disposed || _undoStarted || _chat is not { } chat || _message is not { } message)
         {
             return;
         }
 
         if (_userItem is null)
         {
-            var position = chat.Queue.Select((q, i) => (q, i)).FirstOrDefault(x => string.Equals(x.q.DisplayText, message.DisplayText, StringComparison.Ordinal)).q is { } queued
-                ? queued.Position
-                : 0;
+            var position = chat.Queue.FirstOrDefault(q => string.Equals(q.DisplayText, message.DisplayText, StringComparison.Ordinal))?.Position ?? 0;
             Text = QuickAskText.Queued(position);
             State = QuickAskState.Queued;
             return;
@@ -300,11 +303,12 @@ public sealed class QuickAskStatusViewModel : ObservableObject, IDisposable
 
     private void Finish(TurnOutcome outcome, ErrorItem? error)
     {
-        if (State is QuickAskState.Done or QuickAskState.Stopped or QuickAskState.Failed)
+        if (_finished)
         {
             return;
         }
 
+        _finished = true;
         var subject = _message?.Subject ?? "your request";
         switch (outcome)
         {
@@ -334,6 +338,7 @@ public sealed class QuickAskStatusViewModel : ObservableObject, IDisposable
         }
 
         var calls = UndoCalls;
+        _undoStarted = true;
         _hideTimer.Stop();
         Text = "Undoing...";
         State = QuickAskState.Undoing;

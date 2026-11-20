@@ -20,7 +20,7 @@ namespace AcadCopilot.Plugin.Ui.Tests;
 /// <summary>
 /// Quick Ask (the floating AI in the drawing area): shortcut and settings, the message text, placement, the controller
 /// over the real chat tabs (<see cref="CopilotBackend"/> with scripted CLIs and a fake AutoCAD host), the status bubble,
-/// the box, and off-screen renders artifacts\ui\21-quick-ask-*.png. No window is ever shown.
+/// the box, and off-screen renders artifacts\ui\25-quick-ask-*.png. No window is ever shown.
 /// </summary>
 public sealed class QuickAskTests : IDisposable
 {
@@ -442,10 +442,11 @@ public sealed class QuickAskTests : IDisposable
 
         box.RemovePointCommand.Execute(null);
         Assert.False(box.HasPoint);
-        box.PickCommand.Execute(null);
-        host.NextPick.TrySetResult(new PickResult { Status = PickStatus.Picked, Points = [new PickedPoint(1, 2)] });
         host.NextPick = new TaskCompletionSource<PickResult>();
+        box.PickCommand.Execute(null);
+        host.NextPick.SetResult(new PickResult { Status = PickStatus.Picked, Points = [new PickedPoint(1, 2)] });
         await Sta.Settle();
+        Assert.Null(box.Problem);
         Assert.True(box.HasPoint);
         Assert.True(controller.SubmitBox());
         await Sta.WaitUntil(() => controller.Status.State == QuickAskState.Done, "done");
@@ -525,16 +526,26 @@ public sealed class QuickAskTests : IDisposable
             var (backend, claude) = CreateBackend();
             var shell = CreateShell(backend);
             var host = new FakeHost(shell) { Cursor = Cursor, Current = Selection(3) };
-            using var controller = CreateController(host);
+            var factory = new FakeSpeechFactory();
+            using var controller = new QuickAskController(
+                host,
+                new QuickAskOptions(new QuickAskSettingsStore(Path.Combine(_temp, Guid.NewGuid().ToString("N") + "-qa.json"))),
+                Dispatcher.CurrentDispatcher,
+                new VoiceInputService(factory, new ManualClock(), _ => { }));
             var name = theme.ToString().ToLowerInvariant();
 
             // Idle: just the button.
-            Save(Scene(theme, controller, box: null), $"21-quick-ask-1-button-{name}");
+            Save(Scene(theme, controller, box: null), $"25-quick-ask-1-button-{name}");
 
             // The box next to the cursor, with the cursor point and the selection.
             var box = controller.OpenBox(QuickAskOpenReason.Shortcut)!;
+            await box.Voice!.StartAsync();
+            factory.Last!.Sink.OnHypothesis("make the kitchen 10 by");
+            await Sta.Settle();
+            Save(Scene(theme, controller, box), $"25-quick-ask-2-box-listening-{name}");
+            await box.Voice.StopAsync(allowAutoSend: false);
             box.Text = "make the kitchen 10 by 20";
-            Save(Scene(theme, controller, box), $"21-quick-ask-2-box-{name}");
+            Save(Scene(theme, controller, box), $"25-quick-ask-2-box-{name}");
             controller.SubmitBox();
 
             // Working: the plan task in the bubble.
@@ -542,12 +553,12 @@ public sealed class QuickAskTests : IDisposable
             await Sta.WaitUntil(() => tab.IsBusy && claude.Requests.Count == 1, "running");
             tab.UpdatePlan(new PlanUpdate { Tasks = [new PlanTask { Title = "Drawing kitchen walls", Status = PlanTaskStatus.InProgress }] });
             await Sta.WaitUntil(() => controller.Status.Text == "Drawing kitchen walls...", "plan task");
-            Save(Scene(theme, controller, null), $"21-quick-ask-3-working-{name}");
+            Save(Scene(theme, controller, null), $"25-quick-ask-3-working-{name}");
 
             // Needs an answer.
             var question = tab.AskUserAsync(new QuestionRequest { Questions = [new UserQuestion { Question = "Platform on which wall?" }] }, CancellationToken.None);
             await Sta.WaitUntil(() => controller.Status.IsNeedsAnswer, "needs answer");
-            Save(Scene(theme, controller, null), $"21-quick-ask-4-needs-answer-{name}");
+            Save(Scene(theme, controller, null), $"25-quick-ask-4-needs-answer-{name}");
             tab.Items.OfType<QuestionCardItem>().Single().Cancel();
             await question;
 
@@ -558,11 +569,11 @@ public sealed class QuickAskTests : IDisposable
             claude.Release(claude.Requests.Single().Prompt);
             await Sta.WaitUntil(() => controller.Status.State == QuickAskState.Done, "done");
             Assert.True(controller.Status.CanUndo);
-            Save(Scene(theme, controller, null), $"21-quick-ask-5-done-{name}");
+            Save(Scene(theme, controller, null), $"25-quick-ask-5-done-{name}");
 
             // An error.
             controller.Status.ShowProblem("Could not finish: Usage limit reached. Wait for the reset or switch the AI.", tab);
-            Save(Scene(theme, controller, null), $"21-quick-ask-6-error-{name}");
+            Save(Scene(theme, controller, null), $"25-quick-ask-6-error-{name}");
             shell.Dispose();
         }
     });

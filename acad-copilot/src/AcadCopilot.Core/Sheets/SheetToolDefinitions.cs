@@ -98,7 +98,8 @@ public static class SheetToolDefinitions
             Schema.Opt("combine", Schema.Boolean("Put several small drawings of one series on a sheet (default true).")),
             Schema.Opt("scale", Schema.String("One scale for every viewport instead of the automatic choice.", ScaleNames)),
             Schema.Opt("cluster_gap", Schema.Number("Empty space that separates two drawings, drawing units (default 10').", 1)),
-            Schema.Opt("replace_existing", Schema.Boolean("Delete and rebuild sheets (layouts) with the same names (default false)."))),
+            Schema.Opt("replace_existing", Schema.Boolean("Delete and rebuild sheets (layouts) with the same names (default false).")),
+            Schema.Opt("show_sheet", Schema.Boolean("Open the first new sheet afterwards so capture_view shows it (SETVAR CTAB Model goes back; default false)."))),
     };
 
     /// <summary>The tool that plots sheets to one PDF.</summary>

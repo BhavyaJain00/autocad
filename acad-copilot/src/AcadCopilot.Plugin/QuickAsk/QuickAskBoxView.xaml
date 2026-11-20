@@ -140,7 +140,7 @@
     </UserControl.Resources>
 
     <Border Margin="12"
-            Width="440"
+            Width="480"
             CornerRadius="12"
             Background="{DynamicResource SurfaceBackground}"
             BorderBrush="{DynamicResource AccentSoftLine}"
@@ -149,6 +149,7 @@
             Padding="10,8,8,8">
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -210,45 +211,47 @@
                 </Button>
             </Grid>
 
-            <!-- Row 1: what goes with the request. -->
-            <DockPanel Grid.Row="1" Margin="34,7,0,0" LastChildFill="True">
-                <Button DockPanel.Dock="Right" Style="{StaticResource BoxIconButton}" Width="22" Height="22"
-                        Command="{Binding CloseCommand}" ToolTip="Close (Esc)" AutomationProperties.Name="Close">
-                    <v:Icon Data="{StaticResource IconCross}" Width="10" Height="10" StrokeThickness="1.8" />
+            <!-- Row 1: what goes with the request, and Pick. -->
+            <WrapPanel Grid.Row="1" Margin="34,7,0,0" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Style="{StaticResource Chip}" Visibility="{Binding HasPoint, Converter={StaticResource Vis}}" ToolTip="{Binding PointChipToolTip}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <v:Icon Data="{StaticResource IconPin}" Width="12" Height="12" Foreground="{DynamicResource AccentText}" />
+                        <TextBlock Text="{Binding PointChipText}" Margin="4,0,0,0" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
+                        <Button Style="{StaticResource ChipClose}" Command="{Binding RemovePointCommand}" ToolTip="Leave the point out">
+                            <v:Icon Data="{StaticResource IconCross}" Width="8" Height="8" StrokeThickness="2" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Chip}" Visibility="{Binding HasSelection, Converter={StaticResource Vis}}" ToolTip="{Binding SelectionChipToolTip}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <v:Icon Data="{StaticResource IconSelect}" Width="12" Height="12" Foreground="{DynamicResource AccentText}" StrokeThickness="1.3" />
+                        <TextBlock Text="{Binding SelectionChipText}" Margin="4,0,0,0" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
+                        <Button Style="{StaticResource ChipClose}" Command="{Binding RemoveSelectionCommand}" ToolTip="Leave the selection out">
+                            <v:Icon Data="{StaticResource IconCross}" Width="8" Height="8" StrokeThickness="2" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+                <Button Style="{StaticResource ChipButton}" Command="{Binding PickCommand}"
+                        ToolTip="Click the point in the drawing that the request is about (object snaps work)">
+                    <StackPanel Orientation="Horizontal">
+                        <v:Icon Data="{StaticResource IconCrosshair}" Width="12" Height="12" StrokeThickness="1.4" />
+                        <TextBlock Text="Pick point" Margin="4,0,0,0" FontSize="11" VerticalAlignment="Center" />
+                    </StackPanel>
                 </Button>
-                <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Style="{StaticResource Chip}" Visibility="{Binding HasPoint, Converter={StaticResource Vis}}" ToolTip="{Binding PointChipToolTip}">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <v:Icon Data="{StaticResource IconPin}" Width="12" Height="12" Foreground="{DynamicResource AccentText}" />
-                            <TextBlock Text="{Binding PointChipText}" Margin="4,0,0,0" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
-                            <Button Style="{StaticResource ChipClose}" Command="{Binding RemovePointCommand}" ToolTip="Leave the point out">
-                                <v:Icon Data="{StaticResource IconCross}" Width="8" Height="8" StrokeThickness="2" />
-                            </Button>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Chip}" Visibility="{Binding HasSelection, Converter={StaticResource Vis}}" ToolTip="{Binding SelectionChipToolTip}">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <v:Icon Data="{StaticResource IconSelect}" Width="12" Height="12" Foreground="{DynamicResource AccentText}" StrokeThickness="1.3" />
-                            <TextBlock Text="{Binding SelectionChipText}" Margin="4,0,0,0" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
-                            <Button Style="{StaticResource ChipClose}" Command="{Binding RemoveSelectionCommand}" ToolTip="Leave the selection out">
-                                <v:Icon Data="{StaticResource IconCross}" Width="8" Height="8" StrokeThickness="2" />
-                            </Button>
-                        </StackPanel>
-                    </Border>
-                    <Button Style="{StaticResource ChipButton}" Command="{Binding PickCommand}"
-                            ToolTip="Click the point in the drawing that the request is about (object snaps work)">
-                        <StackPanel Orientation="Horizontal">
-                            <v:Icon Data="{StaticResource IconCrosshair}" Width="12" Height="12" StrokeThickness="1.4" />
-                            <TextBlock Text="Pick point" Margin="4,0,0,0" FontSize="11" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-                    <TextBlock Text="{Binding HintText}" FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" Margin="2,0,6,0" />
-                </WrapPanel>
+            </WrapPanel>
+
+            <!-- Row 2: keys and where it goes; close. -->
+            <DockPanel Grid.Row="2" Margin="34,6,0,0" LastChildFill="True">
+                <Button DockPanel.Dock="Right" Style="{StaticResource BoxIconButton}" Width="20" Height="20"
+                        Command="{Binding CloseCommand}" ToolTip="Close (Esc)" AutomationProperties.Name="Close">
+                    <v:Icon Data="{StaticResource IconCross}" Width="9" Height="9" StrokeThickness="1.8" />
+                </Button>
+                <TextBlock Text="{Binding HintText}" FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" Margin="2,0,6,0" />
             </DockPanel>
 
-            <!-- Row 2: mic state or a problem. -->
-            <TextBlock Grid.Row="2"
+            <!-- Row 3: mic state or a problem. -->
+            <TextBlock Grid.Row="3"
                        Margin="34,6,6,0"
                        FontSize="11"
                        TextWrapping="Wrap"
