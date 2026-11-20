@@ -103,10 +103,8 @@
                                 </Ellipse>
                                 <Ellipse x:Name="Shine" Stroke="#40FFFFFF" StrokeThickness="1" />
                                 <Ellipse x:Name="Hover" Fill="White" Opacity="0" />
-                                <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0">
-                                    <TextBlock Text="AI" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="-2,2,0,0" />
-                                    <v:Icon Data="{StaticResource IconSparkle}" IsFilled="True" Foreground="White" Width="9" Height="9" Margin="17,-12,-8,0" HorizontalAlignment="Center" VerticalAlignment="Top" />
-                                </Grid>
+                                <TextBlock Text="AI" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,3,6,0" />
+                                <v:Icon Data="{StaticResource IconSparkle}" IsFilled="True" Foreground="White" Width="8" Height="8" Margin="0,7,6,0" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">

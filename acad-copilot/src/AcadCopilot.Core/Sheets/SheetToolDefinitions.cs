@@ -75,7 +75,7 @@ public static class SheetToolDefinitions
             "schedules), on landscape paper (A3 default, A2, A1; ISO or ARCH B/C/D), plotter DWG To PDF.pc3. Each sheet " +
             "gets a frame and a title block (block A-TTLB-<paper> with PROJECT, CLIENT, TITLE, SCALE, DATE, SHEET_NO, " +
             "DRAWN_BY \"AI Copilot / <user>\" and the note \"NOT FOR CONSTRUCTION - CHECK BY ARCHITECT/ENGINEER\") and " +
-            "a locked viewport per drawing at a standard scale (1/4\"=1'-0\" or 1:50 when it fits, else 1/8\" or 1:100; " +
+            "(on ISO A3 the A-TTLB-A3 block of apply_drawing_template is used when the drawing has it) and a locked viewport per drawing at a standard scale (1/4\"=1'-0\" or 1:50 when it fits, else 1/8\" or 1:100; " +
             "all floor plans share one scale; site plan 1/8\"). Small drawings of the same series (elevations, sections, " +
             "schedules) share a sheet unless combine is false. Drawings are found like arrange_drawings (run it first so " +
             "they have titles); untitled ones are left out unless named with labels or listed in drawings. Existing " +

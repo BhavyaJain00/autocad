@@ -1,3 +1,4 @@
+using AcadCopilot.Core.Accuracy;
 using AcadCopilot.Core.Sheets;
 using AcadCopilot.Core.Tools;
 using Autodesk.AutoCAD.Colors;
@@ -73,6 +74,12 @@ internal static class SheetBuilder
                 : "No titled drawing found. Run arrange_drawings with labels to name the drawings, or pass drawings (numbers) or labels here.");
         }
 
+        // On ISO A3 the title block of apply_drawing_template (accuracy pack) is used when the drawing already has it.
+        var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
+        var template = DrawingTemplate.Default.TitleBlock;
+        var external = request.Paper.Code == "ISO-A3" && template is not null && blockTable.Has(template.Name)
+            ? TitleBlockDesign.FromTemplate(template)
+            : null;
         var options = new SheetOptions
         {
             Paper = request.Paper,
@@ -80,6 +87,7 @@ internal static class SheetBuilder
             InchesPerUnit = found.InchesPerUnit,
             Combine = request.Combine,
             Scale = request.Scale,
+            TitleBlock = external,
         };
         var drawings = chosen.Select(c => new SheetDrawing(c.Number, c.Kind, c.Order, c.Name, c.Box)).ToList();
         var plan = SheetPlanner.Plan(drawings, options);
@@ -96,7 +104,12 @@ internal static class SheetBuilder
         var modified = new List<ObjectId>();
         EnsureLayer(database, transaction, TitleBlockDesign.Layer, 7, plottable: true);
         EnsureLayer(database, transaction, TitleBlockDesign.ViewportLayer, 8, plottable: false);
-        var (blockId, blockCreated) = EnsureTitleBlock(database, transaction, plan.TitleBlock);
+        var (blockId, blockCreated) = external is null
+            ? EnsureTitleBlock(database, transaction, plan.TitleBlock)
+            : (blockTable[external.BlockName], false);
+        var baseValues = external is not null && request.Values.Client is { Length: > 0 } client && client != "-"
+            ? request.Values with { Project = request.Values.Project + " / " + client }
+            : request.Values;
 
         var manager = LayoutManager.Current;
         var existing = LayoutNames(database, transaction);
@@ -134,7 +147,7 @@ internal static class SheetBuilder
             var origin = PaperOrigin(layout, rotated);
             var space = (BlockTableRecord)transaction.GetObject(layout.BlockTableRecordId, OpenMode.ForWrite);
 
-            var values = request.Values with { Title = sheet.Title, SheetNumber = sheet.Number, Scale = sheet.ScaleText };
+            var values = baseValues with { Title = sheet.Title, SheetNumber = sheet.Number, Scale = sheet.ScaleText };
             created.Add(InsertTitleBlock(database, transaction, space, blockId, plan.TitleBlock, values, origin));
 
             var viewports = new List<ObjectId>();
@@ -261,6 +274,7 @@ internal static class SheetBuilder
     {
         var reference = new BlockReference(Point3d.Origin + origin, blockId);
         reference.SetDatabaseDefaults(database);
+        reference.ScaleFactors = new Scale3d(design.InsertScale);
         reference.Layer = TitleBlockDesign.Layer;
         var id = space.AppendEntity(reference);
         transaction.AddNewlyCreatedDBObject(reference, true);

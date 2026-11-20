@@ -170,6 +170,7 @@ public sealed partial class ToolRegistry
             {
                 ["block"] = outcome.BlockName,
                 ["created"] = outcome.BlockCreated,
+                ["source"] = outcome.Plan.TitleBlock.External ? "apply_drawing_template (accuracy pack), inserted at 25.4" : "create_sheets",
                 ["layer"] = TitleBlockDesign.Layer,
                 ["attributes"] = new JsonObject([.. values.ByTag.Select(kv => new KeyValuePair<string, JsonNode?>(kv.Key, kv.Value))]),
                 ["note"] = TitleBlockDesign.Note,

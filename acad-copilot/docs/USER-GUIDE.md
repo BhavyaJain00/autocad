@@ -468,6 +468,94 @@ setting. Other docked palettes (Properties, Layers ...) are not changed.
 AI (with its green / orange sign-in dot) and the model as two drop-downs, **Sign in** when needed, and the Focus,
 New chat and Settings buttons. The conversation gets the height. Make the panel wider again for the full header.
 
+## 6h. Quick Ask: the AI button in the drawing
+
+While you draw by hand you do not need the side panel to ask for something. A small round **AI** button floats in the
+**top-right corner of the drawing area** (left of the ViewCube). It is always there while a drawing is open, it
+never takes the keyboard from you, and it hides when AutoCAD is minimised, while a dialog box is open, and behind
+other programs.
+
+**Ask:**
+
+1. Click the **AI** button, press **Ctrl+Shift+Space**, or type **`AI`** (or `QUICKAI`) on the command line.
+2. A small box opens next to the cursor. Type (or click the mic and say) what you want, for example *"make the
+   kitchen 10 by 20"*, and press **Enter**. **Esc** closes the box; clicking somewhere else closes it too.
+3. That's it: keep working. The request goes to the **chat of this drawing** as a normal message (a new chat tab is
+   opened in the background when this drawing has none). The side panel stays as it is; if it is closed it stays
+   closed.
+
+What goes with your request (shown as chips in the box; click **x** on a chip to leave it out):
+
+- **Where your cursor was** in the drawing when you opened the box with the shortcut or the `AI` command (for example
+  *Cursor 12'-6", 30'-0"*), so "put a door here" means here. Opening from the button does not add it, because the
+  cursor is then on the button.
+- **Pick point**: click it, then click the exact point in the drawing (object snaps work); the box comes back with
+  that point instead.
+- **Your selection**, when objects are selected (*3 objects selected*), so "make these walls 9 inch" knows which.
+
+**While the AI works**, a small bubble next to the button shows what it is doing (*Drawing kitchen walls...*), then
+**Done - kitchen 10'x20'** with two buttons:
+
+- **Undo** takes back everything the AI drew for that request (its drawing steps only; it refuses, with a message,
+  when you changed the drawing yourself since, so your own work is never undone).
+- **Open chat** opens the side panel on that conversation, to read the answer or continue.
+
+When the AI **asks a question** or needs your **approval**, the bubble says *The AI needs your answer* and the side
+panel opens on that chat by itself. Errors show briefly in the bubble with **Open chat**. When the chat is still
+busy with an earlier request, yours waits in its queue (*Next in the chat's queue...*) and runs next. The bubble
+hides by itself after a while (not while the mouse is on it), or with its **x**.
+
+**Command line version:** type **`-AI`** (or `-QUICKAI`). AutoCAD asks *AI: Ask the copilot:*; type the request
+(spaces allowed) and press Enter. It is sent with the cursor position and the selection, the same way.
+
+**Settings > QUICK ASK:** **Show the floating AI button** (on by default; the `AIBUTTON` command and the button's
+right-click menu turn it off and on too) and the **Shortcut** (Ctrl or Alt plus Space, a letter, a digit or F1-F12;
+common shortcuts such as Ctrl+C or Ctrl+Z are refused; **Default** puts back Ctrl+Shift+Space). The shortcut and the
+`AI` command keep working when the button is hidden. Kept in `%LOCALAPPDATA%\AcadCopilot\quickask.json`.
+
+The mic in the box is the same voice input as in the panel (section 6b): same language, and "Send automatically after
+speaking" sends the box as soon as you stop talking.
+
+---
+
+## 6i. Full drawing set, sheets and PDF
+
+Once the ground floor plan is approved, the quick prompt **Full drawing set from this plan** (or *"make the full
+drawing set from this plan"*) gets you the rest of the set, step by step:
+
+1. **The plan of the set.** The AI first works out a to-do list with coordinates (`plan_full_set`): the other floors
+   (same outer walls, stair, toilets and kitchen stacked on the ground floor ones), the terrace with the stair cabin,
+   front / rear / side elevations with every level (plinth 1'-6", floor to floor 10'-6", sill 3'-0", lintel 7'-0",
+   parapet 3'-0" unless you say otherwise), a section through the stair, the site plan, furniture layouts, the door and
+   window schedule (tags counted on your plan) and the area statement (built-up areas, ground coverage and FAR, marked
+   *approximate - check with the bylaws*). It uses the plan checked by **validate_plan** when there is one, otherwise
+   it reads the drawing (walls on A-WALL, stair on A-STRS, plot on A-SITE, room names).
+2. **Drafting.** It then draws each drawing with ordinary AutoCAD commands, one at a time, and asks you before
+   starting the next one, as always. Every drawing gets its title and a scale line.
+3. **Arrange model space** (`arrange_drawings`): *"arrange the drawings"*. The drawings are found by the empty space
+   between them and named by their titles. Floor plans go in one row with the same spacing, so walls and stairs line
+   up from floor to floor; elevations go in a row below (the front one under the ground floor plan), then the
+   section and the site plan; the gap between drawings is about one plan width. Missing titles and scale lines are
+   added and wrong scale lines corrected. Whole drawings move, as **one** undo step (Ctrl+Z puts everything back). The
+   AI can show you a text sketch of the arrangement first. Untitled drawings stay where the AI cannot name them; tell
+   it what they are.
+4. **Sheets** (`create_sheets`): *"make A3 sheets, project Sharma Residence, client Mr Sharma"*. One Layout tab per
+   sheet: **A-001** site plan, **A-101, A-102 ...** floor plans, **A-201 ...** elevations, **A-301** section, **A-501**
+   furniture layouts, **A-601** schedules. Paper A3 (default), A2 or A1, landscape, ISO or ARCH (B, C, D). Each sheet
+   has a frame and a title block (block `A-TTLB-<paper>` on layer A-TTLB) with project, client, drawing title, sheet
+   number, scale, date, *drawn by AI Copilot / <your Windows user name>* and the note **NOT FOR CONSTRUCTION - CHECK BY
+   ARCHITECT/ENGINEER**. Each drawing sits in a locked viewport at a standard scale: 1/4" = 1'-0" (or 1:50) when it
+   fits, else 1/8" = 1'-0" (or 1:100); all floor plans use the same scale; the site plan 1/8". Small drawings
+   (elevations, sections, schedules) share a sheet. Viewports are on layer A-VPRT, which does not print. Existing
+   sheets are never overwritten unless you ask the AI to rebuild them (then they are replaced).
+5. **PDF** (`plot_to_pdf`): *"plot the set to PDF"*. An **Approval needed** card comes first (it writes a file). All
+   sheets (or the ones you name) go into **one** PDF, in tab order, with AutoCAD's *DWG To PDF* plotter, saved as
+   `Documents\AcadCopilot Exports\<drawing>_<date>.pdf` (a new name like `-2` if the file exists; nothing is ever
+   overwritten). The AI tells you the path. Background plotting is switched off during the plot and back on after.
+
+The title block, the levels and the area statement are a drafting aid: an architect or engineer must check the
+drawings before they are used for approval or construction.
+
 ---
 
 ## 7. What needs your approval, and what it cannot do
@@ -480,6 +568,7 @@ that write files or remove things:
 - `PURGE`, `LAYDEL`, `LAYMRG`, `AUDIT`
 - `ERASE` with `ALL`
 - restoring a checkpoint (`restore_checkpoint`: it undoes everything done after the checkpoint)
+- plotting sheets to a PDF file (`plot_to_pdf`)
 
 If you reject, the AI does not try again; it asks you what to do instead. In the panel settings (gear icon) you can
 switch to **Never ask (auto-approve)**. Saving cannot be undone.
@@ -531,6 +620,7 @@ no window pops up.
 | Your own Claude Desktop / Codex cannot start the AutoCAD server | AutoCAD must be running with the plug-in loaded. Run `AcadCopilotMcp.exe --version` in PowerShell. If that fails, install the .NET 10 runtime. See `%LOCALAPPDATA%\AcadCopilot\logs\bridge.log`. |
 | The installer says AutoCAD is running | Close AutoCAD (save your work), then run it again. |
 | The ribbon stays minimised or the ViewCube is gone after closing the panel | Click the ribbon's own minimise arrow (or double-click a ribbon tab name) to open it fully; set `NAVVCUBEDISPLAY` to 3 and `NAVBARDISPLAY` to 1 for the ViewCube and the navigation bar. Focus mode only puts back what it changed itself; `%LOCALAPPDATA%\AcadCopilot\focus-layout.json` shows what it remembers while it is on. To keep AutoCAD's layout untouched, turn off **Use focus mode when the AI Copilot opens** (section 6g). |
+| No AI button in the drawing, or Ctrl+Shift+Space does nothing | Type `AIBUTTON` (the button may be switched off) or check **Settings > QUICK ASK**. The button hides while a dialog box is open, when the drawing window is very small, and when AutoCAD is minimised. If another add-in uses the shortcut, choose another one there; `AI` / `QUICKAI` always work. `COPILOTSTATUS` and `addin.log` say whether Quick Ask started ("Quick Ask ready"). |
 | The panel is too narrow, floats or is rolled up | Type `COPILOT` twice (hide, then show): it docks on the right again, fully open, at your remembered width (460 pixels until you resize it). |
 
 Logs: `%LOCALAPPDATA%\AcadCopilot\logs\addin.log` (plug-in) and `bridge.log` (MCP server). Settings (provider and
@@ -574,6 +664,8 @@ Server", which is also installed on this PC. The two do not interfere.
 | Teach it by drawing (2026-11-19) | Tested without AutoCAD: the recording (commands with their answers, objects, layer changes, pause, the 2,000-action limit, the AI's own commands left out), the grouping into steps, the Markdown file, `list_recordings` / `read_recording` (also through the built `AcadCopilotMcp.exe`), and the Learning bar rendered off-screen (`artifacts\ui\15-learn-from-me-*.png`). **Compile-verified only:** capturing your commands, the command line and the objects from AutoCAD's events, and the style of your new objects. |
 | AI behaviour, recovery, services (2026-11-20) | Tested without AutoCAD: the Web research switch (what each AI app is allowed with it on and off, the button and the setting), AI switching and handover, Ask before drawing, the review (report parsing, Fix these), tutor mode, the self-healing rules, the checkpoint catalog and job journal, the resume text, the symbol library and presentation colour maths, the panel cards and activity rows (Auto-fixed, checkpoint, Open exports folder), the quick prompts. **Compile-verified only:** everything inside AutoCAD (undo marks and restore, the drawing copies, the Resume card appearing after a crash, inserting the blocks, the colour fills, the PNG export). |
 | Focus layout (2026-11-20) | Tested without AutoCAD: focus mode on and off, restoring exactly what it changed (and nothing you changed yourself), the crash recovery from `focus-layout.json`, the ViewCube per drawing and around saves, the zoom decision of "Follow the AI's drawing" (outside, too small, 10% margin, at most 8 times closer), the remembered panel width, the Focus button, the DRAWING AREA settings and the slim header (rendered off-screen, `artifacts\ui\21-*.png`). **Compile-verified only:** the ribbon (`RibbonControl.AutoHideMode`), NAVBARDISPLAY / NAVVCUBEDISPLAY inside AutoCAD (keeping the drawing unmodified), the zoom (`Editor.SetCurrentView`), and the palette's docking and width inside AutoCAD. |
+| Quick Ask (2026-11-20) | Tested without AutoCAD: the shortcut and its settings, the message (cursor or picked point, selection), the short job name in the bubble, where the button and the box go, sending to the chat of the active drawing (a background tab when there is none, the panel untouched), the chat's queue, the bubble (working, needs your answer + opening that chat, done, Undo, errors), Pick, the mic in the box, and the views rendered off-screen (`artifacts\ui\25-quick-ask-*.png`). **Compile-verified only:** the floating windows over AutoCAD's drawing area, following the drawing window, the shortcut inside AutoCAD (`Application.PreTranslateMessage`), the cursor position (`Editor.PointMonitor`), the `AI` / `-AI` / `AIBUTTON` commands, Undo inside AutoCAD, and closing on drawing switch / exit. |
+| Drawing set, sheets, PDF (2026-11-20) | Tested without AutoCAD: finding the drawings in model space (gaps, titles, splitting drawings placed too close, notes and north arrows joined to their drawing, labels), the arrangement (plans in one row at equal wall spacing, elevations / section / site plan below, no overlaps, titles and scale lines), the scale choice (1/4" or 1/8", 1:50 or 1:100, shared by the floor plans), paper sizes and plotter paper names, the title block layout, sheet numbers, names, packing and PDF file names, the full-set planner (stages, coordinates, levels, section cut, schedule, area statement), reading the ground floor from the drawing or from the validated plan, the tool definitions and the new quick prompt. **Compile-verified only:** moving the drawings and adding titles in AutoCAD, creating layouts, plot settings (`PlotSettingsValidator`), the title block insert and viewports, and plotting with the publish engine (`PlotFactory`, `PlotEngine`). |
 | Chat tabs (2026-11-18) | Tested without AutoCAD: parallel turns, the 4-at-once limit, per-tab provider / history / approvals, the turn queue (order, Stop leaves it), routing of questions and plans to their tab over the real pipe, the bridge's `--session` (built `AcadCopilotMcp.exe`), and the tab strip rendered off-screen. **Compile-verified only:** binding a tab to its AutoCAD drawing and switching AutoCAD to that drawing (`DocumentCollection.MdiActiveDocument`) when its turn comes. |
 
 ### First-run checklist
@@ -628,4 +720,13 @@ Server", which is also installed on this PC. The two do not interfere.
 9h. Colour elevation: on a closed front elevation use *Colour elevation + PNG*. Fills should appear behind the lines on
     A-ELEV-PRES-* layers, with sky, ground and shadows; the PNG lands in `Documents\AcadCopilot Exports` with exact
     colours and dark lines on white, and **Open exports folder** selects it in Explorer.
+9i. Drawing set: with a titled ground floor plan, use *Full drawing set from this plan*; check that the AI shows the
+    stages (first floor, terrace, elevations, section, site plan, furniture, schedule, areas) and asks before each
+    drawing. With two or three titled drawings scattered in model space, ask *"arrange the drawings"*: the plans
+    should line up in one row (walls of the floors at the same spacing), elevations below, titles and scale lines
+    added, and one **Ctrl+Z** should put everything back. Ask *"make A3 sheets, project Test"*: check the tabs
+    (A-101 ...), the title block attributes (`ATTEDIT` or double-click), the viewport scale (Properties: *Custom
+    scale* 0.5292 for 1/4" = 1'-0" or 0.2646 for 1/8", because the sheets are in millimetres and the drawing in
+    inches), that viewports are locked and their frames do not print. Ask *"plot all sheets to PDF"*: **Approve**, then open the PDF in `Documents\AcadCopilot
+    Exports` (one page per sheet) and check that `BACKGROUNDPLOT` is back to its old value.
 10. If anything fails, keep `%LOCALAPPDATA%\AcadCopilot\logs\addin.log` and `bridge.log` and describe what you saw.

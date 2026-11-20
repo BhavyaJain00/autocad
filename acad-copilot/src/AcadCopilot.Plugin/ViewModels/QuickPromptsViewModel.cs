@@ -114,6 +114,9 @@ public sealed class QuickPromptsViewModel : ObservableObject
         new("builtin-colour-elevation", "Colour elevation + PNG",
             "Make a colour presentation version of this elevation (soft palette, sky, ground and shadows) and export it as a PNG I can share.",
             isBuiltIn: true),
+        new("builtin-full-set", "Full drawing set from this plan",
+            "Make the full drawing set from this approved ground floor plan: plan it with plan_full_set, then draft the other floors, front, rear and side elevations, the section through the stair, the site plan, furniture layouts, the door/window schedule and the area statement stage by stage, then arrange_drawings and create_sheets (A3). Ask me before the PDF.",
+            isBuiltIn: true),
     ];
 
     /// <summary>The user's own prompts, in menu order.</summary>

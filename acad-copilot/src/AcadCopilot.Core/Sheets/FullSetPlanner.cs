@@ -356,8 +356,8 @@ public static partial class FullSetPlanner
             "Level markers, vertical dimensions, title \"%%uSECTION A-A\" and the scale line.");
         x += sectionWidth + (72 * u) + gap + (72 * u);
 
-        // Site plan after the section, its plot on the ground line.
-        var siteDx = x - siteBox.MinX;
+        // Site plan after the section, its plot on the ground line (its area reaches 10' around the plot).
+        var siteDx = x + (48 * u) - siteBox.MinX;
         var siteDy = groundY - siteBox.MinY;
         var site = siteBox.Offset(siteDx, siteDy);
         Add(

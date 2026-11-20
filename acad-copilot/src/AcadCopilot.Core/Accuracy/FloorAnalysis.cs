@@ -44,9 +44,9 @@ public sealed record DoorSwing(Pt Hinge, Pt Closed, Pt Open, double Radius)
     /// <summary>Sample points inside the swept area.</summary>
     public IEnumerable<Pt> Samples()
     {
-        foreach (var r in new[] { 0.3, 0.6, 0.85, 0.97 })
+        foreach (var r in new[] { 0.2, 0.4, 0.6, 0.8, 0.9, 0.97 })
         {
-            foreach (var degrees in new[] { 6.0, 25, 45, 65, 84 })
+            foreach (var degrees in new[] { 5.0, 20, 35, 50, 65, 80, 87 })
             {
                 var a = degrees * Math.PI / 180;
                 yield return Hinge + (((Closed * Math.Cos(a)) + (Open * Math.Sin(a))) * (Radius * r));

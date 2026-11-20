@@ -30,6 +30,12 @@ public sealed record SheetOptions
 
     /// <summary>Sheet number prefix (default "A": A-101).</summary>
     public string Prefix { get; init; } = "A";
+
+    /// <summary>The title block to use (null = <see cref="TitleBlockDesign.For"/> the paper).</summary>
+    public TitleBlockDesign? TitleBlock { get; init; }
+
+    /// <summary>The title block in use.</summary>
+    public TitleBlockDesign Design => TitleBlock ?? TitleBlockDesign.For(Paper);
 }
 
 /// <summary>A viewport on a sheet.</summary>
@@ -74,7 +80,7 @@ public static class SheetPlanner
     {
         ArgumentNullException.ThrowIfNull(drawings);
         ArgumentNullException.ThrowIfNull(options);
-        var block = TitleBlockDesign.For(options.Paper);
+        var block = options.Design;
         var area = block.Drawable;
         var warnings = new List<string>();
         var scales = ChooseScales(drawings, options);
@@ -144,7 +150,7 @@ public static class SheetPlanner
     {
         ArgumentNullException.ThrowIfNull(drawings);
         ArgumentNullException.ThrowIfNull(options);
-        var area = TitleBlockDesign.For(options.Paper).Drawable;
+        var area = options.Design.Drawable;
         var roomW = area.Width - (2 * ViewportPad);
         var roomH = area.Height - (2 * ViewportPad);
         var scales = new Dictionary<int, DrawingScale>();

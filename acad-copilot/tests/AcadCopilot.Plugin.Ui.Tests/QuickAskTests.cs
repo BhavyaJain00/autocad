@@ -578,7 +578,85 @@ public sealed class QuickAskTests : IDisposable
         }
     });
 
+    [Fact]
+    public void Render_quick_ask_settings_in_the_panel() => Sta.Run(async () =>
+    {
+        foreach (var theme in new[] { PanelTheme.Dark, PanelTheme.Light })
+        {
+            var backend = FakeBackend.Create();
+            var pane = new Views.CopilotPane(backend, new Views.CopilotPaneOptions
+            {
+                Theme = theme,
+                PanelSettingsPath = Path.Combine(_temp, Guid.NewGuid().ToString("N") + ".json"),
+                SettingsPath = Path.Combine(_temp, Guid.NewGuid().ToString("N") + "-settings.json"),
+                CheckProviderStatusOnLoad = false,
+                EnableVoice = false,
+            });
+            await pane.ViewModel.RefreshStatusesAsync();
+            Assert.Same(QuickAskOptions.Shared, pane.ViewModel.QuickAskSettings);
+            pane.ViewModel.IsSettingsOpen = true;
+            const double width = 430;
+            const double height = 900;
+            Snapshot.Render(pane, width, height, "25-quick-ask-scratch");
+            var scroll = (ScrollViewer)pane.FindName("SettingsScroll");
+            var title = FindText(scroll, "QUICK ASK");
+            Assert.NotNull(title);
+            var offset = title!.TransformToAncestor((Visual)scroll.Content).Transform(new Point(0, 0)).Y;
+            scroll.ScrollToVerticalOffset(Math.Max(0, offset - 8));
+            Save(pane, width, height, $"25-quick-ask-7-settings-{theme.ToString().ToLowerInvariant()}");
+            pane.Shell.Dispose();
+        }
+
+        File.Delete(Path.Combine(Snapshot.ArtifactsDirectory, "25-quick-ask-scratch.png"));
+    });
+
+    [Fact]
+    public void The_panel_setting_and_the_button_share_one_switch() => Sta.Run(() =>
+    {
+        // Every tab shows the one session-wide instance (never written here: it lives in the user's folder).
+        var backend = FakeBackend.Create();
+        var chat = new ChatViewModel(backend, Dispatcher.CurrentDispatcher, null, new PanelSettingsStore(Path.Combine(_temp, Guid.NewGuid() + ".json")), new CopilotSettingsStore(Path.Combine(_temp, Guid.NewGuid() + "-s.json")));
+        Assert.Same(QuickAskOptions.Shared, chat.QuickAskSettings);
+        chat.Dispose();
+
+        // The button's menu and tool tip follow the options it was given.
+        var options = new QuickAskOptions(new QuickAskSettingsStore(Path.Combine(_temp, Guid.NewGuid().ToString("N") + "-qa.json")));
+        using var controller = new QuickAskController(new FakeHost(null), options, Dispatcher.CurrentDispatcher);
+        controller.HideButtonCommand.Execute(null);
+        Assert.False(options.ShowButton);
+        options.ShortcutText = "Ctrl+Alt+K";
+        Assert.Equal("Shortcut: Ctrl+Alt+K (change it in the panel's Settings)", controller.ShortcutMenuText);
+        Assert.Contains("Ctrl+Alt+K", controller.ButtonToolTip, StringComparison.Ordinal);
+        controller.OpenPanelCommand.Execute(null); // no panel yet: nothing happens
+        return Task.CompletedTask;
+    });
+
     // ------------------------------------------------------------------ helpers
+
+    private static TextBlock? FindText(DependencyObject root, string text)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is TextBlock block && block.Text == text)
+            {
+                return block;
+            }
+
+            if (FindText(child, text) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private static void Save(FrameworkElement element, double width, double height, string name)
+    {
+        var path = Snapshot.Render(element, width, height, name);
+        Assert.True(new FileInfo(path).Length > 1000, "PNG was not written: " + path);
+    }
 
     private static SelectionSnapshot Selection(int count) => new()
     {

@@ -350,7 +350,7 @@ public sealed class ComposerFeaturesTests : IDisposable
         var prompts = new QuickPromptsViewModel(store);
         var (vm, _) = CreateChat(null, prompts, store);
 
-        Assert.Equal(["30x40 G+1 standard plan", "Add dimensions", "Review this plan", "Learn my style from this drawing", "Plot to PDF", "Electrical layout (draft)", "Colour elevation + PNG"], prompts.BuiltIns.Select(b => b.Title));
+        Assert.Equal(["30x40 G+1 standard plan", "Add dimensions", "Review this plan", "Learn my style from this drawing", "Plot to PDF", "Electrical layout (draft)", "Colour elevation + PNG", "Full drawing set from this plan"], prompts.BuiltIns.Select(b => b.Title));
         Assert.Equal(ChatViewModel.ReviewPrompt, prompts.BuiltIns[2].Text);
         vm.ToggleQuickMenuCommand.Execute(null);
         Assert.True(vm.IsQuickMenuOpen);

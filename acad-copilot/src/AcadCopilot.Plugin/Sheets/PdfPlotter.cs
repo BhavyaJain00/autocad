@@ -57,7 +57,7 @@ internal static class PdfPlotter
         return [.. (sheets.Count > 0 ? sheets : layouts).Select(l => (l.Name, l.Id))];
     }
 
-    /// <summary>Plots <paramref name="layouts"/> of <paramref name="document"/> into <paramref name="path"/>.</summary>
+    /// <summary>Plots the <paramref name="requested"/> layouts (null = the sheets) of <paramref name="document"/> into <paramref name="path"/>.</summary>
     public static PlotOutcome Plot(Document document, IReadOnlyList<string>? requested, string path)
     {
         ArgumentNullException.ThrowIfNull(document);

@@ -90,6 +90,16 @@ public static class DraftingGuides
             "Only when the user asks for it. Usual placements: entrance E or N, kitchen SE (cooking facing east), master bedroom SW, pooja NE, " +
             "toilets NW or W, stair S, SW or W, overhead tank SW, underground sump NE. Treat them as preferences after the plot, road side and " +
             "light; say which ones could not be met."),
+        new(
+            "Full drawing set",
+            ["full", "set", "sheet", "sheets", "pdf", "layouts", "submission", "arrange", "titleblock"],
+            "From the approved ground floor plan: plan_full_set first (stages with coordinates, levels, section cut, schedule, areas), update_plan with its stages, " +
+            "then draft each stage with run_commands at its place (recall_knowledge with the stage's guide: stair, elevation, section, site plan, furniture), asking before each new drawing. " +
+            "Upper floors: COPY the ground floor's outer walls, stair and wet areas by the plan spacing it gives, so walls and stairs stay stacked. " +
+            "Levels unless the user says otherwise: plinth 1'6, floors 10'6, sill 3', lintel 7', parapet 3'. Every drawing gets its title and a \"SCALE ...\" line. " +
+            "Then arrange_drawings (preview_only first; labels name untitled drawings), create_sheets (A3 unless asked; A-001 site, A-101 plans, A-201 elevations, " +
+            "A-301 sections; project and client in the title block; show_sheet + capture_view to check), and plot_to_pdf only when the user wants the PDF " +
+            "(they approve it; give them the path). Sheets carry \"NOT FOR CONSTRUCTION - CHECK BY ARCHITECT/ENGINEER\"."),
     ];
 
     /// <summary>The guides whose keywords appear in <paramref name="query"/> (best first, at most <see cref="MaxPerQuery"/>).</summary>

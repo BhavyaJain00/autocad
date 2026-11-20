@@ -19,6 +19,14 @@ public enum QuickAskDelivery
 /// </summary>
 public sealed partial class ChatViewModel
 {
+    /// <summary>The Quick Ask settings (floating button, shortcut): one set for every tab, shown in the panel's Settings.</summary>
+    public QuickAsk.QuickAskOptions QuickAskSettings => QuickAsk.QuickAskOptions.Shared;
+
+    /// <summary>Puts the Quick Ask shortcut back to Ctrl+Shift+Space.</summary>
+    public RelayCommand ResetQuickAskShortcutCommand => _resetQuickAskShortcut ??= new RelayCommand(() => QuickAskSettings.ResetShortcut());
+
+    private RelayCommand? _resetQuickAskShortcut;
+
     /// <summary>
     /// Sends a Quick Ask request as this tab's next user message: <paramref name="displayText"/> is shown in the chat,
     /// <paramref name="sentText"/> (with its point and selection lines) goes to the AI. Starts at once when the tab is

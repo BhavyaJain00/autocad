@@ -37,6 +37,9 @@
       <Commands GroupName="ACADCOPILOT">
         <Command Global="COPILOT" Local="COPILOT" />
         <Command Global="COPILOTSTATUS" Local="COPILOTSTATUS" />
+        <Command Global="AI" Local="AI" />
+        <Command Global="QUICKAI" Local="QUICKAI" />
+        <Command Global="AIBUTTON" Local="AIBUTTON" />
       </Commands>
     </ComponentEntry>
   </Components>

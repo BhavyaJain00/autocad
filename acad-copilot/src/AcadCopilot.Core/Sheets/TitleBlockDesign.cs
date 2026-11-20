@@ -1,4 +1,5 @@
 using System.Globalization;
+using AcadCopilot.Core.Accuracy;
 
 namespace AcadCopilot.Core.Sheets;
 
@@ -61,6 +62,11 @@ public sealed record TitleBlockValues
         [TitleBlockDesign.TagScale] = Scale,
         [TitleBlockDesign.TagDate] = Date,
         [TitleBlockDesign.TagDrawnBy] = DrawnBy,
+
+        // Tags of the A3 title block of apply_drawing_template (accuracy pack).
+        ["DRAWN"] = DrawnBy,
+        ["SHEET"] = SheetNumber,
+        ["NOTE"] = TitleBlockDesign.Note,
     };
 
     /// <summary>"AI Copilot / &lt;user&gt;" for the drawn-by field.</summary>
@@ -135,6 +141,15 @@ public sealed record TitleBlockDesign
 
     /// <summary>Attributes.</summary>
     public required IReadOnlyList<BlockAttribute> Attributes { get; init; }
+
+    /// <summary>
+    /// True when the block is not made by create_sheets but already defined in the drawing (the A3 title block of
+    /// apply_drawing_template, drawn in paper inches): it is inserted at <see cref="InsertScale"/> and not redefined.
+    /// </summary>
+    public bool External { get; init; }
+
+    /// <summary>Insertion scale of the block on a millimetre sheet (1 for create_sheets' own blocks, 25.4 for an inch block).</summary>
+    public double InsertScale { get; init; } = 1;
 
     /// <summary>The design for <paramref name="paper"/>.</summary>
     public static TitleBlockDesign For(PaperSize paper)
@@ -213,6 +228,63 @@ public sealed record TitleBlockDesign
             Lines = lines,
             Texts = texts,
             Attributes = attributes,
+        };
+    }
+
+    /// <summary>
+    /// The design of the A3 title block that apply_drawing_template defines (block in paper inches, title box at the
+    /// bottom right, attributes PROJECT, TITLE, SCALE, DATE, DRAWN, SHEET, NOTE) on an ISO A3 millimetre sheet: drawings go
+    /// above its title box. Null when <paramref name="block"/> is not an A3 landscape sheet.
+    /// </summary>
+    public static TitleBlockDesign? FromTemplate(TemplateTitleBlock block)
+    {
+        ArgumentNullException.ThrowIfNull(block);
+        const double mm = 25.4;
+        var paper = PaperSizes.For("A3", PaperStandard.Iso);
+        if (Math.Abs((block.Width * mm) - paper.WidthMm) > 2 || Math.Abs((block.Height * mm) - paper.HeightMm) > 2)
+        {
+            return null;
+        }
+
+        var border = new SheetRect(LeftMargin, Margin, paper.WidthMm - Margin, paper.HeightMm - Margin);
+        var lines = block.Lines.Select(l => new BlockLine(l.X1 * mm, l.Y1 * mm, l.X2 * mm, l.Y2 * mm, 25)).ToList();
+
+        // The title box: the lines that are neither the sheet edge nor the frame.
+        bool Near(double a, double b) => Math.Abs(a - b) < 0.5;
+        bool OnFrame(BlockLine l) =>
+            (Near(l.Y0, l.Y1) && new[] { 0, paper.HeightMm, border.MinY, border.MaxY }.Any(y => Near(l.Y0, y))) ||
+            (Near(l.X0, l.X1) && new[] { 0, paper.WidthMm, border.MinX, border.MaxX }.Any(x => Near(l.X0, x)));
+        var inner = lines.Where(l => !OnFrame(l)).ToList();
+        if (inner.Count == 0)
+        {
+            return null;
+        }
+
+        var box = inner.Select(l => SheetRect.FromCorners(l.X0, l.Y0, l.X1, l.Y1)).Aggregate((a, b) => a.Union(b));
+        var verticals = inner.Where(l => Near(l.X0, l.X1)).ToList();
+        var attributes = new List<BlockAttribute>();
+        foreach (var a in block.Attributes)
+        {
+            var x = a.X * mm;
+            var y = a.Y * mm;
+            var right = box.Contains(x, y)
+                ? verticals.Where(v => v.X0 > x + 0.5 && Math.Min(v.Y0, v.Y1) <= y && Math.Max(v.Y0, v.Y1) >= y).Select(v => v.X0).DefaultIfEmpty(box.MaxX).Min()
+                : box.MinX;
+            attributes.Add(new BlockAttribute(a.Tag, a.Prompt, x, y, a.Height * mm, Math.Max(10, right - x - 2), a.Default));
+        }
+
+        return new TitleBlockDesign
+        {
+            BlockName = block.Name,
+            Paper = paper,
+            Border = border,
+            Strip = box,
+            Drawable = new SheetRect(border.MinX + Inset, box.MaxY + Inset, border.MaxX - Inset, border.MaxY - Inset),
+            Lines = lines,
+            Texts = [.. block.Texts.Select(t => new BlockText(t.X * mm, t.Y * mm, t.Height * mm, t.Text))],
+            Attributes = attributes,
+            External = true,
+            InsertScale = mm,
         };
     }
 

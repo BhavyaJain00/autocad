@@ -2007,6 +2007,36 @@
                     </CheckBox>
                 </StackPanel>
 
+                <!-- QUICK ASK: the floating AI button in the drawing area and its shortcut (QuickAskOptions, quickask.json; shared by the tabs). -->
+                <StackPanel Margin="0,14,0,0">
+                    <TextBlock Text="QUICK ASK" Style="{StaticResource SectionTitle}" />
+                    <CheckBox Style="{StaticResource ThemedCheck}" IsChecked="{Binding QuickAskSettings.ShowButton, Mode=TwoWay}" Margin="0,0,0,7"
+                              AutomationProperties.Name="Show the floating AI button">
+                        <StackPanel>
+                            <TextBlock Text="Show the floating AI button" TextWrapping="Wrap" />
+                            <TextBlock Text="A round AI button in the drawing area's top-right corner: click it, press the shortcut or type AI, say what you want and press Enter. The request goes to the chat of that drawing; this panel can stay closed." Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </CheckBox>
+                    <Grid Margin="26,0,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Shortcut" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBox Grid.Column="1" Style="{StaticResource InputBox}" Width="170" HorizontalAlignment="Left"
+                                 Text="{Binding QuickAskSettings.ShortcutText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                 AutomationProperties.Name="Quick Ask shortcut" />
+                        <Button Grid.Column="2" Style="{StaticResource LinkButton}" Content="Default" Margin="8,0,0,0" VerticalAlignment="Center"
+                                Command="{Binding ResetQuickAskShortcutCommand}" ToolTip="Ctrl+Shift+Space" />
+                    </Grid>
+                    <TextBlock Margin="26,3,0,0" Style="{StaticResource Caption}" Foreground="{DynamicResource Danger}"
+                               Text="{Binding QuickAskSettings.ShortcutError}"
+                               Visibility="{Binding QuickAskSettings.HasShortcutError, Converter={StaticResource Vis}}" />
+                    <TextBlock Margin="26,3,0,0" Style="{StaticResource Caption}"
+                               Text="Ctrl or Alt plus Space, a letter, a digit or F1-F12. AIBUTTON shows / hides the button; -AI asks on the command line." />
+                </StackPanel>
+
                 <StackPanel Margin="0,14,0,0" Visibility="{Binding HasVoice, Converter={StaticResource Vis}}">
                     <TextBlock Text="VOICE INPUT" Style="{StaticResource SectionTitle}" />
                     <CheckBox Style="{StaticResource ThemedCheck}" IsChecked="{Binding VoiceAutoSend, Mode=TwoWay}" Margin="0,0,0,8"
