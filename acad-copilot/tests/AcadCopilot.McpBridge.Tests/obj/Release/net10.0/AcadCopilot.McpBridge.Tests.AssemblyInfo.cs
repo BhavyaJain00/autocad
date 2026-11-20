@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AcadCopilot")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.1.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+0fa780cf5b20054caab52bcb790ba919c709e757")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+ddb381414c3e4c32dce1a346bb49aa6ce1898b28")]
 [assembly: System.Reflection.AssemblyProductAttribute("AI Copilot for AutoCAD 2027")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AcadCopilot.McpBridge.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.1.0.0")]

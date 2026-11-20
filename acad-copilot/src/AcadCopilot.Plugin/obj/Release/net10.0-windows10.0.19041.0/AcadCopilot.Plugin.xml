@@ -2656,6 +2656,15 @@
         <member name="P:AcadCopilot.Plugin.ViewModels.CommandStepItem.HasProblem">
             <summary>True when <see cref="P:AcadCopilot.Plugin.ViewModels.CommandStepItem.Problem"/> is shown.</summary>
         </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.CommandStepItem.AutoFixedText">
+            <summary>
+            "Auto-fixed: added the missing Enter" when the copilot repaired this command's inputs (run_commands auto-fix:
+            dialog version retyped as its '-' version, a missing Enter, feet-inches syntax), or null.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.CommandStepItem.HasAutoFixed">
+            <summary>True when <see cref="P:AcadCopilot.Plugin.ViewModels.CommandStepItem.AutoFixedText"/> is shown.</summary>
+        </member>
         <member name="M:AcadCopilot.Plugin.ViewModels.CommandStepItem.ApplyReport(AcadCopilot.Core.Drafting.StepReport)">
             <summary>Shows how the command ended, from the run_commands report.</summary>
         </member>
@@ -2800,6 +2809,24 @@
         </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.ToolActivityItem.HasPicture">
             <summary>True when the picture is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ToolActivityItem.CheckpointText">
+            <summary>
+            "Checkpoint 'before Outer walls' saved first (restore_checkpoint goes back)": the checkpoint run_commands created
+            before typing (from its report), or null.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ToolActivityItem.HasCheckpoint">
+            <summary>True when <see cref="P:AcadCopilot.Plugin.ViewModels.ToolActivityItem.CheckpointText"/> is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ToolActivityItem.ExportFile">
+            <summary>The PNG export_view_png wrote (full path, from its result data), or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ToolActivityItem.HasExportFile">
+            <summary>True when the "Open exports folder" link is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ToolActivityItem.ExportFileName">
+            <summary>The exported picture's file name ("House-front_20261120-101500.png").</summary>
         </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.ToolActivityItem.Arguments">
             <summary>The call's full arguments, once the plug-in reported them (a private copy).</summary>
@@ -3573,11 +3600,13 @@
         <member name="M:AcadCopilot.Plugin.ViewModels.ChatViewModel.RefreshFeatures">
             <summary>Re-reads the switches (another tab changed them; they are shared).</summary>
         </member>
-        <member name="M:AcadCopilot.Plugin.ViewModels.ChatViewModel.ShowResumeOffer(AcadCopilot.Core.Recovery.ResumeInfo,System.Action{AcadCopilot.Core.Recovery.ResumeInfo})">
+        <member name="M:AcadCopilot.Plugin.ViewModels.ChatViewModel.ShowResumeOffer(AcadCopilot.Core.Recovery.ResumeInfo,System.Action{AcadCopilot.Core.Recovery.ResumeInfo},System.Func{AcadCopilot.Core.Recovery.ResumeInfo,System.Boolean})">
             <summary>
             Shows the "Resume previous job" card for <paramref name="info"/> (unless one for the same journal is already shown).
-            Resume sends a message that makes the AI read get_resume_info and continue; <paramref name="dismissed"/> is called
-            when the user dismisses it (forget the journal).
+            Resume calls <paramref name="resume"/> (inside AutoCAD: <c>PaletteHost</c> sends <c>ResumeMonitor.ResumePrompt</c> in
+            a tab bound to that drawing; it returns false when it could not, and the card stays open), or, when null, sends
+            <see cref="P:AcadCopilot.Plugin.ViewModels.ResumeCardItem.ResumePrompt"/> in this tab. After a resume and on Dismiss, <paramref name="dismissed"/>
+            is called so the journal is not offered again.
             </summary>
         </member>
         <member name="M:AcadCopilot.Plugin.ViewModels.ChatViewModel.SendOrQueue(System.String,System.String)">
@@ -3953,6 +3982,16 @@
         <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.OpenKnowledgeFolderCommand">
             <summary>Opens <see cref="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.KnowledgeDirectory"/> in Windows Explorer (only when clicked).</summary>
         </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.FileRevealer">
+            <summary>
+            Shows an exported file selected in its folder; null = Windows Explorer (<c>explorer /select,</c>; tests replace it).
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.OpenExportFolderCommand">
+            <summary>
+            "Open exports folder" under an export_view_png row: the parameter is the PNG's full path (only when clicked).
+            </summary>
+        </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.LearnStyleCommand">
             <summary>Sends "Learn my style from this drawing" (or puts it in the message box while a turn runs).</summary>
         </member>
@@ -4265,6 +4304,11 @@
         </member>
         <member name="M:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel.ShowSession(System.String)">
             <summary>Shows the tab of session <paramref name="sessionId"/>, when it exists.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel.TabForDrawing(System.String)">
+            <summary>
+            The tab whose chat works on drawing <paramref name="drawingId"/> (an idle one first, then the shown one), or null.
+            </summary>
         </member>
         <member name="M:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel.RequestClose(AcadCopilot.Plugin.ViewModels.ChatViewModel)">
             <summary>Closes <paramref name="tab"/>; a working tab asks first (<see cref="P:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel.PendingClose"/>).</summary>
@@ -4925,6 +4969,9 @@
         <member name="P:AcadCopilot.Plugin.Views.CopilotPaneOptions.OpenFolder">
             <summary>Opens a folder (the knowledge folder link); null uses Windows Explorer.</summary>
         </member>
+        <member name="P:AcadCopilot.Plugin.Views.CopilotPaneOptions.RevealFile">
+            <summary>Shows an exported picture selected in its folder ("Open exports folder"); null uses Windows Explorer.</summary>
+        </member>
         <member name="P:AcadCopilot.Plugin.Views.CopilotPaneOptions.Recorder">
             <summary>The "Learn from me" recorder of the session; null hides the Learning bar.</summary>
         </member>
@@ -4936,16 +4983,6 @@
         </member>
         <member name="P:AcadCopilot.Plugin.Views.CopilotPaneOptions.EnableQuickPrompts">
             <summary>False hides the ⚡ quick-prompt menu.</summary>
-        </member>
-        <member name="P:AcadCopilot.Plugin.Views.CopilotPaneOptions.ResumableJobs">
-            <summary>
-            Finds unfinished drafting jobs of the active drawing (agent A's job journal); called on the UI thread when the pane
-            first loads and by <see cref="M:AcadCopilot.Plugin.Views.CopilotPane.OfferResumableJobs"/>. Each one becomes a "Resume previous job" card.
-            Null = no cards.
-            </summary>
-        </member>
-        <member name="P:AcadCopilot.Plugin.Views.CopilotPaneOptions.DismissJob">
-            <summary>Called when the user dismisses a "Resume previous job" card (forget that journal).</summary>
         </member>
         <member name="T:AcadCopilot.Plugin.Views.CopilotPane">
             <summary>
@@ -4990,12 +5027,6 @@
         </member>
         <member name="M:AcadCopilot.Plugin.Views.CopilotPane.ApplyTheme(AcadCopilot.Plugin.Resources.PanelTheme)">
             <summary>Re-colors the panel (call on the UI thread, e.g. from AutoCAD's ThemeChanged event).</summary>
-        </member>
-        <member name="M:AcadCopilot.Plugin.Views.CopilotPane.OfferResumableJobs">
-            <summary>
-            Shows a "Resume previous job" card in the tab shown for each unfinished job that
-            <see cref="P:AcadCopilot.Plugin.Views.CopilotPaneOptions.ResumableJobs"/> finds (call it after the active drawing changed). UI thread.
-            </summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Views.CopilotPane.InitializeComponent">
             <summary>
@@ -5611,6 +5642,36 @@
         </member>
         <member name="M:AcadCopilot.Plugin.Voice.WinRtSpeechEngine.Dispose">
             <inheritdoc />
+        </member>
+        <member name="T:XamlGeneratedNamespace.GeneratedInternalTypeHelper">
+            <summary>
+            GeneratedInternalTypeHelper
+            </summary>
+        </member>
+        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.CreateInstance(System.Type,System.Globalization.CultureInfo)">
+            <summary>
+            CreateInstance
+            </summary>
+        </member>
+        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.GetPropertyValue(System.Reflection.PropertyInfo,System.Object,System.Globalization.CultureInfo)">
+            <summary>
+            GetPropertyValue
+            </summary>
+        </member>
+        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.SetPropertyValue(System.Reflection.PropertyInfo,System.Object,System.Object,System.Globalization.CultureInfo)">
+            <summary>
+            SetPropertyValue
+            </summary>
+        </member>
+        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.CreateDelegate(System.Type,System.Object,System.String)">
+            <summary>
+            CreateDelegate
+            </summary>
+        </member>
+        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.AddEventHandler(System.Reflection.EventInfo,System.Object,System.Delegate)">
+            <summary>
+            AddEventHandler
+            </summary>
         </member>
         <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_0">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the TitleRegex method.</summary>
