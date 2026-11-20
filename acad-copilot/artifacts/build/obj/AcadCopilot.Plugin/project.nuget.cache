@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "c3u8UKciX08=",
+  "dgSpecHash": "B1O5w9Pn9yc=",
   "success": true,
-  "projectFilePath": "c:\\Users\\pc\\Desktop\\AUTOCAD\\acad-copilot\\src\\AcadCopilot.Plugin\\AcadCopilot.Plugin_f2qt3krx_wpftmp.csproj",
+  "projectFilePath": "c:\\Users\\pc\\Desktop\\AUTOCAD\\acad-copilot\\src\\AcadCopilot.Plugin\\AcadCopilot.Plugin_w33wqggd_wpftmp.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\pc\\.nuget\\packages\\system.speech\\10.0.15\\system.speech.10.0.15.nupkg.sha512",
     "C:\\Users\\pc\\.nuget\\packages\\microsoft.netcore.app.ref\\10.0.15\\microsoft.netcore.app.ref.10.0.15.nupkg.sha512",

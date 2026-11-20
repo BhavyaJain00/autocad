@@ -6265,6 +6265,475 @@
         <member name="M:AcadCopilot.Core.Panel.AcadTurnQueue.StatusOf(System.String)">
             <summary>Where <paramref name="owner"/> stands: drawing, waiting (its first entry), or idle.</summary>
         </member>
+        <member name="T:AcadCopilot.Core.Panel.JournalCall">
+            <summary>A tool call of the current job as the chat saw it.</summary>
+            <param name="CallId">CLI call id.</param>
+            <param name="Name">Tool name ("run_commands").</param>
+            <param name="Arguments">Short argument summary ("title: Outer walls, steps: 5 items").</param>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.JournalCall.#ctor(System.String,System.String,System.String)">
+            <summary>A tool call of the current job as the chat saw it.</summary>
+            <param name="CallId">CLI call id.</param>
+            <param name="Name">Tool name ("run_commands").</param>
+            <param name="Arguments">Short argument summary ("title: Outer walls, steps: 5 items").</param>
+        </member>
+        <member name="P:AcadCopilot.Core.Panel.JournalCall.CallId">
+            <summary>CLI call id.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Panel.JournalCall.Name">
+            <summary>Tool name ("run_commands").</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Panel.JournalCall.Arguments">
+            <summary>Short argument summary ("title: Outer walls, steps: 5 items").</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Panel.JournalCall.Success">
+            <summary>Null while running, then the outcome.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Panel.JournalCall.Result">
+            <summary>Result summary ("Typed 5 commands, created 12 objects").</summary>
+        </member>
+        <member name="T:AcadCopilot.Core.Panel.ConversationJournal">
+            <summary>
+            What a chat session remembers about its conversation and the job in progress, so another provider can take the job
+            over (AI switching), a manual provider change keeps the context, and a reviewer knows what was asked: the recent user
+            and assistant messages, the latest Task Progress list, the tool calls of the current job and the last drawing facts.
+            Thread-safe; everything is size-capped.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Panel.ConversationJournal.MaxHistory">
+            <summary>Most conversation entries kept.</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Panel.ConversationJournal.MaxEntryLength">
+            <summary>Most characters kept per conversation entry.</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Panel.ConversationJournal.MaxCalls">
+            <summary>Most tool calls kept for the current job.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Panel.ConversationJournal.Request">
+            <summary>The user's message that started the current job.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Panel.ConversationJournal.Plan">
+            <summary>The latest Task Progress list (any job), or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Panel.ConversationJournal.HasEarlierConversation">
+            <summary>True when the conversation had messages before the current job.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Panel.ConversationJournal.Calls">
+            <summary>The tool calls of the current job (oldest first).</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Panel.ConversationJournal.DrawingStages">
+            <summary>Successful run_commands calls of the current job.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Panel.ConversationJournal.FinishedDrawing">
+            <summary>
+            True when the current job drew something and its Task Progress list (updated during the job, at least 3 tasks) has
+            nothing pending or in progress: a finished drawing worth an automatic review.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.ConversationJournal.BeginJob(System.String)">
+            <summary>Starts a job: records the user's message and forgets the previous job's tool calls.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.ConversationJournal.AddAssistant(System.String)">
+            <summary>Records an assistant message (text shown in the chat).</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.ConversationJournal.SetPlan(AcadCopilot.Core.Interaction.PlanUpdate)">
+            <summary>Records the Task Progress list (update_plan).</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.ConversationJournal.Observe(AcadCopilot.Core.Agents.AgentEvent)">
+            <summary>Records what an event of the running turn says about the job (messages, tool calls and results).</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.ConversationJournal.Clear">
+            <summary>Forgets everything (New chat).</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.ConversationJournal.DescribeContext(System.Boolean,System.Boolean)">
+            <summary>
+            The compact context block for another AI: earlier conversation (approved plan tables are in there), the task list,
+            what the current job did so far and the last drawing facts. At most about 9,000 characters.
+            </summary>
+            <param name="includeCurrentJob">
+            Include the current job's tool calls and its messages after the request (a switch in the middle of a job; the
+            request itself is given separately).
+            </param>
+            <param name="includeCurrentRequest">
+            Without <paramref name="includeCurrentJob"/>: also list the current job's messages (a review), or only what came
+            before it (false: a new provider gets the user's new message separately).
+            </param>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.ConversationJournal.Whitespace">
+            <remarks>
+            Pattern:<br/>
+            <code>[ \\t]+</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match a character in the set [\t ] atomically at least once.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="T:AcadCopilot.Core.Panel.JobHandover">
+            <summary>The prompts that hand a job to another provider (or back to the same one after a failure).</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Panel.JobHandover.Marker">
+            <summary>Marker the instructions explain ("A message starting with HANDOVER ...").</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Panel.JobHandover.MaxLength">
+            <summary>Most characters of a handover prompt.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.JobHandover.SwitchMessage(System.String,System.String,AcadCopilot.Core.Agents.SwitchReason)">
+            <summary>The user-facing line for a switch ("Claude reached its limit - continuing with ChatGPT.").</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.JobHandover.ForSwitch(AcadCopilot.Core.Panel.ConversationJournal,System.String,System.String,AcadCopilot.Core.Agents.SwitchReason,System.String)">
+            <summary>The prompt for <paramref name="to"/> continuing the job <paramref name="from"/> could not finish.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.JobHandover.ForRetry(AcadCopilot.Core.Panel.ConversationJournal,System.String)">
+            <summary>The prompt that retries the job with the same provider after a failure.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.JobHandover.ForProviderChange(AcadCopilot.Core.Panel.ConversationJournal,System.String,System.String,System.String)">
+            <summary>
+            The prompt when the user picked another provider for an ongoing conversation: the context so far, then the user's
+            new message.
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Core.Panel.ReviewRequests">
+            <summary>Recognises chat messages that ask for a second-opinion review or for fixing its findings.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.ReviewRequests.IsReviewRequest(System.String)">
+            <summary>True for short messages such as "review this plan", "please review the drawing", "second opinion".</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.ReviewRequests.IsFixRequest(System.String)">
+            <summary>True for short messages such as "fix these", "fix them", "fix the review findings".</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.ReviewRequests.FocusOf(System.String)">
+            <summary>What to focus on ("the first floor plan"), from a review request, or null.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.ReviewRequests.ReviewPattern">
+            <remarks>
+            Pattern:<br/>
+            <code>^(?:(?:please|pls|can you|could you|now)[,\\s]+)*(?:(?:do\\s+a\\s+|give\\s+(?:me\\s+)?a\\s+)?(?:second[-\\s]opinion|senior[-\\s]architect\\s+review)(?:\\s+(?:on|of|for))?|(?:review|re-?check|cross-?check)(?:\\s+(?:of|on))?)(?&lt;focus&gt;\\s+(?:this|the|my|it|that)\\b(?:(?!\\band\\b|\\bthen\\b)[^\\n]){0,50})?[.!?]*$</code><br/>
+            Options:<br/>
+            <code>RegexOptions.IgnoreCase | RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at the beginning of the string.<br/>
+            ○ Loop greedily any number of times.<br/>
+                ○ Match with 3 alternative expressions.<br/>
+                    ○ Match a sequence of expressions.<br/>
+                        ○ Match a character in the set [Pp].<br/>
+                        ○ Match a character in the set [Ll].<br/>
+                        ○ Match with 2 alternative expressions.<br/>
+                            ○ Match a sequence of expressions.<br/>
+                                ○ Match a character in the set [Ee].<br/>
+                                ○ Match a character in the set [Aa].<br/>
+                                ○ Match a character in the set [Ss].<br/>
+                                ○ Match a character in the set [Ee].<br/>
+                            ○ Match a character in the set [Ss].<br/>
+                    ○ Match a sequence of expressions.<br/>
+                        ○ Match a character in the set [Cc].<br/>
+                        ○ Match with 2 alternative expressions.<br/>
+                            ○ Match a sequence of expressions.<br/>
+                                ○ Match a character in the set [Aa].<br/>
+                                ○ Match a character in the set [Nn].<br/>
+                                ○ Match ' '.<br/>
+                                ○ Match a character in the set [Yy].<br/>
+                                ○ Match a character in the set [Oo].<br/>
+                                ○ Match a character in the set [Uu].<br/>
+                            ○ Match a sequence of expressions.<br/>
+                                ○ Match a character in the set [Oo].<br/>
+                                ○ Match a character in the set [Uu].<br/>
+                                ○ Match a character in the set [Ll].<br/>
+                                ○ Match a character in the set [Dd].<br/>
+                                ○ Match ' '.<br/>
+                                ○ Match a character in the set [Yy].<br/>
+                                ○ Match a character in the set [Oo].<br/>
+                                ○ Match a character in the set [Uu].<br/>
+                    ○ Match a sequence of expressions.<br/>
+                        ○ Match a character in the set [Nn].<br/>
+                        ○ Match a character in the set [Oo].<br/>
+                        ○ Match a character in the set [Ww].<br/>
+                ○ Match a character in the set [,\s] greedily at least once.<br/>
+            ○ Match with 2 alternative expressions.<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Optional (greedy).<br/>
+                        ○ Match with 2 alternative expressions.<br/>
+                            ○ Match a sequence of expressions.<br/>
+                                ○ Match a character in the set [Dd].<br/>
+                                ○ Match a character in the set [Oo].<br/>
+                                ○ Match a whitespace character atomically at least once.<br/>
+                                ○ Match a character in the set [Aa].<br/>
+                                ○ Match a whitespace character atomically at least once.<br/>
+                            ○ Match a sequence of expressions.<br/>
+                                ○ Match a character in the set [Gg].<br/>
+                                ○ Match a character in the set [Ii].<br/>
+                                ○ Match a character in the set [Vv].<br/>
+                                ○ Match a character in the set [Ee].<br/>
+                                ○ Match a whitespace character greedily at least once.<br/>
+                                ○ Optional (greedy).<br/>
+                                    ○ Match a character in the set [Mm].<br/>
+                                    ○ Match a character in the set [Ee].<br/>
+                                    ○ Match a whitespace character atomically at least once.<br/>
+                                ○ Match a character in the set [Aa].<br/>
+                                ○ Match a whitespace character atomically at least once.<br/>
+                    ○ Match a character in the set [Ss].<br/>
+                    ○ Match a character in the set [Ee].<br/>
+                    ○ Match with 2 alternative expressions.<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Cc].<br/>
+                            ○ Match a character in the set [Oo].<br/>
+                            ○ Match a character in the set [Nn].<br/>
+                            ○ Match a character in the set [Dd].<br/>
+                            ○ Match a character in the set [\-\s].<br/>
+                            ○ Match a character in the set [Oo].<br/>
+                            ○ Match a character in the set [Pp].<br/>
+                            ○ Match a character in the set [Ii].<br/>
+                            ○ Match a character in the set [Nn].<br/>
+                            ○ Match a character in the set [Ii].<br/>
+                            ○ Match a character in the set [Oo].<br/>
+                            ○ Match a character in the set [Nn].<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Nn].<br/>
+                            ○ Match a character in the set [Ii].<br/>
+                            ○ Match a character in the set [Oo].<br/>
+                            ○ Match a character in the set [Rr].<br/>
+                            ○ Match a character in the set [\-\s].<br/>
+                            ○ Match a character in the set [Aa].<br/>
+                            ○ Match a character in the set [Rr].<br/>
+                            ○ Match a character in the set [Cc].<br/>
+                            ○ Match a character in the set [Hh].<br/>
+                            ○ Match a character in the set [Ii].<br/>
+                            ○ Match a character in the set [Tt].<br/>
+                            ○ Match a character in the set [Ee].<br/>
+                            ○ Match a character in the set [Cc].<br/>
+                            ○ Match a character in the set [Tt].<br/>
+                            ○ Match a whitespace character atomically at least once.<br/>
+                            ○ Match a character in the set [Rr].<br/>
+                            ○ Match a character in the set [Ee].<br/>
+                            ○ Match a character in the set [Vv].<br/>
+                            ○ Match a character in the set [Ii].<br/>
+                            ○ Match a character in the set [Ee].<br/>
+                            ○ Match a character in the set [Ww].<br/>
+                    ○ Optional (greedy).<br/>
+                        ○ Match a whitespace character atomically at least once.<br/>
+                        ○ Match with 2 alternative expressions.<br/>
+                            ○ Match a sequence of expressions.<br/>
+                                ○ Match a character in the set [Oo].<br/>
+                                ○ Match a character in the set [FNfn].<br/>
+                            ○ Match a sequence of expressions.<br/>
+                                ○ Match a character in the set [Ff].<br/>
+                                ○ Match a character in the set [Oo].<br/>
+                                ○ Match a character in the set [Rr].<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match with 2 alternative expressions.<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Rr].<br/>
+                            ○ Match a character in the set [Ee].<br/>
+                            ○ Match with 2 alternative expressions.<br/>
+                                ○ Match a sequence of expressions.<br/>
+                                    ○ Match a character in the set [Vv].<br/>
+                                    ○ Match a character in the set [Ii].<br/>
+                                    ○ Match a character in the set [Ee].<br/>
+                                    ○ Match a character in the set [Ww].<br/>
+                                ○ Match a sequence of expressions.<br/>
+                                    ○ Match '-' atomically, optionally.<br/>
+                                    ○ Match a character in the set [Cc].<br/>
+                                    ○ Match a character in the set [Hh].<br/>
+                                    ○ Match a character in the set [Ee].<br/>
+                                    ○ Match a character in the set [Cc].<br/>
+                                    ○ Match a character in the set [Kk\u212A].<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Cc].<br/>
+                            ○ Match a character in the set [Rr].<br/>
+                            ○ Match a character in the set [Oo].<br/>
+                            ○ Match a character in the set [Ss] exactly 2 times.<br/>
+                            ○ Match '-' atomically, optionally.<br/>
+                            ○ Match a character in the set [Cc].<br/>
+                            ○ Match a character in the set [Hh].<br/>
+                            ○ Match a character in the set [Ee].<br/>
+                            ○ Match a character in the set [Cc].<br/>
+                            ○ Match a character in the set [Kk\u212A].<br/>
+                    ○ Optional (greedy).<br/>
+                        ○ Match a whitespace character atomically at least once.<br/>
+                        ○ Match a character in the set [Oo].<br/>
+                        ○ Match a character in the set [FNfn].<br/>
+            ○ Optional (greedy).<br/>
+                ○ "focus" capture group.<br/>
+                    ○ Match a whitespace character atomically at least once.<br/>
+                    ○ Match with 4 alternative expressions.<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Tt].<br/>
+                            ○ Match a character in the set [Hh].<br/>
+                            ○ Match with 2 alternative expressions.<br/>
+                                ○ Match a sequence of expressions.<br/>
+                                    ○ Match a character in the set [Ii].<br/>
+                                    ○ Match a character in the set [Ss].<br/>
+                                ○ Match a character in the set [Ee].<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Mm].<br/>
+                            ○ Match a character in the set [Yy].<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Ii].<br/>
+                            ○ Match a character in the set [Tt].<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Tt].<br/>
+                            ○ Match a character in the set [Hh].<br/>
+                            ○ Match a character in the set [Aa].<br/>
+                            ○ Match a character in the set [Tt].<br/>
+                    ○ Match if at a word boundary.<br/>
+                    ○ Loop greedily at most 50 times.<br/>
+                        ○ Zero-width negative lookahead.<br/>
+                            ○ Match if at a word boundary.<br/>
+                            ○ Match with 2 alternative expressions, atomically.<br/>
+                                ○ Match a sequence of expressions.<br/>
+                                    ○ Match a character in the set [Aa].<br/>
+                                    ○ Match a character in the set [Nn].<br/>
+                                    ○ Match a character in the set [Dd].<br/>
+                                    ○ Match if at a word boundary.<br/>
+                                ○ Match a sequence of expressions.<br/>
+                                    ○ Match a character in the set [Tt].<br/>
+                                    ○ Match a character in the set [Hh].<br/>
+                                    ○ Match a character in the set [Ee].<br/>
+                                    ○ Match a character in the set [Nn].<br/>
+                                    ○ Match if at a word boundary.<br/>
+                        ○ Match any character other than '\n'.<br/>
+            ○ Match a character in the set [!.?] atomically any number of times.<br/>
+            ○ Match if at the end of the string or if before an ending newline.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AcadCopilot.Core.Panel.ReviewRequests.FixPattern">
+            <remarks>
+            Pattern:<br/>
+            <code>^(?:(?:please|pls|ok|okay|yes|now)[,\\s]+)*fix\\s+(?:these|them|those|it|all|the\\s+(?:review\\s+)?(?:findings|issues|problems))(?:\\s+(?:findings|issues|problems))?[.!]*$</code><br/>
+            Options:<br/>
+            <code>RegexOptions.IgnoreCase | RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at the beginning of the string.<br/>
+            ○ Loop greedily any number of times.<br/>
+                ○ Match with 4 alternative expressions.<br/>
+                    ○ Match a sequence of expressions.<br/>
+                        ○ Match a character in the set [Pp].<br/>
+                        ○ Match a character in the set [Ll].<br/>
+                        ○ Match with 2 alternative expressions.<br/>
+                            ○ Match a sequence of expressions.<br/>
+                                ○ Match a character in the set [Ee].<br/>
+                                ○ Match a character in the set [Aa].<br/>
+                                ○ Match a character in the set [Ss].<br/>
+                                ○ Match a character in the set [Ee].<br/>
+                            ○ Match a character in the set [Ss].<br/>
+                    ○ Match a sequence of expressions.<br/>
+                        ○ Match a character in the set [Oo].<br/>
+                        ○ Match with 2 alternative expressions.<br/>
+                            ○ Match a character in the set [Kk\u212A].<br/>
+                            ○ Match a sequence of expressions.<br/>
+                                ○ Match a character in the set [Kk\u212A].<br/>
+                                ○ Match a character in the set [Aa].<br/>
+                                ○ Match a character in the set [Yy].<br/>
+                    ○ Match a sequence of expressions.<br/>
+                        ○ Match a character in the set [Yy].<br/>
+                        ○ Match a character in the set [Ee].<br/>
+                        ○ Match a character in the set [Ss].<br/>
+                    ○ Match a sequence of expressions.<br/>
+                        ○ Match a character in the set [Nn].<br/>
+                        ○ Match a character in the set [Oo].<br/>
+                        ○ Match a character in the set [Ww].<br/>
+                ○ Match a character in the set [,\s] atomically at least once.<br/>
+            ○ Match a character in the set [Ff].<br/>
+            ○ Match a character in the set [Ii].<br/>
+            ○ Match a character in the set [Xx].<br/>
+            ○ Match a whitespace character atomically at least once.<br/>
+            ○ Match with 4 alternative expressions.<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match a character in the set [Tt].<br/>
+                    ○ Match a character in the set [Hh].<br/>
+                    ○ Match with 2 alternative expressions.<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Ee].<br/>
+                            ○ Match with 2 alternative expressions.<br/>
+                                ○ Match a sequence of expressions.<br/>
+                                    ○ Match a character in the set [Ss].<br/>
+                                    ○ Match a character in the set [Ee].<br/>
+                                ○ Match a character in the set [Mm].<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Oo].<br/>
+                            ○ Match a character in the set [Ss].<br/>
+                            ○ Match a character in the set [Ee].<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match a character in the set [Ii].<br/>
+                    ○ Match a character in the set [Tt].<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match a character in the set [Aa].<br/>
+                    ○ Match a character in the set [Ll] exactly 2 times.<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match a character in the set [Tt].<br/>
+                    ○ Match a character in the set [Hh].<br/>
+                    ○ Match a character in the set [Ee].<br/>
+                    ○ Match a whitespace character greedily at least once.<br/>
+                    ○ Optional (greedy).<br/>
+                        ○ Match a character in the set [Rr].<br/>
+                        ○ Match a character in the set [Ee].<br/>
+                        ○ Match a character in the set [Vv].<br/>
+                        ○ Match a character in the set [Ii].<br/>
+                        ○ Match a character in the set [Ee].<br/>
+                        ○ Match a character in the set [Ww].<br/>
+                        ○ Match a whitespace character atomically at least once.<br/>
+                    ○ Match with 3 alternative expressions.<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Ff].<br/>
+                            ○ Match a character in the set [Ii].<br/>
+                            ○ Match a character in the set [Nn].<br/>
+                            ○ Match a character in the set [Dd].<br/>
+                            ○ Match a character in the set [Ii].<br/>
+                            ○ Match a character in the set [Nn].<br/>
+                            ○ Match a character in the set [Gg].<br/>
+                            ○ Match a character in the set [Ss].<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Ii].<br/>
+                            ○ Match a character in the set [Ss] exactly 2 times.<br/>
+                            ○ Match a character in the set [Uu].<br/>
+                            ○ Match a character in the set [Ee].<br/>
+                            ○ Match a character in the set [Ss].<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a character in the set [Pp].<br/>
+                            ○ Match a character in the set [Rr].<br/>
+                            ○ Match a character in the set [Oo].<br/>
+                            ○ Match a character in the set [Bb].<br/>
+                            ○ Match a character in the set [Ll].<br/>
+                            ○ Match a character in the set [Ee].<br/>
+                            ○ Match a character in the set [Mm].<br/>
+                            ○ Match a character in the set [Ss].<br/>
+            ○ Optional (greedy).<br/>
+                ○ Match a whitespace character atomically at least once.<br/>
+                ○ Match with 3 alternative expressions.<br/>
+                    ○ Match a sequence of expressions.<br/>
+                        ○ Match a character in the set [Ff].<br/>
+                        ○ Match a character in the set [Ii].<br/>
+                        ○ Match a character in the set [Nn].<br/>
+                        ○ Match a character in the set [Dd].<br/>
+                        ○ Match a character in the set [Ii].<br/>
+                        ○ Match a character in the set [Nn].<br/>
+                        ○ Match a character in the set [Gg].<br/>
+                        ○ Match a character in the set [Ss].<br/>
+                    ○ Match a sequence of expressions.<br/>
+                        ○ Match a character in the set [Ii].<br/>
+                        ○ Match a character in the set [Ss] exactly 2 times.<br/>
+                        ○ Match a character in the set [Uu].<br/>
+                        ○ Match a character in the set [Ee].<br/>
+                        ○ Match a character in the set [Ss].<br/>
+                    ○ Match a sequence of expressions.<br/>
+                        ○ Match a character in the set [Pp].<br/>
+                        ○ Match a character in the set [Rr].<br/>
+                        ○ Match a character in the set [Oo].<br/>
+                        ○ Match a character in the set [Bb].<br/>
+                        ○ Match a character in the set [Ll].<br/>
+                        ○ Match a character in the set [Ee].<br/>
+                        ○ Match a character in the set [Mm].<br/>
+                        ○ Match a character in the set [Ss].<br/>
+            ○ Match a character in the set [!.] atomically any number of times.<br/>
+            ○ Match if at the end of the string or if before an ending newline.<br/>
+            </code>
+            </remarks>
+        </member>
         <member name="T:AcadCopilot.Core.Panel.CopilotBackend">
             <summary>
             The panel backend: owns the runners, settings, sign-in, the AutoCAD host info, the chat sessions (one per tab,
@@ -6525,7 +6994,7 @@
         <member name="T:AcadCopilot.Core.Panel.CopilotSession">
             <summary>
             One chat tab (<see cref="T:AcadCopilot.Core.Panel.ICopilotSession"/>): owns its per-provider CLI session ids, provider and model choice, the
-            attached tab UI, the "always approve" memory, the running turn and a <see cref="T:AcadCopilot.Core.Panel.JobJournal"/> of the conversation.
+            attached tab UI, the "always approve" memory, the running turn and a <see cref="T:AcadCopilot.Core.Panel.ConversationJournal"/> of the conversation.
             Created by <see cref="M:AcadCopilot.Core.Panel.CopilotBackend.CreateSession"/>; the backend holds what is shared (runners, settings, sign-in,
             the AutoCAD turn queue, the running-turn limit, the feature switches).
             <para>
@@ -6904,475 +7373,6 @@
         </member>
         <member name="M:AcadCopilot.Core.Panel.ICopilotHub.CloseSession(AcadCopilot.Core.Panel.ICopilotSession)">
             <summary>Removes a session (stop its turn first); calls for it fail from then on.</summary>
-        </member>
-        <member name="T:AcadCopilot.Core.Panel.JournalCall">
-            <summary>A tool call of the current job as the chat saw it.</summary>
-            <param name="CallId">CLI call id.</param>
-            <param name="Name">Tool name ("run_commands").</param>
-            <param name="Arguments">Short argument summary ("title: Outer walls, steps: 5 items").</param>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.JournalCall.#ctor(System.String,System.String,System.String)">
-            <summary>A tool call of the current job as the chat saw it.</summary>
-            <param name="CallId">CLI call id.</param>
-            <param name="Name">Tool name ("run_commands").</param>
-            <param name="Arguments">Short argument summary ("title: Outer walls, steps: 5 items").</param>
-        </member>
-        <member name="P:AcadCopilot.Core.Panel.JournalCall.CallId">
-            <summary>CLI call id.</summary>
-        </member>
-        <member name="P:AcadCopilot.Core.Panel.JournalCall.Name">
-            <summary>Tool name ("run_commands").</summary>
-        </member>
-        <member name="P:AcadCopilot.Core.Panel.JournalCall.Arguments">
-            <summary>Short argument summary ("title: Outer walls, steps: 5 items").</summary>
-        </member>
-        <member name="P:AcadCopilot.Core.Panel.JournalCall.Success">
-            <summary>Null while running, then the outcome.</summary>
-        </member>
-        <member name="P:AcadCopilot.Core.Panel.JournalCall.Result">
-            <summary>Result summary ("Typed 5 commands, created 12 objects").</summary>
-        </member>
-        <member name="T:AcadCopilot.Core.Panel.JobJournal">
-            <summary>
-            What a chat session remembers about its conversation and the job in progress, so another provider can take the job
-            over (AI switching), a manual provider change keeps the context, and a reviewer knows what was asked: the recent user
-            and assistant messages, the latest Task Progress list, the tool calls of the current job and the last drawing facts.
-            Thread-safe; everything is size-capped.
-            </summary>
-        </member>
-        <member name="F:AcadCopilot.Core.Panel.JobJournal.MaxHistory">
-            <summary>Most conversation entries kept.</summary>
-        </member>
-        <member name="F:AcadCopilot.Core.Panel.JobJournal.MaxEntryLength">
-            <summary>Most characters kept per conversation entry.</summary>
-        </member>
-        <member name="F:AcadCopilot.Core.Panel.JobJournal.MaxCalls">
-            <summary>Most tool calls kept for the current job.</summary>
-        </member>
-        <member name="P:AcadCopilot.Core.Panel.JobJournal.Request">
-            <summary>The user's message that started the current job.</summary>
-        </member>
-        <member name="P:AcadCopilot.Core.Panel.JobJournal.Plan">
-            <summary>The latest Task Progress list (any job), or null.</summary>
-        </member>
-        <member name="P:AcadCopilot.Core.Panel.JobJournal.HasEarlierConversation">
-            <summary>True when the conversation had messages before the current job.</summary>
-        </member>
-        <member name="P:AcadCopilot.Core.Panel.JobJournal.Calls">
-            <summary>The tool calls of the current job (oldest first).</summary>
-        </member>
-        <member name="P:AcadCopilot.Core.Panel.JobJournal.DrawingStages">
-            <summary>Successful run_commands calls of the current job.</summary>
-        </member>
-        <member name="P:AcadCopilot.Core.Panel.JobJournal.FinishedDrawing">
-            <summary>
-            True when the current job drew something and its Task Progress list (updated during the job, at least 3 tasks) has
-            nothing pending or in progress: a finished drawing worth an automatic review.
-            </summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.JobJournal.BeginJob(System.String)">
-            <summary>Starts a job: records the user's message and forgets the previous job's tool calls.</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.JobJournal.AddAssistant(System.String)">
-            <summary>Records an assistant message (text shown in the chat).</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.JobJournal.SetPlan(AcadCopilot.Core.Interaction.PlanUpdate)">
-            <summary>Records the Task Progress list (update_plan).</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.JobJournal.Observe(AcadCopilot.Core.Agents.AgentEvent)">
-            <summary>Records what an event of the running turn says about the job (messages, tool calls and results).</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.JobJournal.Clear">
-            <summary>Forgets everything (New chat).</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.JobJournal.DescribeContext(System.Boolean,System.Boolean)">
-            <summary>
-            The compact context block for another AI: earlier conversation (approved plan tables are in there), the task list,
-            what the current job did so far and the last drawing facts. At most about 9,000 characters.
-            </summary>
-            <param name="includeCurrentJob">
-            Include the current job's tool calls and its messages after the request (a switch in the middle of a job; the
-            request itself is given separately).
-            </param>
-            <param name="includeCurrentRequest">
-            Without <paramref name="includeCurrentJob"/>: also list the current job's messages (a review), or only what came
-            before it (false: a new provider gets the user's new message separately).
-            </param>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.JobJournal.Whitespace">
-            <remarks>
-            Pattern:<br/>
-            <code>[ \\t]+</code><br/>
-            Options:<br/>
-            <code>RegexOptions.CultureInvariant</code><br/>
-            Explanation:<br/>
-            <code>
-            ○ Match a character in the set [\t ] atomically at least once.<br/>
-            </code>
-            </remarks>
-        </member>
-        <member name="T:AcadCopilot.Core.Panel.JobHandover">
-            <summary>The prompts that hand a job to another provider (or back to the same one after a failure).</summary>
-        </member>
-        <member name="F:AcadCopilot.Core.Panel.JobHandover.Marker">
-            <summary>Marker the instructions explain ("A message starting with HANDOVER ...").</summary>
-        </member>
-        <member name="F:AcadCopilot.Core.Panel.JobHandover.MaxLength">
-            <summary>Most characters of a handover prompt.</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.JobHandover.SwitchMessage(System.String,System.String,AcadCopilot.Core.Agents.SwitchReason)">
-            <summary>The user-facing line for a switch ("Claude reached its limit - continuing with ChatGPT.").</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.JobHandover.ForSwitch(AcadCopilot.Core.Panel.JobJournal,System.String,System.String,AcadCopilot.Core.Agents.SwitchReason,System.String)">
-            <summary>The prompt for <paramref name="to"/> continuing the job <paramref name="from"/> could not finish.</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.JobHandover.ForRetry(AcadCopilot.Core.Panel.JobJournal,System.String)">
-            <summary>The prompt that retries the job with the same provider after a failure.</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.JobHandover.ForProviderChange(AcadCopilot.Core.Panel.JobJournal,System.String,System.String,System.String)">
-            <summary>
-            The prompt when the user picked another provider for an ongoing conversation: the context so far, then the user's
-            new message.
-            </summary>
-        </member>
-        <member name="T:AcadCopilot.Core.Panel.ReviewRequests">
-            <summary>Recognises chat messages that ask for a second-opinion review or for fixing its findings.</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.ReviewRequests.IsReviewRequest(System.String)">
-            <summary>True for short messages such as "review this plan", "please review the drawing", "second opinion".</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.ReviewRequests.IsFixRequest(System.String)">
-            <summary>True for short messages such as "fix these", "fix them", "fix the review findings".</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.ReviewRequests.FocusOf(System.String)">
-            <summary>What to focus on ("the first floor plan"), from a review request, or null.</summary>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.ReviewRequests.ReviewPattern">
-            <remarks>
-            Pattern:<br/>
-            <code>^(?:(?:please|pls|can you|could you|now)[,\\s]+)*(?:(?:do\\s+a\\s+|give\\s+(?:me\\s+)?a\\s+)?(?:second[-\\s]opinion|senior[-\\s]architect\\s+review)(?:\\s+(?:on|of|for))?|(?:review|re-?check|cross-?check)(?:\\s+(?:of|on))?)(?&lt;focus&gt;\\s+(?:this|the|my|it|that)\\b(?:(?!\\band\\b|\\bthen\\b)[^\\n]){0,50})?[.!?]*$</code><br/>
-            Options:<br/>
-            <code>RegexOptions.IgnoreCase | RegexOptions.CultureInvariant</code><br/>
-            Explanation:<br/>
-            <code>
-            ○ Match if at the beginning of the string.<br/>
-            ○ Loop greedily any number of times.<br/>
-                ○ Match with 3 alternative expressions.<br/>
-                    ○ Match a sequence of expressions.<br/>
-                        ○ Match a character in the set [Pp].<br/>
-                        ○ Match a character in the set [Ll].<br/>
-                        ○ Match with 2 alternative expressions.<br/>
-                            ○ Match a sequence of expressions.<br/>
-                                ○ Match a character in the set [Ee].<br/>
-                                ○ Match a character in the set [Aa].<br/>
-                                ○ Match a character in the set [Ss].<br/>
-                                ○ Match a character in the set [Ee].<br/>
-                            ○ Match a character in the set [Ss].<br/>
-                    ○ Match a sequence of expressions.<br/>
-                        ○ Match a character in the set [Cc].<br/>
-                        ○ Match with 2 alternative expressions.<br/>
-                            ○ Match a sequence of expressions.<br/>
-                                ○ Match a character in the set [Aa].<br/>
-                                ○ Match a character in the set [Nn].<br/>
-                                ○ Match ' '.<br/>
-                                ○ Match a character in the set [Yy].<br/>
-                                ○ Match a character in the set [Oo].<br/>
-                                ○ Match a character in the set [Uu].<br/>
-                            ○ Match a sequence of expressions.<br/>
-                                ○ Match a character in the set [Oo].<br/>
-                                ○ Match a character in the set [Uu].<br/>
-                                ○ Match a character in the set [Ll].<br/>
-                                ○ Match a character in the set [Dd].<br/>
-                                ○ Match ' '.<br/>
-                                ○ Match a character in the set [Yy].<br/>
-                                ○ Match a character in the set [Oo].<br/>
-                                ○ Match a character in the set [Uu].<br/>
-                    ○ Match a sequence of expressions.<br/>
-                        ○ Match a character in the set [Nn].<br/>
-                        ○ Match a character in the set [Oo].<br/>
-                        ○ Match a character in the set [Ww].<br/>
-                ○ Match a character in the set [,\s] greedily at least once.<br/>
-            ○ Match with 2 alternative expressions.<br/>
-                ○ Match a sequence of expressions.<br/>
-                    ○ Optional (greedy).<br/>
-                        ○ Match with 2 alternative expressions.<br/>
-                            ○ Match a sequence of expressions.<br/>
-                                ○ Match a character in the set [Dd].<br/>
-                                ○ Match a character in the set [Oo].<br/>
-                                ○ Match a whitespace character atomically at least once.<br/>
-                                ○ Match a character in the set [Aa].<br/>
-                                ○ Match a whitespace character atomically at least once.<br/>
-                            ○ Match a sequence of expressions.<br/>
-                                ○ Match a character in the set [Gg].<br/>
-                                ○ Match a character in the set [Ii].<br/>
-                                ○ Match a character in the set [Vv].<br/>
-                                ○ Match a character in the set [Ee].<br/>
-                                ○ Match a whitespace character greedily at least once.<br/>
-                                ○ Optional (greedy).<br/>
-                                    ○ Match a character in the set [Mm].<br/>
-                                    ○ Match a character in the set [Ee].<br/>
-                                    ○ Match a whitespace character atomically at least once.<br/>
-                                ○ Match a character in the set [Aa].<br/>
-                                ○ Match a whitespace character atomically at least once.<br/>
-                    ○ Match a character in the set [Ss].<br/>
-                    ○ Match a character in the set [Ee].<br/>
-                    ○ Match with 2 alternative expressions.<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Cc].<br/>
-                            ○ Match a character in the set [Oo].<br/>
-                            ○ Match a character in the set [Nn].<br/>
-                            ○ Match a character in the set [Dd].<br/>
-                            ○ Match a character in the set [\-\s].<br/>
-                            ○ Match a character in the set [Oo].<br/>
-                            ○ Match a character in the set [Pp].<br/>
-                            ○ Match a character in the set [Ii].<br/>
-                            ○ Match a character in the set [Nn].<br/>
-                            ○ Match a character in the set [Ii].<br/>
-                            ○ Match a character in the set [Oo].<br/>
-                            ○ Match a character in the set [Nn].<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Nn].<br/>
-                            ○ Match a character in the set [Ii].<br/>
-                            ○ Match a character in the set [Oo].<br/>
-                            ○ Match a character in the set [Rr].<br/>
-                            ○ Match a character in the set [\-\s].<br/>
-                            ○ Match a character in the set [Aa].<br/>
-                            ○ Match a character in the set [Rr].<br/>
-                            ○ Match a character in the set [Cc].<br/>
-                            ○ Match a character in the set [Hh].<br/>
-                            ○ Match a character in the set [Ii].<br/>
-                            ○ Match a character in the set [Tt].<br/>
-                            ○ Match a character in the set [Ee].<br/>
-                            ○ Match a character in the set [Cc].<br/>
-                            ○ Match a character in the set [Tt].<br/>
-                            ○ Match a whitespace character atomically at least once.<br/>
-                            ○ Match a character in the set [Rr].<br/>
-                            ○ Match a character in the set [Ee].<br/>
-                            ○ Match a character in the set [Vv].<br/>
-                            ○ Match a character in the set [Ii].<br/>
-                            ○ Match a character in the set [Ee].<br/>
-                            ○ Match a character in the set [Ww].<br/>
-                    ○ Optional (greedy).<br/>
-                        ○ Match a whitespace character atomically at least once.<br/>
-                        ○ Match with 2 alternative expressions.<br/>
-                            ○ Match a sequence of expressions.<br/>
-                                ○ Match a character in the set [Oo].<br/>
-                                ○ Match a character in the set [FNfn].<br/>
-                            ○ Match a sequence of expressions.<br/>
-                                ○ Match a character in the set [Ff].<br/>
-                                ○ Match a character in the set [Oo].<br/>
-                                ○ Match a character in the set [Rr].<br/>
-                ○ Match a sequence of expressions.<br/>
-                    ○ Match with 2 alternative expressions.<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Rr].<br/>
-                            ○ Match a character in the set [Ee].<br/>
-                            ○ Match with 2 alternative expressions.<br/>
-                                ○ Match a sequence of expressions.<br/>
-                                    ○ Match a character in the set [Vv].<br/>
-                                    ○ Match a character in the set [Ii].<br/>
-                                    ○ Match a character in the set [Ee].<br/>
-                                    ○ Match a character in the set [Ww].<br/>
-                                ○ Match a sequence of expressions.<br/>
-                                    ○ Match '-' atomically, optionally.<br/>
-                                    ○ Match a character in the set [Cc].<br/>
-                                    ○ Match a character in the set [Hh].<br/>
-                                    ○ Match a character in the set [Ee].<br/>
-                                    ○ Match a character in the set [Cc].<br/>
-                                    ○ Match a character in the set [Kk\u212A].<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Cc].<br/>
-                            ○ Match a character in the set [Rr].<br/>
-                            ○ Match a character in the set [Oo].<br/>
-                            ○ Match a character in the set [Ss] exactly 2 times.<br/>
-                            ○ Match '-' atomically, optionally.<br/>
-                            ○ Match a character in the set [Cc].<br/>
-                            ○ Match a character in the set [Hh].<br/>
-                            ○ Match a character in the set [Ee].<br/>
-                            ○ Match a character in the set [Cc].<br/>
-                            ○ Match a character in the set [Kk\u212A].<br/>
-                    ○ Optional (greedy).<br/>
-                        ○ Match a whitespace character atomically at least once.<br/>
-                        ○ Match a character in the set [Oo].<br/>
-                        ○ Match a character in the set [FNfn].<br/>
-            ○ Optional (greedy).<br/>
-                ○ "focus" capture group.<br/>
-                    ○ Match a whitespace character atomically at least once.<br/>
-                    ○ Match with 4 alternative expressions.<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Tt].<br/>
-                            ○ Match a character in the set [Hh].<br/>
-                            ○ Match with 2 alternative expressions.<br/>
-                                ○ Match a sequence of expressions.<br/>
-                                    ○ Match a character in the set [Ii].<br/>
-                                    ○ Match a character in the set [Ss].<br/>
-                                ○ Match a character in the set [Ee].<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Mm].<br/>
-                            ○ Match a character in the set [Yy].<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Ii].<br/>
-                            ○ Match a character in the set [Tt].<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Tt].<br/>
-                            ○ Match a character in the set [Hh].<br/>
-                            ○ Match a character in the set [Aa].<br/>
-                            ○ Match a character in the set [Tt].<br/>
-                    ○ Match if at a word boundary.<br/>
-                    ○ Loop greedily at most 50 times.<br/>
-                        ○ Zero-width negative lookahead.<br/>
-                            ○ Match if at a word boundary.<br/>
-                            ○ Match with 2 alternative expressions, atomically.<br/>
-                                ○ Match a sequence of expressions.<br/>
-                                    ○ Match a character in the set [Aa].<br/>
-                                    ○ Match a character in the set [Nn].<br/>
-                                    ○ Match a character in the set [Dd].<br/>
-                                    ○ Match if at a word boundary.<br/>
-                                ○ Match a sequence of expressions.<br/>
-                                    ○ Match a character in the set [Tt].<br/>
-                                    ○ Match a character in the set [Hh].<br/>
-                                    ○ Match a character in the set [Ee].<br/>
-                                    ○ Match a character in the set [Nn].<br/>
-                                    ○ Match if at a word boundary.<br/>
-                        ○ Match any character other than '\n'.<br/>
-            ○ Match a character in the set [!.?] atomically any number of times.<br/>
-            ○ Match if at the end of the string or if before an ending newline.<br/>
-            </code>
-            </remarks>
-        </member>
-        <member name="M:AcadCopilot.Core.Panel.ReviewRequests.FixPattern">
-            <remarks>
-            Pattern:<br/>
-            <code>^(?:(?:please|pls|ok|okay|yes|now)[,\\s]+)*fix\\s+(?:these|them|those|it|all|the\\s+(?:review\\s+)?(?:findings|issues|problems))(?:\\s+(?:findings|issues|problems))?[.!]*$</code><br/>
-            Options:<br/>
-            <code>RegexOptions.IgnoreCase | RegexOptions.CultureInvariant</code><br/>
-            Explanation:<br/>
-            <code>
-            ○ Match if at the beginning of the string.<br/>
-            ○ Loop greedily any number of times.<br/>
-                ○ Match with 4 alternative expressions.<br/>
-                    ○ Match a sequence of expressions.<br/>
-                        ○ Match a character in the set [Pp].<br/>
-                        ○ Match a character in the set [Ll].<br/>
-                        ○ Match with 2 alternative expressions.<br/>
-                            ○ Match a sequence of expressions.<br/>
-                                ○ Match a character in the set [Ee].<br/>
-                                ○ Match a character in the set [Aa].<br/>
-                                ○ Match a character in the set [Ss].<br/>
-                                ○ Match a character in the set [Ee].<br/>
-                            ○ Match a character in the set [Ss].<br/>
-                    ○ Match a sequence of expressions.<br/>
-                        ○ Match a character in the set [Oo].<br/>
-                        ○ Match with 2 alternative expressions.<br/>
-                            ○ Match a character in the set [Kk\u212A].<br/>
-                            ○ Match a sequence of expressions.<br/>
-                                ○ Match a character in the set [Kk\u212A].<br/>
-                                ○ Match a character in the set [Aa].<br/>
-                                ○ Match a character in the set [Yy].<br/>
-                    ○ Match a sequence of expressions.<br/>
-                        ○ Match a character in the set [Yy].<br/>
-                        ○ Match a character in the set [Ee].<br/>
-                        ○ Match a character in the set [Ss].<br/>
-                    ○ Match a sequence of expressions.<br/>
-                        ○ Match a character in the set [Nn].<br/>
-                        ○ Match a character in the set [Oo].<br/>
-                        ○ Match a character in the set [Ww].<br/>
-                ○ Match a character in the set [,\s] atomically at least once.<br/>
-            ○ Match a character in the set [Ff].<br/>
-            ○ Match a character in the set [Ii].<br/>
-            ○ Match a character in the set [Xx].<br/>
-            ○ Match a whitespace character atomically at least once.<br/>
-            ○ Match with 4 alternative expressions.<br/>
-                ○ Match a sequence of expressions.<br/>
-                    ○ Match a character in the set [Tt].<br/>
-                    ○ Match a character in the set [Hh].<br/>
-                    ○ Match with 2 alternative expressions.<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Ee].<br/>
-                            ○ Match with 2 alternative expressions.<br/>
-                                ○ Match a sequence of expressions.<br/>
-                                    ○ Match a character in the set [Ss].<br/>
-                                    ○ Match a character in the set [Ee].<br/>
-                                ○ Match a character in the set [Mm].<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Oo].<br/>
-                            ○ Match a character in the set [Ss].<br/>
-                            ○ Match a character in the set [Ee].<br/>
-                ○ Match a sequence of expressions.<br/>
-                    ○ Match a character in the set [Ii].<br/>
-                    ○ Match a character in the set [Tt].<br/>
-                ○ Match a sequence of expressions.<br/>
-                    ○ Match a character in the set [Aa].<br/>
-                    ○ Match a character in the set [Ll] exactly 2 times.<br/>
-                ○ Match a sequence of expressions.<br/>
-                    ○ Match a character in the set [Tt].<br/>
-                    ○ Match a character in the set [Hh].<br/>
-                    ○ Match a character in the set [Ee].<br/>
-                    ○ Match a whitespace character greedily at least once.<br/>
-                    ○ Optional (greedy).<br/>
-                        ○ Match a character in the set [Rr].<br/>
-                        ○ Match a character in the set [Ee].<br/>
-                        ○ Match a character in the set [Vv].<br/>
-                        ○ Match a character in the set [Ii].<br/>
-                        ○ Match a character in the set [Ee].<br/>
-                        ○ Match a character in the set [Ww].<br/>
-                        ○ Match a whitespace character atomically at least once.<br/>
-                    ○ Match with 3 alternative expressions.<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Ff].<br/>
-                            ○ Match a character in the set [Ii].<br/>
-                            ○ Match a character in the set [Nn].<br/>
-                            ○ Match a character in the set [Dd].<br/>
-                            ○ Match a character in the set [Ii].<br/>
-                            ○ Match a character in the set [Nn].<br/>
-                            ○ Match a character in the set [Gg].<br/>
-                            ○ Match a character in the set [Ss].<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Ii].<br/>
-                            ○ Match a character in the set [Ss] exactly 2 times.<br/>
-                            ○ Match a character in the set [Uu].<br/>
-                            ○ Match a character in the set [Ee].<br/>
-                            ○ Match a character in the set [Ss].<br/>
-                        ○ Match a sequence of expressions.<br/>
-                            ○ Match a character in the set [Pp].<br/>
-                            ○ Match a character in the set [Rr].<br/>
-                            ○ Match a character in the set [Oo].<br/>
-                            ○ Match a character in the set [Bb].<br/>
-                            ○ Match a character in the set [Ll].<br/>
-                            ○ Match a character in the set [Ee].<br/>
-                            ○ Match a character in the set [Mm].<br/>
-                            ○ Match a character in the set [Ss].<br/>
-            ○ Optional (greedy).<br/>
-                ○ Match a whitespace character atomically at least once.<br/>
-                ○ Match with 3 alternative expressions.<br/>
-                    ○ Match a sequence of expressions.<br/>
-                        ○ Match a character in the set [Ff].<br/>
-                        ○ Match a character in the set [Ii].<br/>
-                        ○ Match a character in the set [Nn].<br/>
-                        ○ Match a character in the set [Dd].<br/>
-                        ○ Match a character in the set [Ii].<br/>
-                        ○ Match a character in the set [Nn].<br/>
-                        ○ Match a character in the set [Gg].<br/>
-                        ○ Match a character in the set [Ss].<br/>
-                    ○ Match a sequence of expressions.<br/>
-                        ○ Match a character in the set [Ii].<br/>
-                        ○ Match a character in the set [Ss] exactly 2 times.<br/>
-                        ○ Match a character in the set [Uu].<br/>
-                        ○ Match a character in the set [Ee].<br/>
-                        ○ Match a character in the set [Ss].<br/>
-                    ○ Match a sequence of expressions.<br/>
-                        ○ Match a character in the set [Pp].<br/>
-                        ○ Match a character in the set [Rr].<br/>
-                        ○ Match a character in the set [Oo].<br/>
-                        ○ Match a character in the set [Bb].<br/>
-                        ○ Match a character in the set [Ll].<br/>
-                        ○ Match a character in the set [Ee].<br/>
-                        ○ Match a character in the set [Mm].<br/>
-                        ○ Match a character in the set [Ss].<br/>
-            ○ Match a character in the set [!.] atomically any number of times.<br/>
-            ○ Match if at the end of the string or if before an ending newline.<br/>
-            </code>
-            </remarks>
         </member>
         <member name="T:AcadCopilot.Core.Presentation.ExportFiles">
             <summary>
