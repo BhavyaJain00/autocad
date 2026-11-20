@@ -100,6 +100,25 @@ public static class DraftingGuides
             "Then arrange_drawings (preview_only first; labels name untitled drawings), create_sheets (A3 unless asked; A-001 site, A-101 plans, A-201 elevations, " +
             "A-301 sections; project and client in the title block; show_sheet + capture_view to check), and plot_to_pdf only when the user wants the PDF " +
             "(they approve it; give them the path). Sheets carry \"NOT FOR CONSTRUCTION - CHECK BY ARCHITECT/ENGINEER\"."),
+        new(
+            "Drawing setup",
+            ["setup", "set-up", "template", "layers", "layer", "units", "linetype", "linetypes", "dimstyle"],
+            "apply_drawing_template does all of this in one undo step; type it by hand only if that fails. SETVAR LUNITS 4, INSUNITS 1, MEASUREMENT 0, LTSCALE 24. " +
+            "Layers (colour, lineweight mm): A-WALL 7 0.5, A-DOOR 4 0.25, A-GLAZ 5 0.25, A-STRS 4 0.25, A-FURN 6 0.18, A-ANNO-TEXT 7 0.25, A-ANNO-DIMS 3 0.18, " +
+            "A-SITE 2 0.35, A-GRID 1 0.18 CENTER, A-ELEV 7 0.35, A-HATCH 8 0.13, A-TTLB 7 0.35. First -LINETYPE [\"L\",\"CENTER\",\"\",\"\"], then one -LAYER step: " +
+            "\"N\", \"A-WALL,A-DOOR,...\", then \"C\",<colour>,<layers> per colour, \"L\",\"CENTER\",\"A-GRID\", \"LW\",<mm>,<layers> per weight, \"\". " +
+            "Text style: -STYLE [\"ARCH\",\"arial.ttf\",\"0\",\"\",\"\",\"\",\"\"]. Dimension style 1/4\"=1'-0\", one SETVAR each: DIMSCALE 48, DIMLUNIT 4, DIMDEC 1, " +
+            "DIMFRAC 2, DIMZIN 3, DIMTSZ 0.09375 (ticks), DIMTXT 0.09375, DIMTAD 1, DIMTIH 0, DIMTOH 0, DIMEXO 0.0625, DIMEXE 0.125, DIMDLE 0.0625, DIMGAP 0.0625, " +
+            "DIMTXSTY ARCH; then -DIMSTYLE [\"S\",\"ARCH-48\"] (ARCH-96 the same with DIMSCALE 96)."),
+        new(
+            "Room sizes (India)",
+            ["room", "rooms", "size", "sizes", "minimum", "minimums", "bylaw", "bylaws", "proportion", "accuracy", "validate", "clear"],
+            "validate_plan checks these typical minimum clear sizes (Indian residential practice, never a bylaw; the user's rules change them, e.g. " +
+            "remember_rule \"Bedrooms at least 9'x10'\"): bedroom 10'x10', master bedroom 11'x12', living 11'x12', kitchen 7'x10' (counter 2' deep), " +
+            "toilet (WC) 4'6x7', bath + WC 5'x7', dining 8'x10', pooja 4'x4', parking 9'x17' per car, passage 3'6 (3' at least), stair flight 3'3 " +
+            "(3' at least) with risers 6-7\" (6 1/2\" typical) and treads 10\" or more, doors main 3'6 / rooms 3' / toilets 2'6, windows 1/10 to 1/8 of " +
+            "the floor area, walls 9\" outer / 4 1/2\" inner, floor to floor 10' to 10'6. Habitable rooms need a window on an outside wall, toilets a " +
+            "ventilator (or a shaft), kitchens an outside window; keep living rooms and bedrooms within 2:1. Sizes are whole inches."),
     ];
 
     /// <summary>The guides whose keywords appear in <paramref name="query"/> (best first, at most <see cref="MaxPerQuery"/>).</summary>

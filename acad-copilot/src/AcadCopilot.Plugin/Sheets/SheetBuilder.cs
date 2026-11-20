@@ -216,40 +216,43 @@ internal static class SheetBuilder
     }
 
     // DWG To PDF.pc3, the paper of the request (full bleed preferred), millimetres, 1:1, plot the layout from 0,0.
+    // The settings are made on a copy and copied back to the layout (the documented PlotSettingsValidator pattern).
     private static (string Media, bool Rotated) ConfigurePlot(Layout layout, PaperSize paper, List<string> warnings)
     {
         var validator = PlotSettingsValidator.Current;
-        validator.SetPlotConfigurationName(layout, PaperSizes.PdfDevice, null);
-        validator.RefreshLists(layout);
-        var names = validator.GetCanonicalMediaNameList(layout).Cast<string>().ToList();
+        using var settings = new PlotSettings(layout.ModelType);
+        settings.CopyFrom(layout);
+        validator.SetPlotConfigurationName(settings, PaperSizes.PdfDevice, null);
+        validator.RefreshLists(settings);
+        var names = validator.GetCanonicalMediaNameList(settings).Cast<string>().ToList();
         var pick = PaperSizes.PickMedia(names, paper);
         bool rotated;
         if (pick is { } p)
         {
-            validator.SetCanonicalMediaName(layout, p.Name);
+            validator.SetCanonicalMediaName(settings, p.Name);
             rotated = p.Rotated;
         }
         else
         {
-            validator.SetClosestMediaName(layout, paper.WidthMm, paper.HeightMm, PlotPaperUnit.Millimeters, true);
-            rotated = layout.PlotPaperSize.X < layout.PlotPaperSize.Y;
-            warnings.Add($"No exact {paper.Name} paper on {PaperSizes.PdfDevice}; using {layout.CanonicalMediaName}.");
+            validator.SetClosestMediaName(settings, paper.WidthMm, paper.HeightMm, PlotPaperUnit.Millimeters, true);
+            rotated = settings.PlotPaperSize.X < settings.PlotPaperSize.Y;
+            warnings.Add($"No exact {paper.Name} paper on {PaperSizes.PdfDevice}; using {settings.CanonicalMediaName}.");
         }
 
-        validator.SetPlotPaperUnits(layout, PlotPaperUnit.Millimeters);
-        validator.SetPlotRotation(layout, rotated ? PlotRotation.Degrees090 : PlotRotation.Degrees000);
-        validator.SetPlotType(layout, PlotType.Layout);
-        validator.SetUseStandardScale(layout, true);
-        validator.SetStdScaleType(layout, StdScaleType.StdScale1To1);
-        validator.SetPlotCentered(layout, false);
-        validator.SetPlotOrigin(layout, new Point2d(0, 0));
+        validator.SetPlotPaperUnits(settings, PlotPaperUnit.Millimeters);
+        validator.SetPlotRotation(settings, rotated ? PlotRotation.Degrees090 : PlotRotation.Degrees000);
+        validator.SetPlotType(settings, PlotType.Layout);
+        validator.SetUseStandardScale(settings, true);
+        validator.SetStdScaleType(settings, StdScaleType.StdScale1To1);
+        validator.SetPlotCentered(settings, false);
+        validator.SetPlotOrigin(settings, new Point2d(0, 0));
         try
         {
             var styles = validator.GetPlotStyleSheetList().Cast<string>().ToList();
             var wanted = layout.Database.PlotStyleMode ? "monochrome.ctb" : "monochrome.stb";
             if (styles.Contains(wanted, StringComparer.OrdinalIgnoreCase))
             {
-                validator.SetCurrentStyleSheet(layout, wanted);
+                validator.SetCurrentStyleSheet(settings, wanted);
             }
         }
         catch (Autodesk.AutoCAD.Runtime.Exception)
@@ -257,6 +260,7 @@ internal static class SheetBuilder
             // Keep the default plot style table.
         }
 
+        layout.CopyFrom(settings);
         return (layout.CanonicalMediaName, rotated);
     }
 

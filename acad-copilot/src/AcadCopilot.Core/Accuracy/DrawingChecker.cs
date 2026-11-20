@@ -119,7 +119,7 @@ public static class DrawingChecker
             Walls = [.. snapshot.Segments.Where(s => Same(s.Layer, layers.Wall) && s.Length > 1e-6)];
             Glazing = [.. snapshot.Segments.Where(s => Same(s.Layer, layers.Glazing) && s.Length > 1e-6)];
             DoorArcs = [.. snapshot.Arcs.Where(a => Same(a.Layer, layers.Door))];
-            PlanFaces = [.. analysis.Floor.Walls.SelectMany(w => w.Body().Edges()).Select(e => (D(e.A), D(e.B)))];
+            PlanFaces = [.. PlannedFaces(analysis).Select(e => (D(e.A), D(e.B)))];
         }
 
         public HousePlan Plan { get; }
@@ -140,7 +140,7 @@ public static class DrawingChecker
 
         public List<DrawnArc> DoorArcs { get; }
 
-        /// <summary>Edges of the planned wall bodies in drawing coordinates.</summary>
+        /// <summary>Edges of the planned wall bodies, with the openings cut out, in drawing coordinates.</summary>
         public List<(Pt A, Pt B)> PlanFaces { get; }
 
         /// <summary>Plan point -&gt; drawing point.</summary>
@@ -151,6 +151,47 @@ public static class DrawingChecker
     }
 
     private static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The faces of the planned walls (plan coordinates): both long faces without the openings, the ends and the jambs.</summary>
+    private static List<(Pt A, Pt B)> PlannedFaces(FloorAnalysis analysis)
+    {
+        var faces = new List<(Pt A, Pt B)>();
+        foreach (var wall in analysis.Floor.Walls)
+        {
+            var half = wall.Thickness / 2;
+            var from = -wall.ExtendStart;
+            var to = wall.Length + wall.ExtendEnd;
+            var cuts = analysis.Openings.Where(i => ReferenceEquals(i.Opening.Wall, wall)).Select(i => (i.Opening.Offset, End: i.Opening.Offset + i.Opening.Width)).OrderBy(c => c.Offset).ToList();
+            foreach (var side in new[] { -half, half })
+            {
+                var t = from;
+                foreach (var (start, end) in cuts)
+                {
+                    if (start > t)
+                    {
+                        faces.Add((wall.At(t, side), wall.At(start, side)));
+                    }
+
+                    t = Math.Max(t, end);
+                }
+
+                if (to > t)
+                {
+                    faces.Add((wall.At(t, side), wall.At(to, side)));
+                }
+            }
+
+            faces.Add((wall.At(from, -half), wall.At(from, half)));
+            faces.Add((wall.At(to, -half), wall.At(to, half)));
+            foreach (var (start, end) in cuts)
+            {
+                faces.Add((wall.At(start, -half), wall.At(start, half)));
+                faces.Add((wall.At(end, -half), wall.At(end, half)));
+            }
+        }
+
+        return faces;
+    }
 
     // -----------------------------------------------------------------------------------------------------------
     // Walls
@@ -415,36 +456,53 @@ public static class DrawingChecker
         foreach (var room in c.Floor.Rooms.Where(r => r.Shape.IsAxisRectangle && !RoomTypes.IsOutdoor(r.Type)))
         {
             var box = room.Shape.Bounds;
-            var widthDrawn = new List<double>();
-            var widthPlan = new List<double>();
-            var depthDrawn = new List<double>();
-            var depthPlan = new List<double>();
-            foreach (var f in new[] { 0.15, 0.3, 0.5, 0.7, 0.85 })
+            var widths = new List<double>();
+            var depths = new List<double>();
+            var notDrawn = 0;
+            foreach (var f in new[] { 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 })
             {
                 var row = c.D(new Pt(box.Center.X, box.MinY + (box.Height * f)));
                 var col = c.D(new Pt(box.MinX + (box.Width * f), box.Center.Y));
-                if (Span(row, new Pt(1, 0), c.Walls) is { } wd && Span(row, new Pt(1, 0), planSegments) is { } wp)
+                if (Span(row, new Pt(1, 0), planSegments) is { } wp)
                 {
-                    widthDrawn.Add(wd);
-                    widthPlan.Add(wp);
+                    if (Span(row, new Pt(1, 0), c.Walls) is { } wd)
+                    {
+                        widths.Add(wd - wp);
+                    }
+                    else
+                    {
+                        notDrawn++;
+                    }
                 }
 
-                if (Span(col, new Pt(0, 1), c.Walls) is { } dd && Span(col, new Pt(0, 1), planSegments) is { } dp)
+                if (Span(col, new Pt(0, 1), planSegments) is { } dp)
                 {
-                    depthDrawn.Add(dd);
-                    depthPlan.Add(dp);
+                    if (Span(col, new Pt(0, 1), c.Walls) is { } dd)
+                    {
+                        depths.Add(dd - dp);
+                    }
+                    else
+                    {
+                        notDrawn++;
+                    }
                 }
             }
 
-            if (widthDrawn.Count == 0 || depthDrawn.Count == 0)
+            if (notDrawn > 0 && (widths.Count == 0 || depths.Count == 0))
             {
                 rooms.Add(new JsonObject { ["room"] = room.Name, ["planned"] = Inch.Size(room.Width, room.Depth), ["measured"] = "not enclosed by wall lines" });
                 findings.Error("room_open", name, $"{room.Name} is not enclosed by wall lines (no wall found on one side of its centre {c.D(box.Center).Text()}).");
                 continue;
             }
 
-            var dw = Median(widthDrawn) - Median(widthPlan);
-            var dd2 = Median(depthDrawn) - Median(depthPlan);
+            if (widths.Count == 0 && depths.Count == 0)
+            {
+                rooms.Add(new JsonObject { ["room"] = room.Name, ["planned"] = Inch.Size(room.Width, room.Depth), ["measured"] = "not measured (open sides)" });
+                continue;
+            }
+
+            var dw = widths.Count > 0 ? Median(widths) : 0;
+            var dd2 = depths.Count > 0 ? Median(depths) : 0;
             var measuredWidth = Inch.Snap(room.Width + dw);
             var measuredDepth = Inch.Snap(room.Depth + dd2);
             rooms.Add(new JsonObject

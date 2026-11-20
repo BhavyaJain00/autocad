@@ -5,9 +5,9 @@ namespace AcadCopilot.Core.Tests.Accuracy;
 
 public sealed class DrawingTemplateTests
 {
-    private static string BundleTemplate()
+    private static string BundleTemplate([System.Runtime.CompilerServices.CallerFilePath] string source = "")
     {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        var dir = new DirectoryInfo(Path.GetDirectoryName(source)!);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "AcadCopilot.sln")))
         {
             dir = dir.Parent;

@@ -241,9 +241,11 @@ public sealed class DrawingTemplate
         ArgumentNullException.ThrowIfNull(json);
         try
         {
+            static double D(JsonNode? n) => n is JsonValue v && v.GetValueKind() == JsonValueKind.Number
+                ? double.Parse(v.ToJsonString(), NumberStyles.Float, CultureInfo.InvariantCulture)
+                : throw new FormatException($"'{n?.ToJsonString()}' is not a number.");
             static Dictionary<string, double> Vars(JsonNode? node) =>
-                node is JsonObject o ? o.ToDictionary(p => p.Key, p => p.Value!.GetValue<double>(), StringComparer.OrdinalIgnoreCase) : new(StringComparer.OrdinalIgnoreCase);
-            static double D(JsonNode? n) => n!.GetValue<double>();
+                node is JsonObject o ? o.ToDictionary(p => p.Key, p => D(p.Value), StringComparer.OrdinalIgnoreCase) : new(StringComparer.OrdinalIgnoreCase);
             static string S(JsonNode? n) => n!.GetValue<string>();
 
             TemplateTitleBlock? titleBlock = null;
@@ -263,7 +265,7 @@ public sealed class DrawingTemplate
                 Name = json["name"]?.GetValue<string>() ?? "Template",
                 Units = Vars(json["units"]),
                 Linetypes = [.. (json["linetypes"]?.AsArray() ?? []).Select(S)],
-                Layers = [.. (json["layers"]?.AsArray() ?? []).Select(l => new TemplateLayer(S(l!["name"]), (short)l["color"]!.GetValue<int>(), l["linetype"]?.GetValue<string>() ?? "Continuous", D(l["lineweight"]), l["description"]?.GetValue<string>() ?? string.Empty))],
+                Layers = [.. (json["layers"]?.AsArray() ?? []).Select(l => new TemplateLayer(S(l!["name"]), (short)D(l["color"]), l["linetype"]?.GetValue<string>() ?? "Continuous", D(l["lineweight"]), l["description"]?.GetValue<string>() ?? string.Empty))],
                 TextStyles = [.. (json["textStyles"]?.AsArray() ?? []).Select(t => new TemplateTextStyle(S(t!["name"]), S(t["font"]), D(t["height"]), t["widthFactor"] is { } wf ? D(wf) : 1))],
                 TextHeights = [.. (json["textHeights"]?.AsArray() ?? []).Select(t => new TemplateTextHeight(S(t!["use"]), D(t["paper"]), D(t["quarterInch"]), D(t["eighthInch"])))],
                 DimStyles = [.. (json["dimStyles"]?.AsArray() ?? []).Select(d => new TemplateDimStyle(S(d!["name"]), d["textStyle"]?.GetValue<string>() ?? "Standard", Vars(d["variables"])))],
