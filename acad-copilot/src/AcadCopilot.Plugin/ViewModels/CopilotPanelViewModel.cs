@@ -136,7 +136,13 @@ public sealed class CopilotPanelViewModel : ObservableObject, IDisposable
     public RelayCommand CancelCloseCommand { get; }
 
     /// <summary>Opens a new tab (bound to the drawing that is active now) and shows it. Null when no tab can be added.</summary>
-    public ChatViewModel? NewTab()
+    public ChatViewModel? NewTab() => NewTab(show: true);
+
+    /// <summary>
+    /// Opens a new tab bound to the drawing that is active now. <paramref name="show"/> false opens it in the background
+    /// (Quick Ask: the panel keeps showing its tab and nothing takes the keyboard focus). Null when no tab can be added.
+    /// </summary>
+    public ChatViewModel? NewTab(bool show)
     {
         if (!CanAddTab)
         {
@@ -158,8 +164,12 @@ public sealed class CopilotPanelViewModel : ObservableObject, IDisposable
         var chat = _createChat(session);
         CopySharedState(SelectedTab, chat);
         Add(chat);
-        SelectTab(chat);
-        chat.RequestComposerFocus();
+        if (show)
+        {
+            SelectTab(chat);
+            chat.RequestComposerFocus();
+        }
+
         return chat;
     }
 

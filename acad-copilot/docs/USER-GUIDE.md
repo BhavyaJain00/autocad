@@ -112,10 +112,12 @@ Uninstalling never touches the AI apps, their logins or their settings.
 ## 3. First start
 
 1. Start **AutoCAD 2027** and open a drawing, or start a new one.
-2. The **AI Copilot panel** docks on the **right**, and the drawing stays on the left. If you closed it, type
-   **`COPILOT`** on the command line, or click the **AI Copilot** ribbon tab and then the **AI Copilot** button.
-   Both show the panel when it is hidden and hide it when it is shown. You can drag the panel to the left side
-   instead.
+2. The **AI Copilot panel** opens docked on the **right** at full height, about 460 pixels wide, and the drawing
+   stays on the left. If you closed it, type **`COPILOT`** on the command line, or click the **AI Copilot** ribbon
+   tab and then the **AI Copilot** button. Both show the panel when it is hidden and hide it when it is shown. Each
+   time it opens, the panel docks itself on the right again and comes back fully open (not rolled up by
+   auto-hide). Drag its left edge to make it wider or narrower: your width is remembered. At the same time
+   **focus mode** gives the drawing more room (see section 6g).
 3. At the top of the panel, pick **Claude**, **ChatGPT** or **Gemini**, and optionally a model ("Default" = the
    app's own default for your account). Each provider shows whether it is signed in. Use **Sign in** if needed,
    then **Check again**.
@@ -434,6 +436,40 @@ Settings (gear icon) > **AI BEHAVIOUR**. The switches are shared by all tabs and
 
 ---
 
+## 6g. More room for the drawing: focus mode and following the AI
+
+**Focus mode** (the frame button at the top right of the panel, next to **New chat** and **Settings**; its tooltip
+says *Focus mode: more room for the drawing*). When it is on (the button is highlighted):
+
+- the **ribbon is minimised to its tab names** (click a tab name to open that tab for a moment, as with AutoCAD's
+  own minimise button). If you had minimised your ribbon already, it is left as it is;
+- the **ViewCube** and the **navigation bar** on the drawing are hidden;
+- the **command line always stays**, so you can watch every command the AI types.
+
+Click the button again to bring everything back. It also comes back by itself when you close the panel, and when
+you close AutoCAD. AutoCAD keeps the settings you had before focus mode; if you change one of them yourself while
+focus mode is on (for example you open the ribbon fully again), your choice stays. If AutoCAD ever stops in the
+middle of focus mode (a crash), the next start puts your ribbon and navigation bar back first.
+
+Focus mode does not mark your drawing as changed, and when you save, the drawing file keeps your own ViewCube
+setting. Other docked palettes (Properties, Layers ...) are not changed.
+
+**Settings > DRAWING AREA:**
+
+- **Use focus mode when the AI Copilot opens** (on by default). Off: the panel opens without changing AutoCAD's
+  layout; the Focus button still works.
+- **Follow the AI's drawing** (on by default). After each drawing step of the AI, when what it just drew is outside
+  the visible part of the drawing, or so small that you could not see it, the view zooms to it with a 10% margin
+  around it (never more than 8 times closer in one step). It only zooms in a plan view of model space, never through
+  a layout viewport, and never while you are in the middle of a command of your own. Zooming is not an edit: Ctrl+Z
+  does not undo it. Turn it off if you prefer to keep your own view while the AI draws.
+
+**A narrow panel.** When you make the panel narrower than about 420 pixels, its top part becomes one slim line: the
+AI (with its green / orange sign-in dot) and the model as two drop-downs, **Sign in** when needed, and the Focus,
+New chat and Settings buttons. The conversation gets the height. Make the panel wider again for the full header.
+
+---
+
 ## 7. What needs your approval, and what it cannot do
 
 The AI asks first, with an **Approval needed** card in the panel (**Approve** / **Reject**), before it runs commands
@@ -494,6 +530,8 @@ no window pops up.
 | The answer stops with a usage-limit message | That account's plan limit was reached: switch provider or wait. |
 | Your own Claude Desktop / Codex cannot start the AutoCAD server | AutoCAD must be running with the plug-in loaded. Run `AcadCopilotMcp.exe --version` in PowerShell. If that fails, install the .NET 10 runtime. See `%LOCALAPPDATA%\AcadCopilot\logs\bridge.log`. |
 | The installer says AutoCAD is running | Close AutoCAD (save your work), then run it again. |
+| The ribbon stays minimised or the ViewCube is gone after closing the panel | Click the ribbon's own minimise arrow (or double-click a ribbon tab name) to open it fully; set `NAVVCUBEDISPLAY` to 3 and `NAVBARDISPLAY` to 1 for the ViewCube and the navigation bar. Focus mode only puts back what it changed itself; `%LOCALAPPDATA%\AcadCopilot\focus-layout.json` shows what it remembers while it is on. To keep AutoCAD's layout untouched, turn off **Use focus mode when the AI Copilot opens** (section 6g). |
+| The panel is too narrow, floats or is rolled up | Type `COPILOT` twice (hide, then show): it docks on the right again, fully open, at your remembered width (460 pixels until you resize it). |
 
 Logs: `%LOCALAPPDATA%\AcadCopilot\logs\addin.log` (plug-in) and `bridge.log` (MCP server). Settings (provider and
 model, no secrets): `%LOCALAPPDATA%\AcadCopilot\settings.json`. What the AI learned:
@@ -535,6 +573,7 @@ Server", which is also installed on this PC. The two do not interfere.
 | Plain AutoCAD 2027 + learning (2026-11-19) | Retargeted from AutoCAD Architecture to plain AutoCAD 2027 (manifest platform `AutoCAD\|AutoCAD*`, no AEC assemblies needed, instructions without Architecture objects). Tested without AutoCAD: the knowledge files (rules, style, lessons, recipes: dedupe, newest wins, size caps, parallel writers), keyword recall, the per-turn "WHAT YOU HAVE LEARNED" summary and its size limits (including the Codex command-line limit), the style analysis (layers, text, dimensions, wall thicknesses, door swings, blocks) and the learning tools through the built `AcadCopilotMcp.exe`. **Compile-verified only:** `learn_style_from_drawing` reading a real drawing, and the product detection inside AutoCAD. |
 | Teach it by drawing (2026-11-19) | Tested without AutoCAD: the recording (commands with their answers, objects, layer changes, pause, the 2,000-action limit, the AI's own commands left out), the grouping into steps, the Markdown file, `list_recordings` / `read_recording` (also through the built `AcadCopilotMcp.exe`), and the Learning bar rendered off-screen (`artifacts\ui\15-learn-from-me-*.png`). **Compile-verified only:** capturing your commands, the command line and the objects from AutoCAD's events, and the style of your new objects. |
 | AI behaviour, recovery, services (2026-11-20) | Tested without AutoCAD: the Web research switch (what each AI app is allowed with it on and off, the button and the setting), AI switching and handover, Ask before drawing, the review (report parsing, Fix these), tutor mode, the self-healing rules, the checkpoint catalog and job journal, the resume text, the symbol library and presentation colour maths, the panel cards and activity rows (Auto-fixed, checkpoint, Open exports folder), the quick prompts. **Compile-verified only:** everything inside AutoCAD (undo marks and restore, the drawing copies, the Resume card appearing after a crash, inserting the blocks, the colour fills, the PNG export). |
+| Focus layout (2026-11-20) | Tested without AutoCAD: focus mode on and off, restoring exactly what it changed (and nothing you changed yourself), the crash recovery from `focus-layout.json`, the ViewCube per drawing and around saves, the zoom decision of "Follow the AI's drawing" (outside, too small, 10% margin, at most 8 times closer), the remembered panel width, the Focus button, the DRAWING AREA settings and the slim header (rendered off-screen, `artifacts\ui\21-*.png`). **Compile-verified only:** the ribbon (`RibbonControl.AutoHideMode`), NAVBARDISPLAY / NAVVCUBEDISPLAY inside AutoCAD (keeping the drawing unmodified), the zoom (`Editor.SetCurrentView`), and the palette's docking and width inside AutoCAD. |
 | Chat tabs (2026-11-18) | Tested without AutoCAD: parallel turns, the 4-at-once limit, per-tab provider / history / approvals, the turn queue (order, Stop leaves it), routing of questions and plans to their tab over the real pipe, the bridge's `--session` (built `AcadCopilotMcp.exe`), and the tab strip rendered off-screen. **Compile-verified only:** binding a tab to its AutoCAD drawing and switching AutoCAD to that drawing (`DocumentCollection.MdiActiveDocument`) when its turn comes. |
 
 ### First-run checklist
@@ -558,6 +597,11 @@ Server", which is also installed on this PC. The two do not interfere.
     `%LOCALAPPDATA%\AcadCopilot\knowledge\rules.md`. Start a new tab and ask for a plan with a toilet: the table
     should use 5'x7'. Open one of your finished drawings and ask *"learn my style from this drawing"*; check
     `style.md` (layers, text heights, dimension style, wall thickness) and that the drawing was not changed.
+9c. Focus layout: with the panel open, the ribbon should show only its tab names and the ViewCube and navigation
+    bar should be hidden, with the command line still visible. Click the Focus button: everything comes back. Close
+    the panel with its X: the layout stays as you had it. Ask for a room far away from the current view (*"draw a
+    10 x 12 ft room at 500',500'"*): the view should zoom to it after the stage. Drag the panel wider, close and
+    restart AutoCAD: it reopens docked right at that width.
     `get_drawing_info` (ask *"what product is this?"*) should report **AutoCAD 2027** and no architecture objects.
 9c. Teach it by drawing: click **Start learning**, draw a door by hand (LINE leaf + ARC swing on your door layer) and
     one OFFSET, then **Stop & learn**. Check the file in `knowledge\recordings\` (your commands, what you typed, the

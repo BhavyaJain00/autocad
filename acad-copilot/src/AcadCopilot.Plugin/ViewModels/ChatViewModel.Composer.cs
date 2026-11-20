@@ -69,6 +69,12 @@ public sealed partial class ChatViewModel
     }
 
     /// <summary>
+    /// The Focus button and the drawing-area settings, shared by the panel's tabs (null: no Focus button and no
+    /// DRAWING AREA settings).
+    /// </summary>
+    public FocusLayoutViewModel? Layout { get; init; }
+
+    /// <summary>
     /// Where the caret was in the message box (the view keeps it up to date), so a picked point is inserted there.
     /// </summary>
     public int ComposerCaret { get; set; }

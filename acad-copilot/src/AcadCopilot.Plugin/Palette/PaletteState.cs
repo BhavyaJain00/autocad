@@ -12,8 +12,17 @@ public sealed record PaletteState
     /// <summary>The palette was open when AutoCAD last closed (or the user last showed / hid it): reopen it at start-up.</summary>
     public bool Visible { get; init; } = true;
 
-    /// <summary>Last width in device-independent pixels.</summary>
+    /// <summary>Last docked width in device-independent pixels (used when <see cref="WidthChosen"/>).</summary>
     public double Width { get; init; } = PaletteHost.DefaultWidth;
+
+    /// <summary>
+    /// True once the user resized the docked panel himself: <see cref="Width"/> is then his choice and is used at every
+    /// start. False (also for files of older versions) docks it <see cref="PaletteHost.DefaultWidth"/> wide.
+    /// </summary>
+    public bool WidthChosen { get; init; }
+
+    /// <summary>The docked width to use: the user's own when he chose one, else the default; always within limits.</summary>
+    public double DockWidth => Math.Clamp(WidthChosen && double.IsFinite(Width) ? Width : PaletteHost.DefaultWidth, PaletteHost.MinDockWidth, PaletteHost.MaxDockWidth);
 
     /// <summary>Last height in device-independent pixels (floating palette).</summary>
     public double Height { get; init; } = PaletteHost.DefaultHeight;

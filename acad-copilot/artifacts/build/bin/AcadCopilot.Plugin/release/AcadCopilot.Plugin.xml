@@ -818,6 +818,28 @@
         <member name="M:AcadCopilot.Plugin.Drafting.SysvarScope.Restore(Autodesk.AutoCAD.ApplicationServices.Document)">
             <summary>Puts every changed variable back to the user's value (once; later calls do nothing).</summary>
         </member>
+        <member name="T:AcadCopilot.Plugin.Drafting.ViewFollow">
+            <summary>
+            "Follow the AI's drawing" (panel setting, default on): after a run_commands call that created objects, the view
+            zooms to them with a 10% margin when they are outside the visible area or too small to see (<see cref="T:AcadCopilot.Plugin.Inspect.ViewFraming"/>).
+            Only in a plan view of model space (never through a layout viewport, whose scale must not change), never while a
+            command, dialog or text editor is active (the user may be in the middle of his own command), and through
+            <c>Editor.SetCurrentView</c>, so nothing is typed on the command line and nothing enters the undo history. Main
+            thread only; never throws.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Drafting.ViewFollow.MaxObjects">
+            <summary>Most new objects measured for one call (more are rare and the first ones show where the work is).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Drafting.ViewFollow.IsEnabled">
+            <summary>True when the setting is on (panel.json, read for each call so a change applies at once).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Drafting.ViewFollow.FrameCreated(Autodesk.AutoCAD.ApplicationServices.Document,System.Collections.Generic.IReadOnlyList{Autodesk.AutoCAD.DatabaseServices.ObjectId},AcadCopilot.Plugin.Acad.AcadDispatcher)">
+            <summary>
+            Zooms <paramref name="document"/>'s view to <paramref name="created"/> when they are off screen or too small.
+            Returns what was done for the log ("zoomed to 12 new objects (outside the view)"), or null when the view stayed.
+            </summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.Inspect.CaptureMath">
             <summary>
             Pure pixel and size maths for capture_view (no AutoCAD, GDI or WPF types), so it is unit-tested outside AutoCAD:
@@ -1224,6 +1246,61 @@
             Scales <paramref name="source"/> to fit <paramref name="maxWidth"/> x <see cref="F:AcadCopilot.Plugin.Inspect.CaptureMath.MaxHeight"/>,
             optionally turns a render on black into a picture on white, checks for a blank result and encodes a 24-bit PNG.
             </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Inspect.FramingReason">
+            <summary>Why <see cref="M:AcadCopilot.Plugin.Inspect.ViewFraming.Decide(AcadCopilot.Plugin.Inspect.PlanBox,AcadCopilot.Plugin.Inspect.PlanBox)"/> moves the view.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Inspect.FramingReason.None">
+            <summary>The new objects are visible and big enough: the view stays.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Inspect.FramingReason.Outside">
+            <summary>Some of the new objects are outside the view.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Inspect.FramingReason.TooSmall">
+            <summary>The new objects are inside the view but too small to see.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Inspect.FramingDecision">
+            <summary>Where the view should go: the visible area (world XY of a plan view) and why.</summary>
+            <param name="Window">The new visible area; its proportions match the viewport's.</param>
+            <param name="Reason">Why the view moves.</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Inspect.FramingDecision.#ctor(AcadCopilot.Plugin.Inspect.PlanBox,AcadCopilot.Plugin.Inspect.FramingReason)">
+            <summary>Where the view should go: the visible area (world XY of a plan view) and why.</summary>
+            <param name="Window">The new visible area; its proportions match the viewport's.</param>
+            <param name="Reason">Why the view moves.</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Inspect.FramingDecision.Window">
+            <summary>The new visible area; its proportions match the viewport's.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Inspect.FramingDecision.Reason">
+            <summary>Why the view moves.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Inspect.ViewFraming">
+            <summary>
+            "Follow the AI's drawing": pure maths (no AutoCAD types, unit-tested) that decides whether the view should zoom to the
+            objects a run_commands call created, and to which window. It zooms when part of them is outside the visible area, or
+            when they are so small that they cover under <see cref="F:AcadCopilot.Plugin.Inspect.ViewFraming.SmallFraction"/> of the view; the window is their extents
+            plus <see cref="F:AcadCopilot.Plugin.Inspect.ViewFraming.Margin"/> on every side, fitted to the viewport's proportions. A zoom-in never goes deeper than
+            <see cref="F:AcadCopilot.Plugin.Inspect.ViewFraming.MaxZoomIn"/> times per call, so a tiny object does not fill the whole screen.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Inspect.ViewFraming.Margin">
+            <summary>Margin around the new objects, as a fraction of their size on each side (10%).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Inspect.ViewFraming.SmallFraction">
+            <summary>New objects smaller than this fraction of the view (in both directions) count as too small to see.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Inspect.ViewFraming.MaxZoomIn">
+            <summary>The most the view may zoom in for one call.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Inspect.ViewFraming.Decide(AcadCopilot.Plugin.Inspect.PlanBox,AcadCopilot.Plugin.Inspect.PlanBox)">
+            <summary>
+            Decides whether <paramref name="view"/> (the visible area) should move to show <paramref name="created"/> (the
+            extents of the new objects), or null to keep the view. Both boxes are world XY of a plan view.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Inspect.ViewFraming.Union(System.Collections.Generic.IEnumerable{AcadCopilot.Plugin.Inspect.PlanBox})">
+            <summary>The smallest box around <paramref name="boxes"/>, or null when there is none.</summary>
         </member>
         <member name="T:AcadCopilot.Plugin.Inspect.ViewFacts">
             <summary>The current view of the active viewport, converted from display coordinates (DCS) to world coordinates.</summary>
@@ -1781,11 +1858,184 @@
         <member name="M:AcadCopilot.Plugin.Learning.IUserActionRecorder.Discard">
             <summary>Stops and throws the recording away (nothing is saved).</summary>
         </member>
+        <member name="T:AcadCopilot.Plugin.Palette.AcadLayoutSurface">
+            <summary>
+            <see cref="T:AcadCopilot.Plugin.Palette.ILayoutSurface"/> inside AutoCAD 2027 (API names checked by reflection over AdWindows.dll / acmgd.dll):
+            the ribbon is <c>Autodesk.Windows.ComponentManager.Ribbon</c> and its minimise state is
+            <c>RibbonControl.AutoHideMode</c> (<c>Autodesk.Internal.Windows.RibbonAutoHideMode</c>: None, HidePanelBar = tab names,
+            HidePanel = panel titles, CollapsePanels = panel buttons), which is what the ribbon's own minimise button cycles and is
+            fully reversible (RIBBONCLOSE would remove the ribbon instead). NAVBARDISPLAY is saved in the registry; NAVVCUBEDISPLAY
+            is saved in the drawing, so it is set under a document lock and the drawing's DBMOD is put back to 0 afterwards when
+            it had no unsaved changes (ObjectARX <c>acdbSetDbmod</c>, exported by acdb26.dll). System-variable notices are muted
+            (SYSMON 0) while focus mode sets them. Main thread only; never throws.
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Palette.AcadFocusLayout">
+            <summary>
+            Connects <see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutController"/> to AutoCAD's events: a drawing that becomes active gets its ViewCube
+            hidden while focus mode is on (on the next idle, when the switch is complete), a drawing being saved keeps the user's
+            ViewCube setting in its file, a closed drawing is forgotten. Main thread only; never throws into AutoCAD.
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Palette.IFocusLayoutHost">
+            <summary>
+            Focus mode as the panel sees it: on or off, and switching it. Implemented by <see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutController"/>
+            inside AutoCAD; tests use a stand-in. Main (UI) thread only.
+            </summary>
+        </member>
+        <member name="E:AcadCopilot.Plugin.Palette.IFocusLayoutHost.Changed">
+            <summary>Raised after focus mode was switched on or off (by the panel, the palette or AutoCAD closing).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.IFocusLayoutHost.IsFocusMode">
+            <summary>True while focus mode is on.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.IFocusLayoutHost.SetFocusMode(System.Boolean)">
+            <summary>
+            Switches focus mode on or off. Returns what could not be done in one short sentence ("The ribbon could not be
+            minimised"), or null when everything was applied or restored.
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Palette.ILayoutSurface">
+            <summary>
+            The parts of AutoCAD's screen focus mode changes, behind an interface so <see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutController"/> is
+            unit-tested without AutoCAD (<c>AcadLayoutSurface</c> is the real one). Every member is "best effort": null or false
+            when AutoCAD cannot do it right now. Main thread only.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.ILayoutSurface.RibbonMode">
+            <summary>
+            The ribbon's minimise state (AdWindows <c>RibbonControl.AutoHideMode</c>: 0 = full ribbon, 1 = tab names only,
+            2 = panel titles, 3 = panel buttons), or null when there is no ribbon or it cannot be minimised.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.ILayoutSurface.TrySetRibbonMode(System.Int32)">
+            <summary>Sets the ribbon's minimise state; false when it failed.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.ILayoutSurface.GetSystemVariable(System.String)">
+            <summary>An integer system variable saved in the registry (NAVBARDISPLAY), or null when it cannot be read.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.ILayoutSurface.TrySetSystemVariable(System.String,System.Int32)">
+            <summary>Sets an integer system variable saved in the registry; false when AutoCAD refused.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.ILayoutSurface.ActiveDrawingId">
+            <summary>Id of the active drawing (<c>DrawingDirectory.IdOf</c>), or null when no drawing is open.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.ILayoutSurface.ActiveViewCube">
+            <summary>NAVVCUBEDISPLAY of the active drawing (saved in the drawing), or null when it cannot be read.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.ILayoutSurface.TrySetActiveViewCube(System.Int32)">
+            <summary>
+            Sets NAVVCUBEDISPLAY of the active drawing without marking the drawing as changed (a drawing with no unsaved
+            changes must not ask "Save changes?" because of focus mode). False when it failed.
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Palette.FocusLayoutState">
+            <summary>
+            What focus mode changed, kept in %LOCALAPPDATA%\AcadCopilot\focus-layout.json while it is on, so a crash of AutoCAD
+            can never leave the user's ribbon minimised or navigation bar hidden: the next start puts them back
+            (<see cref="M:AcadCopilot.Plugin.Palette.FocusLayoutController.RecoverIfNeeded"/>).
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutState.Active">
+            <summary>True while focus mode is applied (false or no file: nothing to restore).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutState.RibbonPrevious">
+            <summary>The user's ribbon minimise state before focus mode, or null when focus mode did not change the ribbon.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutState.RibbonApplied">
+            <summary>The ribbon minimise state focus mode set.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutState.NavBarPrevious">
+            <summary>The user's NAVBARDISPLAY before focus mode, or null when focus mode did not change it.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutState.AppliedUtc">
+            <summary>When focus mode was switched on (UTC).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutState.HasSomethingToRestore">
+            <summary>True when something still has to be restored.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Palette.FocusLayoutStore">
+            <summary>Loads and saves <see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutState"/>. Never throws.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutStore.#ctor(System.String)">
+            <summary>Creates the store.</summary>
+            <param name="path">State file; defaults to %LOCALAPPDATA%\AcadCopilot\focus-layout.json.</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutStore.Path">
+            <summary>The state file.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutStore.Load">
+            <summary>Reads the state (inactive when missing or unreadable).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutStore.Save(AcadCopilot.Plugin.Palette.FocusLayoutState)">
+            <summary>Writes the state (best effort).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Palette.FocusLayoutController">
+            <summary>
+            FOCUS MODE: more room for the drawing while the AI Copilot works. On: the ribbon is minimised to its tab names
+            (<c>RibbonControl.AutoHideMode</c> = 1, reversible; a ribbon the user had minimised already is left alone), the
+            navigation bar is hidden (NAVBARDISPLAY = 0, registry) and the ViewCube is hidden in every drawing that becomes
+            active (NAVVCUBEDISPLAY = 0, saved in the drawing, so it is changed without marking the drawing modified and put back
+            while the drawing is being saved). The command line is never touched. Off (the button, closing the panel, AutoCAD
+            closing): everything is put back exactly as it was, unless the user changed that item himself in the meantime.
+            While it is on, <see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutStore"/> remembers the previous values, so the next start restores them after
+            a crash. Pure logic over <see cref="T:AcadCopilot.Plugin.Palette.ILayoutSurface"/>; main thread only.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Palette.FocusLayoutController.RibbonFull">
+            <summary>RibbonControl.AutoHideMode: full ribbon.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Palette.FocusLayoutController.RibbonTabsOnly">
+            <summary>RibbonControl.AutoHideMode: minimised to the tab names (what focus mode uses).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Palette.FocusLayoutController.NavBarVariable">
+            <summary>The navigation bar's system variable (registry).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.#ctor(AcadCopilot.Plugin.Palette.ILayoutSurface,AcadCopilot.Plugin.Palette.FocusLayoutStore)">
+            <summary>Creates the controller.</summary>
+        </member>
+        <member name="E:AcadCopilot.Plugin.Palette.FocusLayoutController.Changed">
+            <inheritdoc />
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutController.IsFocusMode">
+            <inheritdoc />
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutController.TrackedDrawings">
+            <summary>Drawings whose ViewCube focus mode hid (or still has to put back); for tests and diagnostics.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.RecoverIfNeeded">
+            <summary>
+            After a crash with focus mode on: puts the ribbon and the navigation bar back as they were before (call at start-up,
+            before focus mode is switched on again). Items AutoCAD cannot reach yet (no ribbon) stay remembered for later.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.SetFocusMode(System.Boolean)">
+            <inheritdoc />
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.OnDrawingActivated">
+            <summary>
+            The active drawing changed (or a drawing opened): while focus mode is on its ViewCube is hidden; a drawing left
+            behind when focus mode went off gets its ViewCube back.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.OnDrawingSaving(System.String)">
+            <summary>The active drawing is about to be saved: its file gets the user's ViewCube setting, not focus mode's.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.OnDrawingSaved(System.String)">
+            <summary>The drawing was saved (or the save failed): the ViewCube is hidden again while focus mode is on.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.OnDrawingClosed(System.String)">
+            <summary>The drawing closed: nothing to put back there any more (its unsaved state is gone).</summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.Palette.PaletteHost">
             <summary>
-            The AutoCAD palette that hosts the WPF chat pane (<see cref="T:AcadCopilot.Plugin.Views.CopilotPane"/>): a PaletteSet with a fixed GUID (AutoCAD
-            remembers its dock side and size per workspace), docked on the right about 430 px wide on the very first start, and
-            reopened at start-up when it was open when AutoCAD last closed. Main thread only.
+            The AutoCAD palette that hosts the WPF chat pane (<see cref="T:AcadCopilot.Plugin.Views.CopilotPane"/>): a PaletteSet with a fixed GUID, always
+            docked on the RIGHT at full height (the drawing stays on the left), <see cref="F:AcadCopilot.Plugin.Palette.PaletteHost.DefaultWidth"/> wide until the user
+            resizes it (his width is remembered in palette.json), reopened at start-up when it was open when AutoCAD last closed.
+            Docking is checked when the palette is created, on the next two idles (AutoCAD may restore an older layout of the
+            palette after creating it) and on every COPILOT. While it is open, focus mode (<see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutController"/>)
+            gives the drawing more room when "Use focus mode when the AI Copilot opens" is on; closing the palette or AutoCAD
+            restores the layout. Main thread only.
             </summary>
         </member>
         <member name="F:AcadCopilot.Plugin.Palette.PaletteHost.PaletteId">
@@ -1795,7 +2045,13 @@
             <summary>Palette title.</summary>
         </member>
         <member name="F:AcadCopilot.Plugin.Palette.PaletteHost.DefaultWidth">
-            <summary>Width on the first start, device-independent pixels.</summary>
+            <summary>Docked width until the user resizes the panel, device-independent pixels.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Palette.PaletteHost.MinDockWidth">
+            <summary>Narrowest docked width the panel is given back (a narrower one counts as cramped).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Palette.PaletteHost.MaxDockWidth">
+            <summary>Widest docked width the panel is given back.</summary>
         </member>
         <member name="F:AcadCopilot.Plugin.Palette.PaletteHost.DefaultHeight">
             <summary>Height of the floating palette on the first start, device-independent pixels.</summary>
@@ -1822,28 +2078,30 @@
             </summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.Show">
-            <summary>Shows the palette (creating it if needed).</summary>
-        </member>
-        <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.DockRight(Autodesk.AutoCAD.Windows.PaletteSet)">
-            <summary>
-            Docks the palette on the right edge of AutoCAD (full height, about <see cref="F:AcadCopilot.Plugin.Palette.PaletteHost.DefaultWidth"/> px wide) when it is
-            floating. The user wants the panel as a full-height side panel, like the drawing on the left and the AI on the right.
-            </summary>
+            <summary>Shows the palette (creating it if needed), docked right at full height, wide enough, in focus mode when set.</summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.Hide">
-            <summary>Hides the palette.</summary>
+            <summary>Hides the palette (focus mode ends with it).</summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.Toggle">
             <summary>Shows the palette when hidden, hides it when shown. Returns true when it is now visible.</summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.Freeze">
             <summary>
-            Saves the current visibility and stops recording changes (call when AutoCAD starts closing: AutoCAD hides
-            palettes while it shuts down, which must not be remembered as "closed by the user").
+            Saves the current visibility, puts AutoCAD's layout back (focus mode off, so AutoCAD saves the user's own ribbon
+            state in his profile) and stops recording changes (call when AutoCAD starts closing: AutoCAD hides palettes while
+            it shuts down, which must not be remembered as "closed by the user").
             </summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.Dispose">
             <summary>Releases the chat tabs (stops running turns). The palette set itself is destroyed by AutoCAD.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.EnsureDockedRight(Autodesk.AutoCAD.Windows.PaletteSet)">
+            <summary>
+            Docks the palette on the right edge of AutoCAD (full height) at the user's width (<see cref="P:AcadCopilot.Plugin.Palette.PaletteState.DockWidth"/>,
+            <see cref="F:AcadCopilot.Plugin.Palette.PaletteHost.DefaultWidth"/> until he resizes it): when it floats or sits on the left, when its docked width is not the
+            remembered one (AutoCAD restored an old, cramped size), and when auto-hide rolled it up to a strip.
+            </summary>
         </member>
         <member name="T:AcadCopilot.Plugin.Palette.PaletteState">
             <summary>What the palette remembers between AutoCAD sessions (%LOCALAPPDATA%\AcadCopilot\palette.json).</summary>
@@ -1852,7 +2110,16 @@
             <summary>The palette was open when AutoCAD last closed (or the user last showed / hid it): reopen it at start-up.</summary>
         </member>
         <member name="P:AcadCopilot.Plugin.Palette.PaletteState.Width">
-            <summary>Last width in device-independent pixels.</summary>
+            <summary>Last docked width in device-independent pixels (used when <see cref="P:AcadCopilot.Plugin.Palette.PaletteState.WidthChosen"/>).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.PaletteState.WidthChosen">
+            <summary>
+            True once the user resized the docked panel himself: <see cref="P:AcadCopilot.Plugin.Palette.PaletteState.Width"/> is then his choice and is used at every
+            start. False (also for files of older versions) docks it <see cref="F:AcadCopilot.Plugin.Palette.PaletteHost.DefaultWidth"/> wide.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.PaletteState.DockWidth">
+            <summary>The docked width to use: the user's own when he chose one, else the default; always within limits.</summary>
         </member>
         <member name="P:AcadCopilot.Plugin.Palette.PaletteState.Height">
             <summary>Last height in device-independent pixels (floating palette).</summary>
@@ -1909,6 +2176,308 @@
         </member>
         <member name="M:AcadCopilot.Plugin.Palette.RibbonTabHost.RibbonCommand.#ctor(System.Action)">
             <summary>ICommand behind the ribbon button.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskSettings">
+            <summary>Quick Ask preferences (no secrets), kept in %LOCALAPPDATA%\AcadCopilot\quickask.json.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskSettings.ShowButton">
+            <summary>Show the round AI button in the drawing area's top-right corner (default on).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskSettings.Shortcut">
+            <summary>The keyboard shortcut that opens the Quick Ask box ("Ctrl+Shift+Space").</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskSettingsStore">
+            <summary>Loads / saves <see cref="T:AcadCopilot.Plugin.QuickAsk.QuickAskSettings"/> as JSON (atomic writes; errors are logged, never thrown).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskSettingsStore.#ctor(System.String)">
+            <summary>Creates a store for <paramref name="path"/> (default: quickask.json under <see cref="P:AcadCopilot.Core.AppPaths.Root"/>).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskSettingsStore.Path">
+            <summary>File path.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskSettingsStore.Load">
+            <summary>Reads the settings; defaults when missing or unreadable.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskSettingsStore.Save(AcadCopilot.Plugin.QuickAsk.QuickAskSettings)">
+            <summary>Writes the settings.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.ShortcutModifiers">
+            <summary>Modifier keys of a <see cref="T:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut"/>.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.ShortcutModifiers.None">
+            <summary>No modifier.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.ShortcutModifiers.Ctrl">
+            <summary>Ctrl.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.ShortcutModifiers.Shift">
+            <summary>Shift.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.ShortcutModifiers.Alt">
+            <summary>Alt.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut">
+            <summary>
+            The Quick Ask keyboard shortcut: modifiers plus one key (Windows virtual-key code). Pure: parsing, display text and
+            matching a key press. Ctrl or Alt is required (a plain key or Shift+key would swallow typing), and the clipboard /
+            undo / file shortcuts AutoCAD users press all day are refused.
+            </summary>
+            <param name="Modifiers">Ctrl / Shift / Alt.</param>
+            <param name="VirtualKey">Windows virtual-key code of the key (0x20 = Space).</param>
+            <param name="KeyName">Display name of the key ("Space", "Q", "F2").</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.#ctor(AcadCopilot.Plugin.QuickAsk.ShortcutModifiers,System.Int32,System.String)">
+            <summary>
+            The Quick Ask keyboard shortcut: modifiers plus one key (Windows virtual-key code). Pure: parsing, display text and
+            matching a key press. Ctrl or Alt is required (a plain key or Shift+key would swallow typing), and the clipboard /
+            undo / file shortcuts AutoCAD users press all day are refused.
+            </summary>
+            <param name="Modifiers">Ctrl / Shift / Alt.</param>
+            <param name="VirtualKey">Windows virtual-key code of the key (0x20 = Space).</param>
+            <param name="KeyName">Display name of the key ("Space", "Q", "F2").</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.Modifiers">
+            <summary>Ctrl / Shift / Alt.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.VirtualKey">
+            <summary>Windows virtual-key code of the key (0x20 = Space).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.KeyName">
+            <summary>Display name of the key ("Space", "Q", "F2").</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.Default">
+            <summary>Ctrl+Shift+Space.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.ToString">
+            <summary>"Ctrl+Shift+Space".</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.Matches(System.Int32,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>True when a key press of <paramref name="virtualKey"/> with these modifier states is this shortcut.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.TryParse(System.String,AcadCopilot.Plugin.QuickAsk.QuickAskShortcut@,System.String@)">
+            <summary>
+            Parses "Ctrl+Shift+Space", "ctrl + alt + q", "Ctrl-Shift-F2". Keys: Space, A-Z, 0-9, F1-F12. False with a reason
+            the settings can show when it is not usable.
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskOptions">
+            <summary>
+            The Quick Ask settings shared by the floating button, the shortcut and the panel's Settings section (one instance per
+            AutoCAD session, <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.Shared"/>). Changes are saved at once. UI thread only.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.#ctor(AcadCopilot.Plugin.QuickAsk.QuickAskSettingsStore)">
+            <summary>Creates the options over <paramref name="store"/>.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.Shared">
+            <summary>The session's options (quickask.json in %LOCALAPPDATA%\AcadCopilot).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ShowButton">
+            <summary>Show the floating AI button in the drawing area (persisted, default on).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.Shortcut">
+            <summary>The shortcut in use.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ShortcutText">
+            <summary>
+            The shortcut as typed in the settings. A valid one is used and saved at once; an invalid one keeps the previous
+            shortcut and shows <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ShortcutError"/>.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ShortcutError">
+            <summary>Why the typed shortcut cannot be used, or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.HasShortcutError">
+            <summary>True when <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ShortcutError"/> is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ShortcutHint">
+            <summary>"Ctrl+Shift+Space, or type AI on the command line".</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ResetShortcut">
+            <summary>Puts the shortcut back to Ctrl+Shift+Space.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskPointSource">
+            <summary>Where the point sent with a Quick Ask came from.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskPointSource.None">
+            <summary>No point goes with the request.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskPointSource.Cursor">
+            <summary>Where the cursor was in the drawing when the box opened.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskPointSource.Picked">
+            <summary>A point the user clicked with Pick.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskMessage">
+            <summary>What one Quick Ask sends: the chat shows <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.DisplayText"/>, the AI receives <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.SentText"/>.</summary>
+            <param name="DisplayText">The request as the user sees it in the chat (with the point token).</param>
+            <param name="SentText">The request with its context lines (point, selection).</param>
+            <param name="SelectionNote">"5 objects selected" when the selection goes with it, else null.</param>
+            <param name="Subject">Short name of the job for the status bubble ("kitchen 10'x20'").</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.#ctor(System.String,System.String,System.String,System.String)">
+            <summary>What one Quick Ask sends: the chat shows <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.DisplayText"/>, the AI receives <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.SentText"/>.</summary>
+            <param name="DisplayText">The request as the user sees it in the chat (with the point token).</param>
+            <param name="SentText">The request with its context lines (point, selection).</param>
+            <param name="SelectionNote">"5 objects selected" when the selection goes with it, else null.</param>
+            <param name="Subject">Short name of the job for the status bubble ("kitchen 10'x20'").</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.DisplayText">
+            <summary>The request as the user sees it in the chat (with the point token).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.SentText">
+            <summary>The request with its context lines (point, selection).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.SelectionNote">
+            <summary>"5 objects selected" when the selection goes with it, else null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.Subject">
+            <summary>Short name of the job for the status bubble ("kitchen 10'x20'").</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskText">
+            <summary>
+            Pure text helpers of Quick Ask: the message (request + "[point ...]" + "[selected in AutoCAD: ...]", the same tokens as
+            the panel's Point button and selection chip), the short subject shown in the status bubble ("kitchen 10'x20'") and
+            the bubble's lines.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskText.MaxStatusLength">
+            <summary>Longest status line in the bubble.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskText.MaxSubjectLength">
+            <summary>Longest subject ("kitchen 10'x20'").</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskText.Origin">
+            <summary>The marker line that tells the AI where the request came from.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Compose(System.String,AcadCopilot.Plugin.Interaction.PickedPoint,AcadCopilot.Plugin.QuickAsk.QuickAskPointSource,AcadCopilot.Plugin.Interaction.SelectionSnapshot)">
+            <summary>
+            Builds the message of a Quick Ask: the typed request, then the point (labelled as the cursor position or the
+            clicked point) and the selection block. Empty <paramref name="text"/> is not allowed.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Subject(System.String)">
+            <summary>
+            The job in a few words, for the status bubble: "make the kitchen 10 by 20" -> "kitchen 10'x20'", "Draw a 4 ft wide
+            staircase please" -> "4' wide staircase". Leading polite words, verbs and articles go; "A by B" / "A x B" sizes
+            become A'xB' (feet, unless another unit is written).
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Working(System.String,System.String,System.String)">
+            <summary>
+            The working line: the plan task in progress ("Drawing kitchen walls..."), else what the chat is doing ("Typing
+            AutoCAD commands: Kitchen walls..." -> "Drawing: Kitchen walls..."), else "Working on kitchen 10'x20'...".
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Queued(System.Int32)">
+            <summary>"Waiting: the chat is still busy" (the request waits in the chat's queue).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Done(System.String)">
+            <summary>"Done - kitchen 10'x20'".</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Stopped(System.String)">
+            <summary>"Stopped - kitchen 10'x20'".</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Failed(System.String)">
+            <summary>"Could not finish: &lt;first line of the error&gt;".</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Undone(System.Int32)">
+            <summary>"Undid 3 drawing steps" / "Undid the drawing step".</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Shorten(System.String,System.Int32)">
+            <summary>Text cut at a word boundary with an ellipsis when longer than <paramref name="max"/>.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Sizes">
+            <remarks>
+            Pattern:<br/>
+            <code>(?&lt;a&gt;\\d+(?:\\.\\d+)?)'?\\s*(?:by|x|X|×|into|\\*)\\s*(?&lt;b&gt;\\d+(?:\\.\\d+)?)(?&lt;unit&gt;'|"|\\s*(?:feet|foot|ft|meters?|metres?|mm|cm|m|inches|inch|in)\\b)?</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ "a" capture group.<br/>
+                ○ Match a Unicode digit greedily at least once.<br/>
+                ○ Optional (greedy).<br/>
+                    ○ Match '.'.<br/>
+                    ○ Match a Unicode digit atomically at least once.<br/>
+            ○ Match '\'' atomically, optionally.<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match with 4 alternative expressions.<br/>
+                ○ Match the string "by".<br/>
+                ○ Match a character in the set [Xx\u00D7].<br/>
+                ○ Match the string "into".<br/>
+                ○ Match '*'.<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ "b" capture group.<br/>
+                ○ Match a Unicode digit greedily at least once.<br/>
+                ○ Optional (greedy).<br/>
+                    ○ Match '.'.<br/>
+                    ○ Match a Unicode digit greedily at least once.<br/>
+            ○ Optional (greedy).<br/>
+                ○ "unit" capture group.<br/>
+                    ○ Match with 2 alternative expressions, atomically.<br/>
+                        ○ Match a character in the set ["'].<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a whitespace character atomically any number of times.<br/>
+                            ○ Match with 5 alternative expressions.<br/>
+                                ○ Match a sequence of expressions.<br/>
+                                    ○ Match 'f'.<br/>
+                                    ○ Match with 3 alternative expressions.<br/>
+                                        ○ Match the string "eet".<br/>
+                                        ○ Match the string "oot".<br/>
+                                        ○ Match 't'.<br/>
+                                ○ Match a sequence of expressions.<br/>
+                                    ○ Match 'm'.<br/>
+                                    ○ Match with 2 alternative expressions.<br/>
+                                        ○ Match a sequence of expressions.<br/>
+                                            ○ Match the string "et".<br/>
+                                            ○ Match with 2 alternative expressions.<br/>
+                                                ○ Match a sequence of expressions.<br/>
+                                                    ○ Match the string "er".<br/>
+                                                    ○ Match 's' greedily, optionally.<br/>
+                                                ○ Match a sequence of expressions.<br/>
+                                                    ○ Match the string "re".<br/>
+                                                    ○ Match 's' greedily, optionally.<br/>
+                                        ○ Match 'm'.<br/>
+                                ○ Match the string "cm".<br/>
+                                ○ Match 'm'.<br/>
+                                ○ Match a sequence of expressions.<br/>
+                                    ○ Match the string "in".<br/>
+                                    ○ Optional (greedy).<br/>
+                                        ○ Match the string "ch".<br/>
+                                        ○ Optional (greedy).<br/>
+                                            ○ Match the string "es".<br/>
+                            ○ Match if at a word boundary.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.FeetWords">
+            <remarks>
+            Pattern:<br/>
+            <code>\\b(\\d+(?:\\.\\d+)?)\\s*(?:feet|foot|ft)\\b</code><br/>
+            Options:<br/>
+            <code>RegexOptions.IgnoreCase | RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at a word boundary.<br/>
+            ○ 1st capture group.<br/>
+                ○ Match a Unicode digit greedily at least once.<br/>
+                ○ Optional (greedy).<br/>
+                    ○ Match '.'.<br/>
+                    ○ Match a Unicode digit atomically at least once.<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match a character in the set [Ff].<br/>
+            ○ Match with 3 alternative expressions.<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match a character in the set [Ee] exactly 2 times.<br/>
+                    ○ Match a character in the set [Tt].<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match a character in the set [Oo] exactly 2 times.<br/>
+                    ○ Match a character in the set [Tt].<br/>
+                ○ Match a character in the set [Tt].<br/>
+            ○ Match if at a word boundary.<br/>
+            </code>
+            </remarks>
         </member>
         <member name="T:AcadCopilot.Plugin.Recovery.CheckpointService">
             <summary>
@@ -3630,6 +4199,10 @@
             the WPF dispatcher thread except the <see cref="T:AcadCopilot.Core.Interaction.ICopilotUi"/> and <see cref="T:AcadCopilot.Plugin.ViewModels.IToolActivitySink"/> methods, which
             marshal themselves.
             </summary>
+            <summary>
+            Quick Ask (the floating AI box in the drawing area, Plugin/QuickAsk) sends through the tab bound to the active drawing
+            like a normal message, without touching what the user is typing in the tab's own message box.
+            </summary>
         </member>
         <member name="F:AcadCopilot.Plugin.ViewModels.ChatViewModel.ReviewPrompt">
             <summary>The message that asks for a second-opinion review (the session recognises it, <see cref="T:AcadCopilot.Core.Panel.ReviewRequests"/>).</summary>
@@ -3696,6 +4269,12 @@
         </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.QuickPrompts">
             <summary>The ⚡ quick prompts shared by the panel's tabs (null hides the button).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.Layout">
+            <summary>
+            The Focus button and the drawing-area settings, shared by the panel's tabs (null: no Focus button and no
+            DRAWING AREA settings).
+            </summary>
         </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.ComposerCaret">
             <summary>
@@ -4189,6 +4768,17 @@
         <member name="M:AcadCopilot.Plugin.ViewModels.ChatViewModel.ToolReport.#ctor(System.String,System.Text.Json.Nodes.JsonObject,AcadCopilot.Core.Tools.ToolResult)">
             <summary>One plug-in report: a tool call starting (no result yet) or finished.</summary>
         </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.ChatViewModel.SendQuickAsk(System.String,System.String,System.String)">
+            <summary>
+            Sends a Quick Ask request as this tab's next user message: <paramref name="displayText"/> is shown in the chat,
+            <paramref name="sentText"/> (with its point and selection lines) goes to the AI. Starts at once when the tab is
+            idle; otherwise the request waits in the tab's queue (Enter-while-busy behaviour; a paused queue is resumed so it
+            runs). The message box is left alone.
+            </summary>
+            <param name="displayText">What the chat shows as the user's message.</param>
+            <param name="sentText">What the AI receives.</param>
+            <param name="selectionNote">"5 objects selected" when the selection goes with it.</param>
+        </member>
         <member name="T:AcadCopilot.Plugin.ViewModels.QueuedRequest">
             <summary>One request waiting in a chat's queue.</summary>
         </member>
@@ -4292,6 +4882,18 @@
         <member name="F:AcadCopilot.Plugin.ViewModels.ChatTabState.NeedsAnswer">
             <summary>A question or approval card waits for the user.</summary>
         </member>
+        <member name="T:AcadCopilot.Plugin.ViewModels.QuickAskDelivery">
+            <summary>How a Quick Ask request was handed to a chat tab.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.ViewModels.QuickAskDelivery.Started">
+            <summary>The turn started at once.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.ViewModels.QuickAskDelivery.Queued">
+            <summary>The tab is working (or the most chats at once are): the request waits in its queue and runs next.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.ViewModels.QuickAskDelivery.Rejected">
+            <summary>The tab's queue is full: nothing was sent.</summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel">
             <summary>
             The panel's chat tabs. Each tab is a <see cref="T:AcadCopilot.Plugin.ViewModels.ChatViewModel"/> over its own <see cref="T:AcadCopilot.Core.Panel.ICopilotSession"/>: its own
@@ -4369,6 +4971,12 @@
         <member name="M:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel.NewTab">
             <summary>Opens a new tab (bound to the drawing that is active now) and shows it. Null when no tab can be added.</summary>
         </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel.NewTab(System.Boolean)">
+            <summary>
+            Opens a new tab bound to the drawing that is active now. <paramref name="show"/> false opens it in the background
+            (Quick Ask: the panel keeps showing its tab and nothing takes the keyboard focus). Null when no tab can be added.
+            </summary>
+        </member>
         <member name="M:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel.SelectTab(AcadCopilot.Plugin.ViewModels.ChatViewModel)">
             <summary>Shows <paramref name="tab"/>.</summary>
         </member>
@@ -4394,6 +5002,43 @@
             Hub for a host that hands the pane a single <see cref="T:AcadCopilot.Core.Panel.ICopilotBackend"/> (no chat tabs): one fixed session that
             forwards to it.
             </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel">
+            <summary>
+            The panel's drawing-area controls, shared by every chat tab: the Focus button in the header (more room for the
+            drawing: ribbon minimised, ViewCube and navigation bar hidden) and the settings "Use focus mode when the AI Copilot
+            opens" and "Follow the AI's drawing" (panel.json). UI thread only.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.FocusToolTipText">
+            <summary>Tool tip of the Focus button.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.#ctor(AcadCopilot.Plugin.Palette.IFocusLayoutHost,AcadCopilot.Plugin.ViewModels.PanelSettingsStore,System.Action{System.String})">
+            <summary>Creates the view model.</summary>
+            <param name="host">Focus mode inside AutoCAD; null hides the Focus button (no AutoCAD).</param>
+            <param name="store">panel.json.</param>
+            <param name="reportProblem">Shows what focus mode could not do (the notice banner of the tab shown).</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.CanFocus">
+            <summary>True when focus mode is available (inside AutoCAD).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.IsFocusMode">
+            <summary>True while focus mode is on (the Focus button is highlighted).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.FocusToolTip">
+            <summary>Tool tip of the Focus button: what it does and its state.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.ToggleFocusCommand">
+            <summary>Switches focus mode on or off.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.FocusModeOnOpen">
+            <summary>Use focus mode whenever the AI Copilot opens (persisted; default on).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.FollowAiDrawing">
+            <summary>Zoom to what the AI drew when it is off screen or too small (persisted; default on).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.Dispose">
+            <inheritdoc />
         </member>
         <member name="T:AcadCopilot.Plugin.ViewModels.IFilePicker">
             <summary>Lets the user pick files to attach (implemented with the Windows open-file dialog in the view).</summary>
@@ -4559,6 +5204,18 @@
         </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.PanelSettings.QuickPrompts">
             <summary>The user's own quick prompts (the composer's ⚡ menu), in menu order.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.PanelSettings.FocusModeOnOpen">
+            <summary>
+            Focus mode whenever the AI Copilot opens (default on): the ribbon is minimised to its tab names and the ViewCube
+            and navigation bar are hidden while the panel is open (<see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutController"/>).
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.PanelSettings.FollowAiDrawing">
+            <summary>
+            Follow the AI's drawing (default on): after a run_commands call that created objects which are off screen or too
+            small to see, the view zooms to them with a 10% margin (never while the user is in a command).
+            </summary>
         </member>
         <member name="T:AcadCopilot.Plugin.ViewModels.SavedQuickPrompt">
             <summary>One quick prompt the user saved.</summary>
@@ -5054,6 +5711,12 @@
         <member name="P:AcadCopilot.Plugin.Views.CopilotPaneOptions.EnableQuickPrompts">
             <summary>False hides the ⚡ quick-prompt menu.</summary>
         </member>
+        <member name="P:AcadCopilot.Plugin.Views.CopilotPaneOptions.FocusLayout">
+            <summary>
+            Focus mode (more room for the drawing) inside AutoCAD (<see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutController"/>);
+            null hides the Focus button. The DRAWING AREA settings are shown either way.
+            </summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.Views.CopilotPane">
             <summary>
             The chat panel hosted in AutoCAD's dockable pane: a strip of chat tabs (<see cref="T:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel"/>) above
@@ -5072,6 +5735,12 @@
         </member>
         <member name="M:AcadCopilot.Plugin.Views.CopilotPane.#ctor(AcadCopilot.Core.Panel.ICopilotBackend,AcadCopilot.Plugin.Views.CopilotPaneOptions)">
             <summary>Creates the pane with explicit options.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Views.CopilotPane.Layout">
+            <summary>The Focus button and the drawing-area settings (shared by the tabs).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Views.CopilotPane.IsCompactHeader">
+            <summary>True while the header is the slim one-line bar (the panel is narrower than <see cref="F:AcadCopilot.Plugin.Views.CopilotPane.CompactHeaderWidth"/>).</summary>
         </member>
         <member name="P:AcadCopilot.Plugin.Views.CopilotPane.Backend">
             <summary>The backend the view model talks to.</summary>
@@ -5097,6 +5766,12 @@
         </member>
         <member name="M:AcadCopilot.Plugin.Views.CopilotPane.ApplyTheme(AcadCopilot.Plugin.Resources.PanelTheme)">
             <summary>Re-colors the panel (call on the UI thread, e.g. from AutoCAD's ThemeChanged event).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Views.CopilotPane.CompactHeaderWidth">
+            <summary>
+            Below this panel width the header becomes one slim line (provider and model drop-downs next to the Focus, New chat
+            and Settings buttons), so the conversation gets the height.
+            </summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Views.CopilotPane.InitializeComponent">
             <summary>
@@ -5713,322 +6388,386 @@
         <member name="M:AcadCopilot.Plugin.Voice.WinRtSpeechEngine.Dispose">
             <inheritdoc />
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.WebQueryPattern_0">
+        <member name="T:System.Text.RegularExpressions.Generated.Sizes_0">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the Sizes method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Sizes_0.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Sizes_0.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.Sizes_0.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Sizes_0.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.Sizes_0.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Sizes_0.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Sizes_0.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Sizes_0.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.FeetWords_1">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the FeetWords method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.FeetWords_1.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FeetWords_1.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.FeetWords_1.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FeetWords_1.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.FeetWords_1.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FeetWords_1.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FeetWords_1.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FeetWords_1.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.WebQueryPattern_2">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the WebQueryPattern method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.WebQueryPattern_0.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.WebQueryPattern_2.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_0.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_2.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.WebQueryPattern_0.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.WebQueryPattern_2.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_0.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_2.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.WebQueryPattern_0.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.WebQueryPattern_2.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_0.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_2.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_0.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_2.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_0.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_2.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.WebHostPattern_1">
+        <member name="T:System.Text.RegularExpressions.Generated.WebHostPattern_3">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the WebHostPattern method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.WebHostPattern_1.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.WebHostPattern_3.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_1.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_3.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.WebHostPattern_1.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.WebHostPattern_3.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_1.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_3.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.WebHostPattern_1.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.WebHostPattern_3.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_1.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_3.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_1.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_3.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_1.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_3.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_2">
+        <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_4">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the TitleRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.TitleRegex_2.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.TitleRegex_4.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_2.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_4.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_2.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_4.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_2.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_4.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_2.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_4.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_2.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_4.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_2.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_4.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_2.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_4.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.StepsRegex_3">
+        <member name="T:System.Text.RegularExpressions.Generated.StepsRegex_5">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the StepsRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.StepsRegex_3.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.StepsRegex_5.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_3.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_5.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.StepsRegex_3.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.StepsRegex_5.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_3.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_5.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.StepsRegex_3.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.StepsRegex_5.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_3.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_5.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_3.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_5.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_3.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_5.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.HeadingRegex_4">
+        <member name="T:System.Text.RegularExpressions.Generated.HeadingRegex_6">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the HeadingRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.HeadingRegex_4.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.HeadingRegex_6.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_4.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_6.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.HeadingRegex_4.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.HeadingRegex_6.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_4.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_6.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.HeadingRegex_4.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.HeadingRegex_6.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_4.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_6.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_4.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_6.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_4.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_6.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.RuleRegex_5">
+        <member name="T:System.Text.RegularExpressions.Generated.RuleRegex_7">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the RuleRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.RuleRegex_5.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.RuleRegex_7.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_5.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_7.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.RuleRegex_5.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.RuleRegex_7.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_5.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_7.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.RuleRegex_5.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.RuleRegex_7.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_5.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_7.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_5.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_7.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_5.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_7.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.TableSeparatorRegex_6">
+        <member name="T:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the TableSeparatorRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.TableSeparatorRegex_6.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_6.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.TableSeparatorRegex_6.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_6.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.TableSeparatorRegex_6.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_6.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_6.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_6.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.ListItemRegex_7">
+        <member name="T:System.Text.RegularExpressions.Generated.ListItemRegex_9">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the ListItemRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.ListItemRegex_7.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.ListItemRegex_9.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_7.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_9.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.ListItemRegex_7.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.ListItemRegex_9.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_7.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_9.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.ListItemRegex_7.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.ListItemRegex_9.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_7.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_9.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_7.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_9.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_7.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_9.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.LinkRegex_8">
+        <member name="T:System.Text.RegularExpressions.Generated.LinkRegex_10">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the LinkRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.LinkRegex_8.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.LinkRegex_10.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_8.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_10.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.LinkRegex_8.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.LinkRegex_10.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_8.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_10.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.LinkRegex_8.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.LinkRegex_10.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_8.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_10.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_8.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_10.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_8.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_10.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.UrlRegex_9">
+        <member name="T:System.Text.RegularExpressions.Generated.UrlRegex_11">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the UrlRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.UrlRegex_9.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.UrlRegex_11.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_9.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_11.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.UrlRegex_9.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.UrlRegex_11.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_9.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_11.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.UrlRegex_9.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.UrlRegex_11.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_9.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_11.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_9.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_11.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_9.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_11.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
@@ -6042,6 +6781,21 @@
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_hasTimeout">
             <summary>Whether <see cref="F:System.Text.RegularExpressions.Generated.Utilities.s_defaultTimeout"/> is non-infinite.</summary>
         </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.IndexOfAnyDigit(System.ReadOnlySpan{System.Char})">
+            <summary>Finds the next index of any character that matches a Unicode digit.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.IsBoundaryWordChar(System.Char)">
+            <summary>Determines whether the specified index is a boundary word character.</summary>
+            <remarks>This is the same as \w plus U+200C ZERO WIDTH NON-JOINER and U+200D ZERO WIDTH JOINER.</remarks>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.IsPostWordCharBoundary(System.ReadOnlySpan{System.Char},System.Int32)">
+            <summary>Determines whether the specified index is a boundary.</summary>
+            <remarks>This variant is only employed when the previous character has already been validated as a word character.</remarks>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.IsPreWordCharBoundary(System.ReadOnlySpan{System.Char},System.Int32)">
+            <summary>Determines whether the specified index is a boundary.</summary>
+            <remarks>This variant is only employed when the subsequent character will separately be validated as a word character.</remarks>
+        </member>
         <member name="M:System.Text.RegularExpressions.Generated.Utilities.StackPop(System.Int32[],System.Int32@,System.Int32@,System.Int32@)">
             <summary>Pops 2 values from the backtracking stack.</summary>
         </member>
@@ -6053,6 +6807,15 @@
         </member>
         <member name="M:System.Text.RegularExpressions.Generated.Utilities.StackPush(System.Int32[]@,System.Int32@,System.Int32,System.Int32,System.Int32)">
             <summary>Pushes 3 values onto the backtracking stack.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.WordCategoriesMask">
+            <summary>Provides a mask of Unicode categories that combine to form [\w].</summary>
+        </member>
+        <member name="P:System.Text.RegularExpressions.Generated.Utilities.WordCharBitmap">
+            <summary>Gets a bitmap for whether each character 0 through 127 is in [\w]</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_asciiExceptDigits">
+            <summary>Supports searching for characters in or not in "\0\u0001\u0002\u0003\u0004\u0005\u0006\a\b\t\n\v\f\r\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001a\u001b\u001c\u001d\u001e\u001f !\"#$%&amp;'()*+,-./:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\u007f".</summary>
         </member>
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_asciiWordChars">
             <summary>Supports searching for characters in or not in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz".</summary>

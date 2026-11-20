@@ -64,6 +64,8 @@
             <Geometry x:Key="IconCursor">M3.4,2.6 L12.4,7.1 L8.4,8.5 L6.6,12.6 Z M8.4,8.5 L11.6,13.2</Geometry>
             <Geometry x:Key="IconGlobe">M8,1.8 C11.4,1.8 14.2,4.6 14.2,8 C14.2,11.4 11.4,14.2 8,14.2 C4.6,14.2 1.8,11.4 1.8,8 C1.8,4.6 4.6,1.8 8,1.8 Z M1.8,8 H14.2 M2.7,4.9 H13.3 M2.7,11.1 H13.3 M8,1.8 C6.3,3.6 5.5,5.7 5.5,8 C5.5,10.3 6.3,12.4 8,14.2 M8,1.8 C9.7,3.6 10.5,5.7 10.5,8 C10.5,10.3 9.7,12.4 8,14.2</Geometry>
             <Geometry x:Key="IconLearn">M8,2.6 L14.6,5.8 L8,9 L1.4,5.8 Z M4.4,7.3 V10.6 C5.3,11.8 6.6,12.4 8,12.4 C9.4,12.4 10.7,11.8 11.6,10.6 V7.3 M14.6,5.8 V9.6</Geometry>
+            <!-- Focus mode: a frame of four corners (expand / more room for the drawing). -->
+            <Geometry x:Key="IconFocus">M2.5,6 V2.5 H6 M10,2.5 H13.5 V6 M13.5,10 V13.5 H10 M6,13.5 H2.5 V10 M6.2,6.2 H9.8 V9.8 H6.2 Z</Geometry>
 
             <!-- Focus ring for keyboard navigation. -->
             <Style x:Key="FocusRing">
@@ -1750,26 +1752,75 @@
                     </Grid>
                 </StackPanel>
 
-                <Grid>
+                <!-- Title row. Below 420 px (CopilotPane.ApplyCompactHeader) the logo, title, provider switch and status row
+                     give way to CompactProviderBar: one slim line with the provider and model drop-downs. -->
+                <Grid x:Name="HeaderTitleRow">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Border Width="26" Height="26" CornerRadius="6" Background="{DynamicResource Accent}" VerticalAlignment="Center">
+                    <Border x:Name="HeaderLogo" Width="26" Height="26" CornerRadius="6" Background="{DynamicResource Accent}" VerticalAlignment="Center">
                         <v:Icon Data="{StaticResource IconSparkle}" IsFilled="True" Width="15" Height="15" Foreground="{DynamicResource AccentForeground}" />
                     </Border>
-                    <StackPanel Grid.Column="1" Margin="9,0,6,0" VerticalAlignment="Center">
+                    <StackPanel x:Name="HeaderTitle" Grid.Column="1" Margin="9,0,6,0" VerticalAlignment="Center">
                         <TextBlock Text="AI Copilot" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" />
                         <TextBlock Text="{Binding DocumentText}" FontSize="10.5" Foreground="{DynamicResource TextSecondary}" TextTrimming="CharacterEllipsis"
                                    ToolTip="{Binding DocumentText}" />
                     </StackPanel>
-                    <Button Grid.Column="2" Style="{StaticResource IconButton}" Command="{Binding NewChatCommand}"
+
+                    <!-- Slim header: provider (with its sign-in dot), Sign in when needed, model. -->
+                    <Grid x:Name="CompactProviderBar" Grid.ColumnSpan="2" Margin="0,0,6,0" Visibility="Collapsed" VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="CompactProviderCombo" Style="{StaticResource ThemedCombo}" MinWidth="88" MaxWidth="150" HorizontalAlignment="Left"
+                                  ItemsSource="{Binding Providers}" SelectedItem="{Binding SelectedProvider, Mode=TwoWay}" IsEnabled="{Binding IsIdle}"
+                                  ToolTip="{Binding SelectedProvider.DetailText}" AutomationProperties.Name="AI provider">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:ProviderViewModel}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource StatusDot}" />
+                                        <TextBlock Text="{Binding DisplayName}" Margin="6,0,0,0" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Grid.Column="1" Style="{StaticResource GhostButton}" Content="Sign in" FontSize="11" Padding="5,2" Margin="4,0,0,0"
+                                Command="{Binding SignInCommand}" CommandParameter="{Binding SelectedProvider}"
+                                ToolTip="Opens the official sign-in in a terminal window"
+                                Visibility="{Binding SelectedProvider.CanSignIn, Converter={StaticResource Vis}}" />
+                        <ComboBox Grid.Column="2" Style="{StaticResource ThemedCombo}" MinWidth="74" MaxWidth="118" Margin="4,0,0,0"
+                                  ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
+                                  IsEnabled="{Binding IsIdle}" ToolTip="Model" AutomationProperties.Name="Model"
+                                  Visibility="{Binding HasModelChoice, Converter={StaticResource Vis}}" />
+                    </Grid>
+
+                    <!-- Focus mode: ribbon minimised, ViewCube and navigation bar hidden (inside AutoCAD only). -->
+                    <Button x:Name="FocusButton" Grid.Column="2" Command="{Binding Layout.ToggleFocusCommand}" ToolTip="{Binding Layout.FocusToolTip}"
+                            AutomationProperties.Name="Focus mode"
+                            Visibility="{Binding Layout.CanFocus, Converter={StaticResource Vis}, FallbackValue=Collapsed}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Layout.IsFocusMode}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <v:Icon Data="{StaticResource IconFocus}" />
+                    </Button>
+                    <Button Grid.Column="3" Style="{StaticResource IconButton}" Command="{Binding NewChatCommand}" Margin="2,0,0,0"
                             ToolTip="Start this tab over (new conversation)" AutomationProperties.Name="New chat">
                         <v:Icon Data="{StaticResource IconNewChat}" />
                     </Button>
-                    <Button Grid.Column="3" Command="{Binding ToggleSettingsCommand}" Margin="2,0,0,0"
+                    <Button Grid.Column="4" Command="{Binding ToggleSettingsCommand}" Margin="2,0,0,0"
                             ToolTip="Settings" AutomationProperties.Name="Settings">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
@@ -1785,7 +1836,7 @@
                     </Button>
                 </Grid>
 
-                <Border Background="{DynamicResource SegmentTrack}" CornerRadius="6" Padding="2" Margin="0,9,4,0">
+                <Border x:Name="ProviderSegment" Background="{DynamicResource SegmentTrack}" CornerRadius="6" Padding="2" Margin="0,9,4,0">
                     <ItemsControl ItemsSource="{Binding Providers}" Focusable="False" KeyboardNavigation.TabNavigation="Continue">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -1809,7 +1860,7 @@
                     </ItemsControl>
                 </Border>
 
-                <Grid Margin="0,8,4,0" MinHeight="26">
+                <Grid x:Name="ProviderStatusRow" Margin="0,8,4,0" MinHeight="26">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
@@ -1924,6 +1975,34 @@
                         <StackPanel>
                             <TextBlock Text="Web research (let the AI search the internet for ideas)" TextWrapping="Wrap" />
                             <TextBlock Text="Only web search and reading pages, never anything else. Same as the globe &quot;Web&quot; button under the message box; applies to your next message." Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </CheckBox>
+                </StackPanel>
+
+                <!-- DRAWING AREA: focus mode and following the AI's drawing (FocusLayoutViewModel, panel.json; shared by the tabs). -->
+                <StackPanel Margin="0,14,0,0" DataContext="{Binding Layout}">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="DRAWING AREA" Style="{StaticResource SectionTitle}" />
+                    <CheckBox Style="{StaticResource ThemedCheck}" IsChecked="{Binding FocusModeOnOpen, Mode=TwoWay}" Margin="0,0,0,7"
+                              AutomationProperties.Name="Use focus mode when the AI Copilot opens">
+                        <StackPanel>
+                            <TextBlock Text="Use focus mode when the AI Copilot opens" TextWrapping="Wrap" />
+                            <TextBlock Text="Minimises the ribbon to its tab names and hides the ViewCube and navigation bar while this panel is open. The command line stays. Everything comes back when you close the panel or AutoCAD, or click the Focus button." Style="{StaticResource Caption}" />
+                        </StackPanel>
+                    </CheckBox>
+                    <CheckBox Style="{StaticResource ThemedCheck}" IsChecked="{Binding FollowAiDrawing, Mode=TwoWay}"
+                              AutomationProperties.Name="Follow the AI's drawing">
+                        <StackPanel>
+                            <TextBlock Text="Follow the AI's drawing" TextWrapping="Wrap" />
+                            <TextBlock Text="After each drawing step, zooms to what the AI just drew when it is off screen or too small to see. Never while you are in a command of your own." Style="{StaticResource Caption}" />
                         </StackPanel>
                     </CheckBox>
                 </StackPanel>

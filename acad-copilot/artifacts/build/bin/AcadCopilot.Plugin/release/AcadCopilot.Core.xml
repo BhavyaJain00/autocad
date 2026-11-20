@@ -8740,6 +8740,360 @@
         <member name="T:AcadCopilot.Core.Services.SymbolLibraryDxf.DxfBuilder">
             <summary>Writes group code / value pairs in DXF's text form.</summary>
         </member>
+        <member name="T:AcadCopilot.Core.Sheets.DrawingKind">
+            <summary>What a drawing in model space is; decides its row in arrange_drawings and its sheet series.</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Sheets.DrawingKind.FloorPlan">
+            <summary>A floor plan (ground, first, terrace ...): top row, one sheet each (A-101 ...).</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Sheets.DrawingKind.Elevation">
+            <summary>An elevation (front, rear, side): second row, A-201 ...</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Sheets.DrawingKind.Section">
+            <summary>A section: after the elevations, A-301 ...</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Sheets.DrawingKind.SitePlan">
+            <summary>The site plan: after the sections, sheet A-100.</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Sheets.DrawingKind.Layout">
+            <summary>A plan-based layout (furniture, electrical, plumbing): third row, A-501 ...</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Sheets.DrawingKind.Schedule">
+            <summary>A table (door/window schedule, area statement): third row, A-601 ...</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Sheets.DrawingKind.Other">
+            <summary>Anything else (untitled drawings): third row, A-901 ...</summary>
+        </member>
+        <member name="T:AcadCopilot.Core.Sheets.DrawingTitleInfo">
+            <summary>A recognised drawing title.</summary>
+            <param name="Kind">The drawing kind.</param>
+            <param name="Order">Sort order within the kind: the floor level for plans (-1 basement, 0 ground, 1 first ... 100 terrace), front 0 / rear 1 / left 2 / right 3 for elevations, A=0 / B=1 for sections.</param>
+            <param name="Title">The cleaned title in capitals ("GROUND FLOOR PLAN").</param>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitleInfo.#ctor(AcadCopilot.Core.Sheets.DrawingKind,System.Double,System.String)">
+            <summary>A recognised drawing title.</summary>
+            <param name="Kind">The drawing kind.</param>
+            <param name="Order">Sort order within the kind: the floor level for plans (-1 basement, 0 ground, 1 first ... 100 terrace), front 0 / rear 1 / left 2 / right 3 for elevations, A=0 / B=1 for sections.</param>
+            <param name="Title">The cleaned title in capitals ("GROUND FLOOR PLAN").</param>
+        </member>
+        <member name="P:AcadCopilot.Core.Sheets.DrawingTitleInfo.Kind">
+            <summary>The drawing kind.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Sheets.DrawingTitleInfo.Order">
+            <summary>Sort order within the kind: the floor level for plans (-1 basement, 0 ground, 1 first ... 100 terrace), front 0 / rear 1 / left 2 / right 3 for elevations, A=0 / B=1 for sections.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Sheets.DrawingTitleInfo.Title">
+            <summary>The cleaned title in capitals ("GROUND FLOOR PLAN").</summary>
+        </member>
+        <member name="T:AcadCopilot.Core.Sheets.DrawingTitles">
+            <summary>
+            Recognises drawing titles ("%%uGROUND FLOOR PLAN", "FRONT ELEVATION", "SECTION A-A", "SITE PLAN") and scale lines
+            ("SCALE 1/4\" = 1'-0\"") in TEXT / MTEXT contents, and makes the standard titles. Pure.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Sheets.DrawingTitles.MaxTitleLength">
+            <summary>Longest text that can be a title.</summary>
+        </member>
+        <member name="F:AcadCopilot.Core.Sheets.DrawingTitles.TerraceLevel">
+            <summary>Level of a terrace / roof plan.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.Clean(System.String)">
+            <summary>
+            The text without AutoCAD control codes (%%u, %%o, %%c ...) and MTEXT formatting (\P, \fArial|b0;, \H2x;, \L, braces),
+            with runs of white space collapsed, in capitals.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.Classify(System.String)">
+            <summary>The title information of <paramref name="raw"/>, or null when the text is not a drawing title.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.IsScaleText(System.String)">
+            <summary>True when the text is a scale line ("SCALE 1/4\" = 1'-0\"", "SCALE: 1:100", "1/8\"=1'-0\"").</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.Level(System.String)">
+            <summary>The floor level named in a title (-1 basement, -0.5 stilt, 0 ground, 1 first ... 100 terrace), or null.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.FloorPlanTitle(System.Double)">
+            <summary>The standard title of a floor plan at <paramref name="level"/> ("GROUND FLOOR PLAN", "TERRACE PLAN").</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.TitleCase(System.String)">
+            <summary>Title case for layout tab names: "GROUND FLOOR PLAN" -> "Ground Floor Plan", "SECTION A-A" stays "Section A-A".</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.MtextCode">
+            <remarks>
+            Pattern:<br/>
+            <code>\\\\[ACFHQTWfhcqtwap][^;\\\\{}]*;</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match '\\'.<br/>
+            ○ Match a character in the set [ACFHQTWacfhpqtw].<br/>
+            ○ Match a character in the set [^;\\{}] atomically any number of times.<br/>
+            ○ Match ';'.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.MtextToggle">
+            <remarks>
+            Pattern:<br/>
+            <code>\\\\[LlOoKkSN]</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match '\\'.<br/>
+            ○ Match a character in the set [KLNOSklo].<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.PercentCode">
+            <remarks>
+            Pattern:<br/>
+            <code>%%([A-Za-z])</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match the string "%%".<br/>
+            ○ 1st capture group.<br/>
+                ○ Match an ASCII letter.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.NotATitle">
+            <remarks>
+            Pattern:<br/>
+            <code>^(SEE|REFER|REF\\.?|NOTE|NOTES|AS PER)\\b|[=]</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match with 2 alternative expressions, atomically.<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match if at the beginning of the string.<br/>
+                    ○ 1st capture group.<br/>
+                        ○ Match with 4 alternative expressions.<br/>
+                            ○ Match the string "SEE".<br/>
+                            ○ Match a sequence of expressions.<br/>
+                                ○ Match the string "REF".<br/>
+                                ○ Match with 2 alternative expressions.<br/>
+                                    ○ Match the string "ER".<br/>
+                                    ○ Match '.' greedily, optionally.<br/>
+                            ○ Match a sequence of expressions.<br/>
+                                ○ Match the string "NOTE".<br/>
+                                ○ Match 'S' lazily, optionally.<br/>
+                            ○ Match the string "AS PER".<br/>
+                    ○ Match if at a word boundary.<br/>
+                ○ Match '='.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.SectionWord">
+            <remarks>
+            Pattern:<br/>
+            <code>\\bSECTION\\b</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at a word boundary.<br/>
+            ○ Match the string "SECTION".<br/>
+            ○ Match if at a word boundary.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.SitePlan">
+            <remarks>
+            Pattern:<br/>
+            <code>\\b(SITE|LOCATION|KEY)\\s+(PLAN|LAYOUT)\\b</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at a word boundary.<br/>
+            ○ 1st capture group.<br/>
+                ○ Match with 3 alternative expressions.<br/>
+                    ○ Match the string "SITE".<br/>
+                    ○ Match the string "LOCATION".<br/>
+                    ○ Match the string "KEY".<br/>
+            ○ Match a whitespace character atomically at least once.<br/>
+            ○ 2nd capture group.<br/>
+                ○ Match with 2 alternative expressions.<br/>
+                    ○ Match the string "PLAN".<br/>
+                    ○ Match the string "LAYOUT".<br/>
+            ○ Match if at a word boundary.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.PlanWord">
+            <remarks>
+            Pattern:<br/>
+            <code>\\bPLANS?\\b</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at a word boundary.<br/>
+            ○ Match the string "PLAN".<br/>
+            ○ Match 'S' greedily, optionally.<br/>
+            ○ Match if at a word boundary.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.ServicesWord">
+            <remarks>
+            Pattern:<br/>
+            <code>\\b(FURNITURE|ELECTRICAL|PLUMBING|DRAINAGE|WATER SUPPLY|LIGHTING)\\b</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at a word boundary.<br/>
+            ○ 1st capture group.<br/>
+                ○ Match with 6 alternative expressions.<br/>
+                    ○ Match the string "FURNITURE".<br/>
+                    ○ Match the string "ELECTRICAL".<br/>
+                    ○ Match the string "PLUMBING".<br/>
+                    ○ Match the string "DRAINAGE".<br/>
+                    ○ Match the string "WATER SUPPLY".<br/>
+                    ○ Match the string "LIGHTING".<br/>
+            ○ Match if at a word boundary.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.DrawingTitles.BareScale">
+            <remarks>
+            Pattern:<br/>
+            <code>^(\\d+\\s*/\\s*\\d+|\\d+)\\s*"\\s*=\\s*1\\s*'(\\s*-?\\s*0\\s*"?)?$|^1\\s*:\\s*\\d+$</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at the beginning of the string.<br/>
+            ○ Match with 2 alternative expressions, atomically.<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ 1st capture group.<br/>
+                        ○ Match with 2 alternative expressions.<br/>
+                            ○ Match a sequence of expressions.<br/>
+                                ○ Match a Unicode digit atomically at least once.<br/>
+                                ○ Match a whitespace character atomically any number of times.<br/>
+                                ○ Match '/'.<br/>
+                                ○ Match a whitespace character atomically any number of times.<br/>
+                                ○ Match a Unicode digit atomically at least once.<br/>
+                            ○ Match a Unicode digit atomically at least once.<br/>
+                    ○ Match a whitespace character atomically any number of times.<br/>
+                    ○ Match '"'.<br/>
+                    ○ Match a whitespace character atomically any number of times.<br/>
+                    ○ Match '='.<br/>
+                    ○ Match a whitespace character atomically any number of times.<br/>
+                    ○ Match '1'.<br/>
+                    ○ Match a whitespace character atomically any number of times.<br/>
+                    ○ Match '\''.<br/>
+                    ○ Optional (greedy).<br/>
+                        ○ 2nd capture group.<br/>
+                            ○ Match a whitespace character greedily any number of times.<br/>
+                            ○ Match '-' atomically, optionally.<br/>
+                            ○ Match a whitespace character atomically any number of times.<br/>
+                            ○ Match '0'.<br/>
+                            ○ Match a whitespace character greedily any number of times.<br/>
+                            ○ Match '"' atomically, optionally.<br/>
+                    ○ Match if at the end of the string or if before an ending newline.<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match '1'.<br/>
+                    ○ Match a whitespace character atomically any number of times.<br/>
+                    ○ Match ':'.<br/>
+                    ○ Match a whitespace character atomically any number of times.<br/>
+                    ○ Match a Unicode digit atomically at least once.<br/>
+                    ○ Match if at the end of the string or if before an ending newline.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="T:AcadCopilot.Core.Sheets.SheetRect">
+            <summary>
+            An axis-aligned rectangle: a drawing's extents in model space (drawing units) or an area on a sheet (paper
+            millimetres). Pure.
+            </summary>
+            <param name="MinX">Smallest X.</param>
+            <param name="MinY">Smallest Y.</param>
+            <param name="MaxX">Largest X.</param>
+            <param name="MaxY">Largest Y.</param>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.#ctor(System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            An axis-aligned rectangle: a drawing's extents in model space (drawing units) or an area on a sheet (paper
+            millimetres). Pure.
+            </summary>
+            <param name="MinX">Smallest X.</param>
+            <param name="MinY">Smallest Y.</param>
+            <param name="MaxX">Largest X.</param>
+            <param name="MaxY">Largest Y.</param>
+        </member>
+        <member name="P:AcadCopilot.Core.Sheets.SheetRect.MinX">
+            <summary>Smallest X.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Sheets.SheetRect.MinY">
+            <summary>Smallest Y.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Sheets.SheetRect.MaxX">
+            <summary>Largest X.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Sheets.SheetRect.MaxY">
+            <summary>Largest Y.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Sheets.SheetRect.Width">
+            <summary>Width (X size).</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Sheets.SheetRect.Height">
+            <summary>Height (Y size).</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Sheets.SheetRect.CenterX">
+            <summary>Centre X.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Sheets.SheetRect.CenterY">
+            <summary>Centre Y.</summary>
+        </member>
+        <member name="P:AcadCopilot.Core.Sheets.SheetRect.IsValid">
+            <summary>True when all values are finite and min does not exceed max.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.FromCorners(System.Double,System.Double,System.Double,System.Double)">
+            <summary>A rectangle from two opposite corners in any order.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.FromSize(System.Double,System.Double,System.Double,System.Double)">
+            <summary>A rectangle from its lower-left corner and size.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.FromCenter(System.Double,System.Double,System.Double,System.Double)">
+            <summary>A rectangle from its centre and size.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.Union(AcadCopilot.Core.Sheets.SheetRect)">
+            <summary>The smallest rectangle containing both.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.Offset(System.Double,System.Double)">
+            <summary>The rectangle moved by (<paramref name="dx"/>, <paramref name="dy"/>).</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.Inflate(System.Double)">
+            <summary>The rectangle grown by <paramref name="margin"/> on every side (shrunk when negative).</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.Overlaps(AcadCopilot.Core.Sheets.SheetRect)">
+            <summary>True when the rectangles overlap (touching edges do not count).</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.Contains(AcadCopilot.Core.Sheets.SheetRect,System.Double)">
+            <summary>True when <paramref name="other"/> lies inside this rectangle (within <paramref name="tolerance"/>).</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.Contains(System.Double,System.Double)">
+            <summary>True when the point lies inside or on the rectangle.</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.GapTo(AcadCopilot.Core.Sheets.SheetRect)">
+            <summary>
+            The empty space between the rectangles: the larger of the X gap and the Y gap (0 or negative when they overlap
+            in both directions). Two drawings are separate when this is larger than the clustering gap.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.DistanceTo(AcadCopilot.Core.Sheets.SheetRect)">
+            <summary>Straight-line distance between the rectangles (0 when they touch or overlap).</summary>
+        </member>
+        <member name="M:AcadCopilot.Core.Sheets.SheetRect.ToString">
+            <summary>"[x0, y0, x1, y1]" rounded to 2 decimals (for messages).</summary>
+        </member>
         <member name="T:AcadCopilot.Core.Tools.JsonSchemaValidator">
             <summary>
             Validates JSON values against the subset of JSON Schema the tools use:
@@ -10097,34 +10451,322 @@
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.NamePattern_30">
-            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the NamePattern method.</summary>
+        <member name="T:System.Text.RegularExpressions.Generated.MtextCode_30">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the MtextCode method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.NamePattern_30.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.MtextCode_30.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.NamePattern_30.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.MtextCode_30.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.NamePattern_30.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.MtextCode_30.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.NamePattern_30.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.MtextCode_30.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.NamePattern_30.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.MtextCode_30.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.NamePattern_30.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.MtextCode_30.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.NamePattern_30.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.MtextCode_30.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.NamePattern_30.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.MtextCode_30.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.MtextToggle_31">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the MtextToggle method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.MtextToggle_31.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.MtextToggle_31.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.MtextToggle_31.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.MtextToggle_31.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.MtextToggle_31.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.MtextToggle_31.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.MtextToggle_31.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.MtextToggle_31.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.PercentCode_32">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the PercentCode method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.PercentCode_32.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PercentCode_32.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.PercentCode_32.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PercentCode_32.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.PercentCode_32.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PercentCode_32.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PercentCode_32.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PercentCode_32.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.NotATitle_33">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the NotATitle method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.NotATitle_33.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NotATitle_33.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.NotATitle_33.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NotATitle_33.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.NotATitle_33.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NotATitle_33.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NotATitle_33.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NotATitle_33.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.SectionWord_34">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the SectionWord method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.SectionWord_34.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.SectionWord_34.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.SectionWord_34.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.SectionWord_34.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.SectionWord_34.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.SectionWord_34.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.SectionWord_34.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.SectionWord_34.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.SitePlan_35">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the SitePlan method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.SitePlan_35.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.SitePlan_35.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.SitePlan_35.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.SitePlan_35.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.SitePlan_35.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.SitePlan_35.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.SitePlan_35.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.SitePlan_35.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.PlanWord_36">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the PlanWord method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.PlanWord_36.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PlanWord_36.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.PlanWord_36.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PlanWord_36.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.PlanWord_36.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PlanWord_36.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PlanWord_36.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PlanWord_36.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.ServicesWord_37">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the ServicesWord method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.ServicesWord_37.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ServicesWord_37.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.ServicesWord_37.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ServicesWord_37.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.ServicesWord_37.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ServicesWord_37.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ServicesWord_37.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.ServicesWord_37.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.BareScale_38">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the BareScale method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.BareScale_38.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.BareScale_38.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.BareScale_38.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.BareScale_38.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.BareScale_38.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.BareScale_38.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.BareScale_38.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.BareScale_38.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.NamePattern_39">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the NamePattern method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.NamePattern_39.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NamePattern_39.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.NamePattern_39.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NamePattern_39.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.NamePattern_39.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NamePattern_39.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NamePattern_39.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NamePattern_39.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
@@ -10189,6 +10831,9 @@
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_asciiLettersAndDigitsAndDashUnderscore">
             <summary>Supports searching for characters in or not in "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz".</summary>
         </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_ascii_2002400C0000000000">
+            <summary>Supports searching for characters in or not in "=ANRS".</summary>
+        </member>
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_ascii_4000000000000801400">
             <summary>Supports searching for characters in or not in "2ort".</summary>
         </member>
@@ -10198,11 +10843,20 @@
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_ascii_400000AC275000AC27500">
             <summary>Supports searching for characters in or not in "*ACINOPRTUVacinoprtuv".</summary>
         </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_ascii_80000001000000028">
+            <summary>Supports searching for characters in or not in ";\\{}".</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_ascii_A800240000000000">
+            <summary>Supports searching for characters in or not in "CEGRU".</summary>
+        </member>
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_ascii_FFC1FFFFF6EBFFEFFEFFFFFFFFFFFFFF">
             <summary>Supports searching for characters in or not in "\0\u0001\u0002\u0003\u0004\u0005\u0006\a\b\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001a\u001b\u001c\u001d\u001e\u001f!\"$%&amp;'()+-./0123456789:;=&gt;?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\u007f".</summary>
         </member>
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_indexOfAnyStrings_OrdinalIgnoreCase_03B54B0DA4DF8C49F1A0CB4CAD598075D68F226F4050BC59FD5C8F58A9AC525D">
             <summary>Supports searching for the specified strings.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_indexOfString_389100A15AF606B196735968A2C9BDA765D89CC46DA25FFC170113259226BFAE">
+            <summary>Supports searching for the string "%%".</summary>
         </member>
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_indexOfString_401_Ordinal">
             <summary>Supports searching for the string "401".</summary>
@@ -10212,6 +10866,12 @@
         </member>
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_indexOfString_789AAF917D2570104A962E9F121A824FFEE31E0403DC49699413BC275346E5CE">
             <summary>Supports searching for the string "\"%".</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_indexOfString_PLAN_Ordinal">
+            <summary>Supports searching for the string "PLAN".</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_indexOfString_SECTION_Ordinal">
+            <summary>Supports searching for the string "SECTION".</summary>
         </member>
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_nonAscii_8CBA43F70C63537F09B21D3BED9FDB697A41011E12EDF5BE25348117D3C93374">
             <summary>Supports searching for characters in or not in "$-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyzK".</summary>

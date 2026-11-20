@@ -351,6 +351,14 @@ internal sealed class DraftingEngine
         }
 
         var collected = CollectChanges(watch, recorders, units);
+
+        // "Follow the AI's drawing": show what this call drew when it is off screen or too small (never mid-command).
+        if (collected.CreatedIds.Count > 0 && IsActiveDocument() && ViewFollow.IsEnabled() &&
+            ViewFollow.FrameCreated(_document, collected.CreatedIds, _dispatcher) is { } framed)
+        {
+            CopilotLog.Info($"run_commands '{_plan.Title}': {framed}.");
+        }
+
         if (oneUndoStep && collected.CreatedIds.Count + collected.ErasedIds.Count + collected.ModifiedIds.Count > 0)
         {
             DraftingHistory.Instance.Add(new RunRecord

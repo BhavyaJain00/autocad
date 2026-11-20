@@ -58,6 +58,12 @@ public sealed record CopilotPaneOptions
 
     /// <summary>False hides the ⚡ quick-prompt menu.</summary>
     public bool EnableQuickPrompts { get; init; } = true;
+
+    /// <summary>
+    /// Focus mode (more room for the drawing) inside AutoCAD (<see cref="AcadCopilot.Plugin.Palette.FocusLayoutController"/>);
+    /// null hides the Focus button. The DRAWING AREA settings are shown either way.
+    /// </summary>
+    public AcadCopilot.Plugin.Palette.IFocusLayoutHost? FocusLayout { get; init; }
 }
 
 /// <summary>
@@ -111,6 +117,7 @@ public partial class CopilotPane : UserControl
         var knowledge = (backend as CopilotBackend)?.Knowledge.Directory ?? AcadCopilot.Core.AppPaths.Knowledge;
         var hub = backend as ICopilotHub;
         var quickPrompts = options.EnableQuickPrompts ? new QuickPromptsViewModel(panelSettings) : null;
+        Layout = new FocusLayoutViewModel(options.FocusLayout, panelSettings, problem => Shell?.SelectedTab.ShowNotice(problem, isError: true));
         Shell = new CopilotPanelViewModel(
             hub ?? new SingleSessionHub(backend),
             session => new ChatViewModel(session, Dispatcher, filePicker, panelSettings, copilotSettings, voice)
@@ -120,6 +127,7 @@ public partial class CopilotPane : UserControl
                 FileRevealer = options.RevealFile,
                 Interaction = options.Interaction,
                 QuickPrompts = quickPrompts,
+                Layout = Layout,
             },
             canCreateTabs: hub is not null,
             recorder: options.Recorder);
@@ -136,8 +144,18 @@ public partial class CopilotPane : UserControl
         ComposerFrame.Drop += OnComposerDrop;
         Loaded += OnLoaded;
         Unloaded += (_, _) => _themeTimer?.Stop();
-        SizeChanged += (_, e) => SettingsScroll.MaxHeight = Math.Max(SettingsMinHeight, e.NewSize.Height * SettingsMaxFraction);
+        SizeChanged += (_, e) =>
+        {
+            SettingsScroll.MaxHeight = Math.Max(SettingsMinHeight, e.NewSize.Height * SettingsMaxFraction);
+            ApplyCompactHeader(e.NewSize.Width);
+        };
     }
+
+    /// <summary>The Focus button and the drawing-area settings (shared by the tabs).</summary>
+    public FocusLayoutViewModel Layout { get; }
+
+    /// <summary>True while the header is the slim one-line bar (the panel is narrower than <see cref="CompactHeaderWidth"/>).</summary>
+    public bool IsCompactHeader { get; private set; }
 
     /// <summary>The backend the view model talks to.</summary>
     public ICopilotBackend Backend { get; }
@@ -309,6 +327,30 @@ public partial class CopilotPane : UserControl
     {
         Composer.Focus();
         Composer.CaretIndex = ViewModel.PendingComposerCaret is { } caret ? Math.Clamp(caret, 0, Composer.Text.Length) : Composer.Text.Length;
+    }
+
+    /// <summary>
+    /// Below this panel width the header becomes one slim line (provider and model drop-downs next to the Focus, New chat
+    /// and Settings buttons), so the conversation gets the height.
+    /// </summary>
+    public const double CompactHeaderWidth = 420;
+
+    private void ApplyCompactHeader(double width)
+    {
+        var compact = width > 0 && width < CompactHeaderWidth;
+        if (compact == IsCompactHeader && HeaderLogo.Visibility == (compact ? Visibility.Collapsed : Visibility.Visible))
+        {
+            return;
+        }
+
+        IsCompactHeader = compact;
+        var full = compact ? Visibility.Collapsed : Visibility.Visible;
+        HeaderLogo.Visibility = full;
+        HeaderTitle.Visibility = full;
+        ProviderSegment.Visibility = full;
+        ProviderStatusRow.Visibility = full;
+        CompactProviderBar.Visibility = compact ? Visibility.Visible : Visibility.Collapsed;
+        HeaderTitleRow.Margin = compact ? new Thickness(-4, -3, 0, -3) : new Thickness(0);
     }
 
     // Below this width the composer's buttons show icons only (Point, Watch, Fast), so Send / Stop always fit.
