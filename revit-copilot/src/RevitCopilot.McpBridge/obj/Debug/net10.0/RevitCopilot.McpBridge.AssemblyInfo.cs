@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RevitCopilotMcp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0fa780cf5b20054caab52bcb790ba919c709e757")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5c63670fe131664f28091cdbe01c40b64368625a")]
 [assembly: System.Reflection.AssemblyProductAttribute("RevitCopilotMcp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RevitCopilotMcp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
