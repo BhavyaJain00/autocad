@@ -1,0 +1,191 @@
+<UserControl x:Class="AcadCopilot.Plugin.QuickAsk.QuickAskButtonView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:AcadCopilot.Plugin.Views"
+             FontFamily="Segoe UI"
+             FontSize="12"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             Background="Transparent"
+             Focusable="False"
+             AutomationProperties.Name="AI Copilot Quick Ask">
+    <!--
+      The floating AI button in the drawing area's top-right corner, with the status bubble of the last Quick Ask on its
+      left. DataContext: QuickAskController. Lives in a window that never takes the keyboard (QuickAskOverlayWindow).
+    -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Index 0: the color palette (PanelThemes.Create), replaced by ApplyTheme. -->
+                <ResourceDictionary />
+            </ResourceDictionary.MergedDictionaries>
+
+            <v:BoolToVisibilityConverter x:Key="Vis" />
+            <Geometry x:Key="IconSparkle">M8,1 C8.4,4.6 9.4,6.4 15,8 C9.4,9.6 8.4,11.4 8,15 C7.6,11.4 6.6,9.6 1,8 C6.6,6.4 7.6,4.6 8,1 Z</Geometry>
+            <Geometry x:Key="IconCheck">M3.5,8.5 L6.7,11.6 L12.8,4.6</Geometry>
+            <Geometry x:Key="IconCross">M4.5,4.5 L11.5,11.5 M11.5,4.5 L4.5,11.5</Geometry>
+            <Geometry x:Key="IconWarning">M8,2.2 L14.3,13.3 H1.7 Z M8,6.5 V9.4 M8,11.4 V11.5</Geometry>
+            <Geometry x:Key="IconQuestion">M8,1.8 C11.4,1.8 14.2,4.6 14.2,8 C14.2,11.4 11.4,14.2 8,14.2 C4.6,14.2 1.8,11.4 1.8,8 C1.8,4.6 4.6,1.8 8,1.8 Z M6.2,6.3 C6.2,5.3 7,4.6 8,4.6 C9,4.6 9.8,5.3 9.8,6.2 C9.8,7.6 8,7.6 8,9.1 M8,11.3 V11.4</Geometry>
+
+            <DropShadowEffect x:Key="Shadow" BlurRadius="10" ShadowDepth="1.5" Direction="270" Opacity="0.35" Color="{DynamicResource ShadowColorBrushColor}" />
+
+            <ControlTemplate x:Key="PillButtonTemplate" TargetType="ButtonBase">
+                <Border x:Name="Bd"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="11"
+                        Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="False" />
+                </Border>
+            </ControlTemplate>
+
+            <!-- [Undo] [Open chat] inside the bubble. -->
+            <Style x:Key="BubbleLink" TargetType="Button">
+                <Setter Property="Template" Value="{StaticResource PillButtonTemplate}" />
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Height" Value="22" />
+                <Setter Property="Padding" Value="8,0" />
+                <Setter Property="Margin" Value="2,0,0,0" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+                <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource Accent}" />
+                        <Setter Property="Foreground" Value="{DynamicResource AccentForeground}" />
+                    </Trigger>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Opacity" Value="0.45" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="BubbleClose" TargetType="Button">
+                <Setter Property="Template" Value="{StaticResource PillButtonTemplate}" />
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Width" Value="22" />
+                <Setter Property="Height" Value="22" />
+                <Setter Property="Margin" Value="2,0,0,0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource HoverBackground}" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- The round AI button: a blue-violet disc with a sparkle and "AI". -->
+            <Style x:Key="AiButton" TargetType="Button">
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Width" Value="40" />
+                <Setter Property="Height" Value="40" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid>
+                                <Ellipse x:Name="Halo" Margin="-3" Stroke="{DynamicResource FocusBrush}" StrokeThickness="2" Visibility="Collapsed" />
+                                <Ellipse x:Name="Disc" Effect="{StaticResource Shadow}">
+                                    <Ellipse.Fill>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#2F8CF0" Offset="0" />
+                                            <GradientStop Color="#5B5BE8" Offset="0.6" />
+                                            <GradientStop Color="#7A4FE0" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Ellipse.Fill>
+                                </Ellipse>
+                                <Ellipse x:Name="Shine" Stroke="#40FFFFFF" StrokeThickness="1" />
+                                <Ellipse x:Name="Hover" Fill="White" Opacity="0" />
+                                <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0">
+                                    <TextBlock Text="AI" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="-2,2,0,0" />
+                                    <v:Icon Data="{StaticResource IconSparkle}" IsFilled="True" Foreground="White" Width="9" Height="9" Margin="17,-12,-8,0" HorizontalAlignment="Center" VerticalAlignment="Top" />
+                                </Grid>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Hover" Property="Opacity" Value="0.14" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Hover" Property="Opacity" Value="0.24" />
+                                </Trigger>
+                                <DataTrigger Binding="{Binding IsBoxOpen}" Value="True">
+                                    <Setter TargetName="Halo" Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10">
+        <!-- Status bubble of the last Quick Ask. -->
+        <Border x:Name="Bubble"
+                Visibility="{Binding Status.IsVisible, Converter={StaticResource Vis}}"
+                VerticalAlignment="Center"
+                Height="34"
+                Margin="0,0,8,0"
+                Padding="11,0,5,0"
+                CornerRadius="17"
+                Background="{DynamicResource SurfaceBackground}"
+                BorderBrush="{DynamicResource LineBrush}"
+                BorderThickness="1"
+                Effect="{StaticResource Shadow}"
+                ToolTip="{Binding Status.ToolTip}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Grid Width="15" Height="15" VerticalAlignment="Center">
+                    <v:Spinner Width="14" Height="14" Foreground="{DynamicResource AccentText}" Visibility="{Binding Status.IsBusy, Converter={StaticResource Vis}}" />
+                    <Ellipse Width="15" Height="15" Fill="{DynamicResource Success}" Visibility="{Binding Status.IsDone, Converter={StaticResource Vis}}" />
+                    <v:Icon Width="11" Height="11" Data="{StaticResource IconCheck}" StrokeThickness="2.2" Foreground="White" Visibility="{Binding Status.IsDone, Converter={StaticResource Vis}}" />
+                    <v:Icon Width="15" Height="15" Data="{StaticResource IconWarning}" Foreground="{DynamicResource Danger}" Visibility="{Binding Status.IsProblem, Converter={StaticResource Vis}}" />
+                    <v:Icon Width="15" Height="15" Data="{StaticResource IconQuestion}" Foreground="{DynamicResource Warning}" Visibility="{Binding Status.IsNeedsAnswer, Converter={StaticResource Vis}}" />
+                </Grid>
+                <TextBlock Text="{Binding Status.Text}"
+                           Margin="8,0,6,0"
+                           MaxWidth="330"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextPrimary}" />
+                <Button Style="{StaticResource BubbleLink}" Content="Undo" Command="{Binding Status.UndoCommand}"
+                        Visibility="{Binding Status.CanUndo, Converter={StaticResource Vis}}"
+                        ToolTip="Take back what the AI drew for this request" />
+                <Button Style="{StaticResource BubbleLink}" Content="Open chat" Command="{Binding Status.OpenChatCommand}"
+                        Visibility="{Binding Status.ShowOpenChat, Converter={StaticResource Vis}}"
+                        ToolTip="Show this conversation in the AI Copilot panel" />
+                <Button Style="{StaticResource BubbleClose}" Command="{Binding Status.DismissCommand}"
+                        Visibility="{Binding Status.ShowDismiss, Converter={StaticResource Vis}}"
+                        ToolTip="Hide">
+                    <v:Icon Width="10" Height="10" Data="{StaticResource IconCross}" StrokeThickness="1.8" />
+                </Button>
+                <Border Width="6" Visibility="{Binding Status.ShowDismiss, Converter={StaticResource Vis}, ConverterParameter=Invert}" />
+            </StackPanel>
+        </Border>
+
+        <!-- The round AI button. -->
+        <Button x:Name="AiButton"
+                Style="{StaticResource AiButton}"
+                VerticalAlignment="Center"
+                Command="{Binding ToggleBoxCommand}"
+                ToolTip="{Binding ButtonToolTip}"
+                Visibility="{Binding Options.ShowButton, Converter={StaticResource Vis}}"
+                AutomationProperties.Name="Ask the AI">
+            <Button.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Ask the AI here..." Command="{Binding ToggleBoxCommand}" />
+                    <MenuItem Header="Open the AI Copilot panel" Command="{Binding OpenPanelCommand}" />
+                    <Separator />
+                    <MenuItem Header="{Binding ShortcutMenuText}" IsEnabled="False" />
+                    <MenuItem Header="Hide this button (type AIBUTTON to show it again)" Command="{Binding HideButtonCommand}" />
+                </ContextMenu>
+            </Button.ContextMenu>
+        </Button>
+    </StackPanel>
+</UserControl>
