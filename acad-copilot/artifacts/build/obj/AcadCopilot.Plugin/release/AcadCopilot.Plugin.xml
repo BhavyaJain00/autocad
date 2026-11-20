@@ -326,6 +326,63 @@
         <member name="M:AcadCopilot.Plugin.Acad.RevisionTracker.Dispose">
             <summary>Stops tracking. Main thread.</summary>
         </member>
+        <member name="T:AcadCopilot.Plugin.Accuracy.AccuracyDrawingReader">
+            <summary>
+            Reads the model-space objects of one area of the active drawing into a <see cref="T:AcadCopilot.Core.Accuracy.DrawingSnapshot"/> (inches) for
+            check_drawing: lines and polyline pieces, arcs, text, linear dimensions and every object's layer. Main thread, inside
+            the caller's read transaction.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Accuracy.AccuracyDrawingReader.MaxObjects">
+            <summary>Most objects read in one area.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Accuracy.AccuracyDrawingReader.Read(Autodesk.AutoCAD.ApplicationServices.Document,Autodesk.AutoCAD.DatabaseServices.Transaction,AcadCopilot.Core.Accuracy.Box)">
+            <summary>Reads the objects whose extents touch <paramref name="regionInches"/>.</summary>
+            <returns>The snapshot and whether the drawing's unit scale was known (unitless drawings are read as inches).</returns>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Accuracy.TemplateReport">
+            <summary>What apply_drawing_template did.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Accuracy.TemplateOptions">
+            <summary>Options of apply_drawing_template.</summary>
+            <param name="Scale">"1/4" or "1/8".</param>
+            <param name="Overwrite">Update existing layers and styles.</param>
+            <param name="TitleBlock">Define the title block.</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Accuracy.TemplateOptions.#ctor(System.String,System.Boolean,System.Boolean)">
+            <summary>Options of apply_drawing_template.</summary>
+            <param name="Scale">"1/4" or "1/8".</param>
+            <param name="Overwrite">Update existing layers and styles.</param>
+            <param name="TitleBlock">Define the title block.</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Accuracy.TemplateOptions.Scale">
+            <summary>"1/4" or "1/8".</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Accuracy.TemplateOptions.Overwrite">
+            <summary>Update existing layers and styles.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Accuracy.TemplateOptions.TitleBlock">
+            <summary>Define the title block.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Accuracy.TemplateApplier">
+            <summary>
+            Applies a <see cref="T:AcadCopilot.Core.Accuracy.DrawingTemplate"/> (or the user's own DWT/DWG) to a drawing through the AutoCAD database API:
+            header variables, linetypes, layers, text styles, dimension styles and the title block. Main thread, inside the
+            caller's write transaction (document locked), so everything is one undo step and no dialog can open.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Accuracy.TemplateApplier.BuiltIn(System.String)">
+            <summary>The built-in template: the bundle's Templates\AcadCopilot-Architectural.json when it is valid, else the data in code.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Accuracy.TemplateApplier.Apply(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,AcadCopilot.Core.Accuracy.DrawingTemplate,AcadCopilot.Plugin.Accuracy.TemplateOptions)">
+            <summary>Applies <paramref name="template"/>.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Accuracy.TemplateApplier.Import(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,System.String,AcadCopilot.Plugin.Accuracy.TemplateOptions)">
+            <summary>
+            Imports the user's own template drawing (.dwt / .dwg): its units, linetypes, layers, text styles, dimension styles
+            and named blocks, keeping (or with overwrite replacing) what the drawing already has.
+            </summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.Commands.CopilotCommands">
             <summary>AutoCAD commands of the plug-in: COPILOT (show / hide the chat palette) and COPILOTSTATUS (diagnostics).</summary>
         </member>
@@ -337,6 +394,28 @@
         </member>
         <member name="M:AcadCopilot.Plugin.Commands.CopilotCommands.Status">
             <summary>COPILOTSTATUS: prints the pipe, discovery file, tool count, bridge path and log path.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Commands.QuickAskCommands">
+            <summary>
+            Quick Ask commands: AI / QUICKAI open the Quick Ask box next to the cursor; -AI / -QUICKAI ask on the command line
+            ("AI: Ask the copilot:") and send at once; AIBUTTON shows / hides the floating AI button. The request goes to the chat
+            of the active drawing, the side panel stays as it is.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Commands.QuickAskCommands.Ask">
+            <summary>AI: opens the Quick Ask box next to the cursor.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Commands.QuickAskCommands.QuickAsk">
+            <summary>QUICKAI: the same as AI (for when another add-in defines AI).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Commands.QuickAskCommands.AskOnCommandLine">
+            <summary>-AI: asks for the request on the command line and sends it.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Commands.QuickAskCommands.QuickAskOnCommandLine">
+            <summary>-QUICKAI: the same as -AI.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Commands.QuickAskCommands.ToggleButton">
+            <summary>AIBUTTON: shows the floating AI button when hidden, hides it when shown.</summary>
         </member>
         <member name="T:AcadCopilot.Plugin.Drafting.AcadInput">
             <summary>
@@ -2177,6 +2256,378 @@
         <member name="M:AcadCopilot.Plugin.Palette.RibbonTabHost.RibbonCommand.#ctor(System.Action)">
             <summary>ICommand behind the ribbon button.</summary>
         </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.AcadQuickAskHost">
+            <summary>
+            Quick Ask's link to AutoCAD and the panel (main thread only).
+            <list type="bullet">
+            <item><b>Cursor point</b>: <c>Editor.PointMonitor</c> of the active drawing (re-attached on
+            <c>DocumentBecameCurrent</c>) keeps the last cursor position in the drawing; the handler only stores a point, so the
+            mouse never slows down. <c>InputPointContext.ComputedPoint</c> is in world coordinates (as AcEdInputPoint in
+            ObjectARX); feet-inch text comes from the drawing's units when the box opens.</item>
+            <item><b>Selection, Pick</b>: the panel's <see cref="T:AcadCopilot.Plugin.Interaction.AcadDrawingInteraction"/> (pickfirst selection; picks wait for
+            their turn in the chats' AutoCAD queue).</item>
+            <item><b>Undo</b>: waits for its turn in <see cref="P:AcadCopilot.Core.Panel.CopilotBackend.DrawingQueue"/> like a tool call, switches to the
+            chat's drawing when needed and runs the copilot's own undo of its last run_commands calls
+            (<see cref="M:AcadCopilot.Plugin.Drafting.DraftingCommands.UndoAsync(AcadCopilot.Plugin.Acad.AcadDispatcher,System.Int32,System.Threading.CancellationToken)"/>, which refuses when the user changed the drawing since).</item>
+            <item><b>Open chat</b>: shows the palette (<see cref="M:AcadCopilot.Plugin.Palette.PaletteHost.Show"/>) on that tab.</item>
+            </list>
+            AutoCAD API names verified by reflection over the AutoCAD 2027 assemblies (Editor.PointMonitor,
+            PointMonitorEventArgs.Context, InputPointContext.ComputedPoint / RawPoint / PointComputed). Compile-verified only.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.AcadQuickAskHost.ActiveDocument">
+            <summary>The active document now (null when none).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView">
+            <summary>
+            The Quick Ask box (DataContext: <see cref="T:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel"/>). Enter sends, Esc stops the mic or closes,
+            Ctrl+Space starts / stops the mic (as in the panel). Rendered off-screen in the UI tests.
+            </summary>
+            <summary>
+            QuickAskBoxView
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView.#ctor(AcadCopilot.Plugin.Resources.PanelTheme)">
+            <summary>Creates the view in <paramref name="theme"/>.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView.Theme">
+            <summary>The theme applied.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView.InputBox">
+            <summary>The request's text box.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView.ApplyTheme(AcadCopilot.Plugin.Resources.PanelTheme)">
+            <summary>Re-colors the view (AutoCAD's light / dark theme).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView.FocusInput">
+            <summary>Puts the keyboard into the text box, caret at the end.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason">
+            <summary>How the Quick Ask box was opened.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason.Button">
+            <summary>The floating AI button (the cursor is on the button, so no cursor point is taken).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason.Shortcut">
+            <summary>The keyboard shortcut (the cursor is in the drawing).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason.Command">
+            <summary>The AI / QUICKAI command.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel">
+            <summary>
+            The compact Quick Ask box shown next to the cursor in the drawing area: one line of text, the point chip (where the
+            cursor was, or the point clicked with Pick), the selection chip, the mic (the panel's voice input) and Send. Enter
+            sends, Esc closes. The window layer listens to <see cref="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.SendRequested"/>, <see cref="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.PickRequested"/> and
+            <see cref="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.CloseRequested"/>. UI thread only.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.#ctor(System.Windows.Threading.Dispatcher,AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason,AcadCopilot.Plugin.Interaction.PickedPoint,AcadCopilot.Plugin.Interaction.SelectionSnapshot,System.String,AcadCopilot.Plugin.Voice.VoiceInputService,AcadCopilot.Plugin.ViewModels.PanelSettings)">
+            <summary>Creates the box.</summary>
+            <param name="dispatcher">The UI dispatcher (AutoCAD's main thread).</param>
+            <param name="reason">How it was opened.</param>
+            <param name="cursorPoint">Where the cursor was in the drawing (null: unknown or opened from the button).</param>
+            <param name="selection">The user's selection now (null or empty: none).</param>
+            <param name="drawingTitle">The active drawing ("House.dwg"), for the hint line.</param>
+            <param name="voice">The panel's voice input (null hides the mic).</param>
+            <param name="panelSettings">The panel's settings (voice language and "send automatically after speaking").</param>
+        </member>
+        <member name="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.SendRequested">
+            <summary>Raised by Enter / Send (and by voice auto-send).</summary>
+        </member>
+        <member name="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.PickRequested">
+            <summary>Raised by Pick: the window hides while the user clicks in the drawing.</summary>
+        </member>
+        <member name="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.CloseRequested">
+            <summary>Raised by Esc or the x.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Reason">
+            <summary>How the box was opened.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.DrawingTitle">
+            <summary>The active drawing.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Text">
+            <summary>The request typed (or spoken).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.AcadCopilot#Plugin#ViewModels#IVoiceTarget#ComposerText">
+            <inheritdoc />
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.AcadCopilot#Plugin#ViewModels#IVoiceTarget#VoiceLanguageTag">
+            <inheritdoc />
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.AcadCopilot#Plugin#ViewModels#IVoiceTarget#VoiceAutoSend">
+            <inheritdoc />
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.AcadCopilot#Plugin#ViewModels#IVoiceTarget#SendFromVoice">
+            <inheritdoc />
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Placeholder">
+            <summary>"Ask the AI to draw or change something..." / "Speak now..." while listening.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Voice">
+            <summary>The mic, or null when voice input is not available.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.HasVoice">
+            <summary>True when the mic button is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Point">
+            <summary>The point that goes with the request, or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.PointSource">
+            <summary>Where <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Point"/> came from.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.HasPoint">
+            <summary>True when the point chip is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.PointChipText">
+            <summary>"Cursor 12'-6", 30'-0"" or "Point 12'-6", 30'-0"".</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.PointChipToolTip">
+            <summary>Tool tip of the point chip.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Selection">
+            <summary>The selection that goes with the request, or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.HasSelection">
+            <summary>True when the selection chip is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.SelectionChipText">
+            <summary>"5 objects selected".</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.SelectionChipToolTip">
+            <summary>The selection chip's tool tip.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.IsPicking">
+            <summary>True while the user clicks a point in the drawing (the box is hidden meanwhile).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Problem">
+            <summary>A problem to show under the text (pick failed ...), or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.StatusLine">
+            <summary>The line under the text: the mic's state or problem, or a pick problem; empty when none.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.HasStatusLine">
+            <summary>True when <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.StatusLine"/> is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.StatusIsError">
+            <summary>True when the status line is a problem (red).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.HintText">
+            <summary>"Enter to send · Esc to close · Chat of House.dwg".</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.CanSend">
+            <summary>True when Send is possible.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.SendCommand">
+            <summary>Sends the request.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.PickCommand">
+            <summary>Lets the user click the point for the request.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.RemovePointCommand">
+            <summary>Leaves the point out.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.RemoveSelectionCommand">
+            <summary>Leaves the selection out.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.CloseCommand">
+            <summary>Closes the box.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.SetPoint(AcadCopilot.Plugin.Interaction.PickedPoint,AcadCopilot.Plugin.QuickAsk.QuickAskPointSource)">
+            <summary>Uses <paramref name="point"/> (from Pick) or leaves the point out (null / None).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Compose">
+            <summary>The message this box sends now.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskButtonView">
+            <summary>
+            The floating AI button plus the status bubble of the last Quick Ask (DataContext: <see cref="T:AcadCopilot.Plugin.QuickAsk.QuickAskController"/>).
+            Nothing in it takes keyboard focus. Rendered off-screen in the UI tests.
+            </summary>
+            <summary>
+            QuickAskButtonView
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskButtonView.#ctor(AcadCopilot.Plugin.Resources.PanelTheme)">
+            <summary>Creates the view in <paramref name="theme"/>.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskButtonView.Theme">
+            <summary>The theme applied.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskButtonView.ApplyTheme(AcadCopilot.Plugin.Resources.PanelTheme)">
+            <summary>Re-colors the view (AutoCAD's light / dark theme).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskButtonView.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskUndoResult">
+            <summary>The outcome of Quick Ask's Undo.</summary>
+            <param name="Success">True when every drawing step of the request was taken back.</param>
+            <param name="Message">What happened (shown when it failed).</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskUndoResult.#ctor(System.Boolean,System.String)">
+            <summary>The outcome of Quick Ask's Undo.</summary>
+            <param name="Success">True when every drawing step of the request was taken back.</param>
+            <param name="Message">What happened (shown when it failed).</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskUndoResult.Success">
+            <summary>True when every drawing step of the request was taken back.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskUndoResult.Message">
+            <summary>What happened (shown when it failed).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.IQuickAskHost">
+            <summary>
+            What Quick Ask needs from AutoCAD and the panel (implemented inside AutoCAD by <see cref="T:AcadCopilot.Plugin.QuickAsk.AcadQuickAskHost"/>; tests
+            use a fake). Free of AutoCAD types. Everything is called on AutoCAD's main (UI) thread.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.Shell">
+            <summary>The panel's chat tabs, or null while the panel does not exist yet.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.ActiveDrawingId">
+            <summary>Id of the active drawing (DrawingDirectory), or null when none is open.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.ActiveDrawingTitle">
+            <summary>File name of the active drawing ("House.dwg"), or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.CursorPoint">
+            <summary>Where the cursor was last in the active drawing (world coordinates, feet-inches when the units allow), or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.Selection">
+            <summary>The user's selection in the active drawing now (null or empty when nothing is selected).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.PickPointAsync(System.Threading.CancellationToken)">
+            <summary>Lets the user click one point in the drawing (waits for AutoCAD's turn; never throws for expected problems).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.ShowChat(AcadCopilot.Plugin.ViewModels.ChatViewModel)">
+            <summary>Shows the side panel on <paramref name="chat"/> (Open chat, or a question waiting there).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.UndoAsync(AcadCopilot.Plugin.ViewModels.ChatViewModel,System.Int32,System.Threading.CancellationToken)">
+            <summary>Takes back the last <paramref name="calls"/> run_commands calls of <paramref name="chat"/> in its drawing.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.ReturnFocusToDrawing">
+            <summary>Gives the keyboard back to the drawing (after the box closes).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskController">
+            <summary>
+            Quick Ask: the floating AI in the drawing area. Opens the compact box (button, shortcut or the AI command), sends the
+            request to the chat tab bound to the active drawing (a new background tab when there is none) as a normal message
+            with the cursor point (or a picked point) and the selection, and drives the status bubble next to the button. The
+            side panel is never shown for this (only Open chat or a question / approval brings it up). UI thread only; the window
+            layer (<see cref="T:AcadCopilot.Plugin.QuickAsk.QuickAskService"/>) shows <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.Box"/> and the bubble.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.#ctor(AcadCopilot.Plugin.QuickAsk.IQuickAskHost,AcadCopilot.Plugin.QuickAsk.QuickAskOptions,System.Windows.Threading.Dispatcher,AcadCopilot.Plugin.Voice.VoiceInputService,AcadCopilot.Plugin.ViewModels.PanelSettingsStore)">
+            <summary>Creates the controller.</summary>
+            <param name="host">AutoCAD and the panel.</param>
+            <param name="options">The Quick Ask settings (button on/off, shortcut).</param>
+            <param name="dispatcher">The UI dispatcher.</param>
+            <param name="voice">The panel's voice input (null hides the mic in the box).</param>
+            <param name="panelSettings">The panel's settings file (voice language, auto-send); null = defaults.</param>
+        </member>
+        <member name="E:AcadCopilot.Plugin.QuickAsk.QuickAskController.BoxChanged">
+            <summary>Raised after <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.Box"/> changed (opened, closed or replaced).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.Options">
+            <summary>The settings.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.Status">
+            <summary>The status bubble.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.Box">
+            <summary>The open box, or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.IsBoxOpen">
+            <summary>True while the box is open.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.ToggleBoxCommand">
+            <summary>The floating button: opens the box, or closes it when open.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.OpenPanelCommand">
+            <summary>The button's menu: shows the side panel (on the chat of the active drawing when there is one).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.HideButtonCommand">
+            <summary>The button's menu: hides the floating button (the AIBUTTON command or the panel's Settings bring it back).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.ShortcutMenuText">
+            <summary>"Shortcut: Ctrl+Shift+Space" (the button's menu).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.ButtonToolTip">
+            <summary>"Ask the AI (Ctrl+Shift+Space)" for the button's tool tip.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.ToggleBox(AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason)">
+            <summary>Opens the box, or closes it when it is open (the button and the shortcut).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.OpenBox(AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason)">
+            <summary>
+            Opens the box with the context of this moment: the cursor point (not for the button, where the cursor is on the
+            button) and the selection. Nothing happens without a drawing.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.CloseBox">
+            <summary>Closes the box (the typed text is dropped; the mic stops) and gives the keyboard back to the drawing.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.SubmitText(System.String)">
+            <summary>
+            Sends <paramref name="text"/> as a Quick Ask now (the command-line version, -AI): with the cursor point and the
+            selection of this moment. False when nothing could be sent (the bubble says why).
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.SubmitBox">
+            <summary>Sends what the box holds and closes it. False when nothing was sent.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.Send(AcadCopilot.Plugin.QuickAsk.QuickAskMessage)">
+            <summary>Sends <paramref name="message"/> to the chat of the active drawing and follows it in the bubble.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.ChatFor(AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel)">
+            <summary>The chat bound to the active drawing (an idle one first), else a new background tab on it.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.PickAsync">
+            <summary>Lets the user click the point for the request (the box hides meanwhile, then comes back).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.Dispose">
+            <summary>Closes the box and stops following requests (AutoCAD closing).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskService">
+            <summary>
+            Starts and stops Quick Ask inside AutoCAD (one per session, main thread): the floating button window, the box window,
+            the keyboard shortcut and the AI commands' entry points. Started by <see cref="T:AcadCopilot.Plugin.Acad.CopilotApp"/> after the palette exists;
+            stopped when AutoCAD starts closing.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskService.IsRunning">
+            <summary>True while Quick Ask runs.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskService.Start(AcadCopilot.Plugin.Acad.CopilotApp)">
+            <summary>Starts Quick Ask (once; never throws: failures are logged and Quick Ask stays off).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskService.Stop">
+            <summary>Closes the Quick Ask windows and releases AutoCAD's events.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskService.OpenFromCommand(System.String@)">
+            <summary>Opens the box next to the cursor (the AI command). False with a reason when it cannot open now.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskService.SubmitText(System.String,System.String@)">
+            <summary>Sends <paramref name="text"/> as a Quick Ask (the -AI command line version). False when it was not sent.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskSession">
+            <summary>The running Quick Ask: windows, shortcut and AutoCAD event handlers. Main thread only.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskSession.TryOpen(AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason,System.String@)">
+            <summary>Opens the box (or explains why not).</summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskSettings">
             <summary>Quick Ask preferences (no secrets), kept in %LOCALAPPDATA%\AcadCopilot\quickask.json.</summary>
         </member>
@@ -2296,6 +2747,118 @@
         <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ResetShortcut">
             <summary>Puts the shortcut back to Ctrl+Shift+Space.</summary>
         </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskState">
+            <summary>What the status bubble next to the floating AI button shows.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Hidden">
+            <summary>No bubble.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Queued">
+            <summary>The request waits in the chat's queue (the chat is still busy).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Working">
+            <summary>The AI works on it ("Drawing kitchen walls...").</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.NeedsAnswer">
+            <summary>A question or approval card waits in the chat.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Done">
+            <summary>Finished ("Done - kitchen 10'x20'").</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Stopped">
+            <summary>Stopped by the user.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Failed">
+            <summary>Failed, or a problem before sending.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Undoing">
+            <summary>Undo of the request's drawing steps runs.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Undone">
+            <summary>The request's drawing steps were undone.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel">
+            <summary>
+            The status bubble of the last Quick Ask: follows the chat tab that got the request (its message, live activity, plan
+            task, question / approval cards and the turn's footer) and offers Undo (the run_commands calls of that request) and
+            Open chat. Finished states hide by themselves after a while (never while the pointer is over the bubble). UI thread.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.DoneVisibleFor">
+            <summary>How long "Done" (and "Stopped", "Undone") stays.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.ErrorVisibleFor">
+            <summary>How long an error stays.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.#ctor(AcadCopilot.Plugin.QuickAsk.IQuickAskHost,System.Windows.Threading.Dispatcher)">
+            <summary>Creates the bubble's view model.</summary>
+        </member>
+        <member name="E:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.LayoutChanged">
+            <summary>Raised when <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsVisible"/> or the bubble's size may have changed (the window re-anchors).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.State">
+            <summary>What the bubble shows.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.Text">
+            <summary>The bubble's line.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.ToolTip">
+            <summary>Tool tip: the full request and where it went.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsVisible">
+            <summary>True while the bubble is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsBusy">
+            <summary>True while the spinner turns (queued, working, undoing).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsDone">
+            <summary>True for the green check (done, undone).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsProblem">
+            <summary>True for the warning icon (failed, stopped).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsNeedsAnswer">
+            <summary>True while a question or approval waits in the chat.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.UndoCalls">
+            <summary>The run_commands calls of the request (what Undo takes back).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.CanUndo">
+            <summary>True when [Undo] is offered: done, and the request drew something.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.ShowOpenChat">
+            <summary>True when [Open chat] is offered.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.ShowDismiss">
+            <summary>True when the small x is offered (finished states; a running request keeps its bubble).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.Chat">
+            <summary>The chat that got the request (null before the first request).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsPointerOver">
+            <summary>The view sets this while the pointer is over the bubble (it then does not hide).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.UndoCommand">
+            <summary>Takes back the drawing steps of the request (the copilot's undo of its run_commands calls).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.OpenChatCommand">
+            <summary>Shows the side panel on the chat of the request.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.DismissCommand">
+            <summary>Hides the bubble.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.Track(AcadCopilot.Plugin.ViewModels.ChatViewModel,AcadCopilot.Plugin.QuickAsk.QuickAskMessage,AcadCopilot.Plugin.ViewModels.QuickAskDelivery)">
+            <summary>Starts following <paramref name="chat"/> for <paramref name="message"/> (the previous request is let go).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.ShowProblem(System.String,AcadCopilot.Plugin.ViewModels.ChatViewModel)">
+            <summary>Shows a problem that happened before anything was sent (no chat, queue full ...).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.Refresh">
+            <summary>Recomputes the bubble from the chat (public for tests; the chat's events call it).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.Dispose">
+            <inheritdoc />
+        </member>
         <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskPointSource">
             <summary>Where the point sent with a Quick Ask came from.</summary>
         </member>
@@ -2390,7 +2953,7 @@
         <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Sizes">
             <remarks>
             Pattern:<br/>
-            <code>(?&lt;a&gt;\\d+(?:\\.\\d+)?)'?\\s*(?:by|x|X|×|into|\\*)\\s*(?&lt;b&gt;\\d+(?:\\.\\d+)?)(?&lt;unit&gt;'|"|\\s*(?:feet|foot|ft|meters?|metres?|mm|cm|m|inches|inch|in)\\b)?</code><br/>
+            <code>(?&lt;a&gt;\\d+(?:\\.\\d+)?)'?\\s*(?:by|x|X|×|into|\\*)\\s*(?&lt;b&gt;\\d+(?:\\.\\d+)?)(?&lt;unit&gt;'|"|\\s*(?:feet|foot|ft|meters?|metres?|mm|cm|m|inches|inch)\\b)?</code><br/>
             Options:<br/>
             <code>RegexOptions.CultureInvariant</code><br/>
             Explanation:<br/>
@@ -2442,11 +3005,9 @@
                                 ○ Match the string "cm".<br/>
                                 ○ Match 'm'.<br/>
                                 ○ Match a sequence of expressions.<br/>
-                                    ○ Match the string "in".<br/>
+                                    ○ Match the string "inch".<br/>
                                     ○ Optional (greedy).<br/>
-                                        ○ Match the string "ch".<br/>
-                                        ○ Optional (greedy).<br/>
-                                            ○ Match the string "es".<br/>
+                                        ○ Match the string "es".<br/>
                             ○ Match if at a word boundary.<br/>
             </code>
             </remarks>
@@ -2478,6 +3039,131 @@
             ○ Match if at a word boundary.<br/>
             </code>
             </remarks>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.ScreenRect">
+            <summary>A rectangle in screen pixels (physical, as Win32 reports it).</summary>
+            <param name="Left">Left edge.</param>
+            <param name="Top">Top edge.</param>
+            <param name="Right">Right edge (exclusive).</param>
+            <param name="Bottom">Bottom edge (exclusive).</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.ScreenRect.#ctor(System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>A rectangle in screen pixels (physical, as Win32 reports it).</summary>
+            <param name="Left">Left edge.</param>
+            <param name="Top">Top edge.</param>
+            <param name="Right">Right edge (exclusive).</param>
+            <param name="Bottom">Bottom edge (exclusive).</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.ScreenRect.Left">
+            <summary>Left edge.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.ScreenRect.Top">
+            <summary>Top edge.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.ScreenRect.Right">
+            <summary>Right edge (exclusive).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.ScreenRect.Bottom">
+            <summary>Bottom edge (exclusive).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.ScreenRect.Width">
+            <summary>Width in pixels.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.ScreenRect.Height">
+            <summary>Height in pixels.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.ScreenRect.Contains(System.Int32,System.Int32)">
+            <summary>True when <paramref name="x"/>, <paramref name="y"/> lies inside.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement">
+            <summary>
+            Pure placement rules of the Quick Ask windows (screen pixels): the button sits in the drawing area's top-right corner,
+            left of the ViewCube; the box opens next to the cursor (or under the button) and always stays inside the drawing area.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement.RightInset">
+            <summary>Gap between the drawing area's right edge and the button window, DIPs (leaves the ViewCube free).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement.TopInset">
+            <summary>Gap between the drawing area's top edge and the button window, DIPs.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement.MinAreaSize">
+            <summary>Smallest drawing area (pixels) that still shows the button.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement.Button(AcadCopilot.Plugin.QuickAsk.ScreenRect,System.Int32,System.Double)">
+            <summary>Top-left of the button window of <paramref name="width"/> pixels in <paramref name="area"/>.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement.Box(AcadCopilot.Plugin.QuickAsk.ScreenRect,System.Int32,System.Int32,System.Int32,System.Int32,System.Double)">
+            <summary>
+            Top-left of the box window (<paramref name="width"/> x <paramref name="height"/> pixels): just below-right of
+            <paramref name="cursorX"/>, <paramref name="cursorY"/>, flipped left / up when it would leave
+            <paramref name="area"/>, and clamped inside it.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement.BoxUnderButton(AcadCopilot.Plugin.QuickAsk.ScreenRect,AcadCopilot.Plugin.QuickAsk.ScreenRect,System.Int32,System.Int32)">
+            <summary>Top-left of the box when it opens from the button: right-aligned under the button window.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskNative">
+            <summary>Win32 helpers of the Quick Ask windows.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskNative.WmMouseActivate">
+            <summary>WM_MOUSEACTIVATE.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskNative.MaNoActivate">
+            <summary>MA_NOACTIVATE.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.SetToolStyle(System.IntPtr,System.Boolean)">
+            <summary>Tool window (no taskbar button, not in Alt+Tab); <paramref name="noActivate"/> also never takes the keyboard.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.Move(System.IntPtr,System.Int32,System.Int32)">
+            <summary>Moves <paramref name="hwnd"/> without resizing, activating or changing its z-order.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.WindowRect(System.IntPtr)">
+            <summary>The window's rectangle in screen pixels, or null.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.ClientRect(System.IntPtr)">
+            <summary>The window's client area in screen pixels, or null.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.IsShown(System.IntPtr)">
+            <summary>True when the window exists, is visible and not minimised.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.IsEnabled(System.IntPtr)">
+            <summary>True when the window takes input (false while a modal dialog of AutoCAD is open).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.CursorPosition">
+            <summary>The mouse position in screen pixels.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.IsKeyDown(System.Int32)">
+            <summary>True when the key is held down now (GetKeyState high bit).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskOverlayWindow">
+            <summary>
+            The small window that carries the floating AI button and the status bubble over the drawing area: owned by AutoCAD's
+            main window (so it stays above AutoCAD only, hides with it when minimised and drops behind other applications with
+            it), no taskbar button, and it never activates (WS_EX_NOACTIVATE + MA_NOACTIVATE), so clicking it never takes the
+            keyboard from the drawing. Its top-right corner is anchored; it grows to the left when the bubble shows.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOverlayWindow.ScreenBounds">
+            <summary>The window's rectangle on screen (pixels), or null before it is shown.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskOverlayWindow.PlaceIn(System.Nullable{AcadCopilot.Plugin.QuickAsk.ScreenRect})">
+            <summary>Shows the window anchored in <paramref name="area"/>, or hides it (null).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskBoxWindow">
+            <summary>
+            The window of the Quick Ask box: owned by AutoCAD's main window, no taskbar button, activated while open (the user
+            types into it). Clicking elsewhere (it loses activation) closes it, except while the user picks a point.
+            </summary>
+        </member>
+        <member name="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxWindow.ClickedAway">
+            <summary>Raised when the user clicked away (the controller closes the box).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxWindow.ShowAt(System.Func{System.Int32,System.Int32,System.ValueTuple{System.Int32,System.Int32}})">
+            <summary>Shows the box at <paramref name="place"/> (computed from its measured size) and gives it the keyboard.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxWindow.SetPicking(System.Boolean)">
+            <summary>Hides the box while the user picks a point, or shows it again after.</summary>
         </member>
         <member name="T:AcadCopilot.Plugin.Recovery.CheckpointService">
             <summary>
@@ -2865,6 +3551,250 @@
         <member name="M:AcadCopilot.Plugin.Services.SymbolLibraryImporter.MissingBlocks(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,System.Collections.Generic.IEnumerable{AcadCopilot.Core.Services.SymbolDefinition})">
             <summary>The names of the <paramref name="symbols"/> blocks missing from the drawing. Main thread.</summary>
         </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.ArrangeRequest">
+            <summary>What arrange_drawings was asked.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.ArrangeRequest.#ctor(System.Collections.Generic.IReadOnlyList{AcadCopilot.Core.Sheets.DrawingLabel},System.Nullable{System.Double},System.Nullable{System.Double},System.Boolean,AcadCopilot.Core.Sheets.DrawingScale)">
+            <summary>What arrange_drawings was asked.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.TitleAction">
+            <summary>A title change for one drawing.</summary>
+            <param name="Number">Drawing number.</param>
+            <param name="What">"title and scale added", "scale line added", "scale line corrected".</param>
+            <param name="Planned">Texts to add (null when only an existing scale line is corrected).</param>
+            <param name="ScaleItem">Item index of an existing scale line to correct.</param>
+            <param name="Scale">The drawing's scale.</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.TitleAction.#ctor(System.Int32,System.String,AcadCopilot.Core.Sheets.PlannedTitle,System.Nullable{System.Int32},AcadCopilot.Core.Sheets.DrawingScale)">
+            <summary>A title change for one drawing.</summary>
+            <param name="Number">Drawing number.</param>
+            <param name="What">"title and scale added", "scale line added", "scale line corrected".</param>
+            <param name="Planned">Texts to add (null when only an existing scale line is corrected).</param>
+            <param name="ScaleItem">Item index of an existing scale line to correct.</param>
+            <param name="Scale">The drawing's scale.</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.TitleAction.Number">
+            <summary>Drawing number.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.TitleAction.What">
+            <summary>"title and scale added", "scale line added", "scale line corrected".</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.TitleAction.Planned">
+            <summary>Texts to add (null when only an existing scale line is corrected).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.TitleAction.ScaleItem">
+            <summary>Item index of an existing scale line to correct.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.TitleAction.Scale">
+            <summary>The drawing's scale.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.ArrangeOutcome">
+            <summary>The result of arrange_drawings.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.ArrangeOutcome.#ctor(AcadCopilot.Plugin.Sheets.FoundDrawings,AcadCopilot.Core.Sheets.ArrangementResult,System.Collections.Generic.IReadOnlyList{AcadCopilot.Plugin.Sheets.TitleAction},System.Collections.Generic.IReadOnlyDictionary{System.Int32,AcadCopilot.Core.Sheets.DrawingScale},System.Collections.Generic.IReadOnlyList{Autodesk.AutoCAD.DatabaseServices.ObjectId},System.Collections.Generic.IReadOnlyList{Autodesk.AutoCAD.DatabaseServices.ObjectId},System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>The result of arrange_drawings.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.DrawingArranger">
+            <summary>
+            arrange_drawings in AutoCAD: finds the drawings, plans titles and the arrangement (Core), and with
+            <c>apply</c> moves whole drawings (TransformBy, locked layers unlocked for the move and locked again) and adds or
+            corrects the titles. Main thread, inside the caller's transaction (one undo step).
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.DrawingArranger.Run(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,AcadCopilot.Plugin.Sheets.ArrangeRequest,System.Boolean)">
+            <summary>Plans and (when <paramref name="apply"/>) carries out the arrangement.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.LayerUnlocker">
+            <summary>Unlocks layers on demand and locks them again when disposed (inside the same transaction).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.LayerUnlocker.#ctor(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction)">
+            <summary>Creates the unlocker for <paramref name="database"/>.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.LayerUnlocker.Unlock(System.String)">
+            <summary>Unlocks <paramref name="layer"/> when it is locked.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.LayerUnlocker.Dispose">
+            <summary>Locks the unlocked layers again.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.FoundDrawings">
+            <summary>The drawings found in model space with everything the drawing-set tools need about them.</summary>
+            <param name="Scan">Model space objects.</param>
+            <param name="Clusters">The drawings (labels applied).</param>
+            <param name="Warnings">Problems found while separating them.</param>
+            <param name="UnmatchedLabels">Labels that named no drawing.</param>
+            <param name="Units">The drawing's units.</param>
+            <param name="InchesPerUnit">Inches per drawing unit (1 when unknown).</param>
+            <param name="System">Scale notation for these units.</param>
+            <param name="ClusterGap">The gap used to separate drawings (drawing units).</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.FoundDrawings.#ctor(AcadCopilot.Plugin.Sheets.ModelSpaceScan,System.Collections.Generic.IReadOnlyList{AcadCopilot.Core.Sheets.DrawingCluster},System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{AcadCopilot.Core.Sheets.DrawingLabel},AcadCopilot.Core.Drafting.DrawingUnits,System.Double,AcadCopilot.Core.Sheets.ScaleSystem,System.Double)">
+            <summary>The drawings found in model space with everything the drawing-set tools need about them.</summary>
+            <param name="Scan">Model space objects.</param>
+            <param name="Clusters">The drawings (labels applied).</param>
+            <param name="Warnings">Problems found while separating them.</param>
+            <param name="UnmatchedLabels">Labels that named no drawing.</param>
+            <param name="Units">The drawing's units.</param>
+            <param name="InchesPerUnit">Inches per drawing unit (1 when unknown).</param>
+            <param name="System">Scale notation for these units.</param>
+            <param name="ClusterGap">The gap used to separate drawings (drawing units).</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.Scan">
+            <summary>Model space objects.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.Clusters">
+            <summary>The drawings (labels applied).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.Warnings">
+            <summary>Problems found while separating them.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.UnmatchedLabels">
+            <summary>Labels that named no drawing.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.Units">
+            <summary>The drawing's units.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.InchesPerUnit">
+            <summary>Inches per drawing unit (1 when unknown).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.System">
+            <summary>Scale notation for these units.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.ClusterGap">
+            <summary>The gap used to separate drawings (drawing units).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.FoundDrawings.SheetDrawings">
+            <summary>The drawings as the sheet planner sees them.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.DrawingFinder">
+            <summary>Finds the drawings of model space (main thread, inside the caller's transaction).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.DrawingFinder.Find(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,System.Nullable{System.Double},System.Collections.Generic.IReadOnlyList{AcadCopilot.Core.Sheets.DrawingLabel})">
+            <summary>Scans model space, separates the drawings and applies the AI's labels.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.DrawingFinder.LayerOrCurrent(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,System.String)">
+            <summary>Layer <paramref name="preferred"/> when it exists, else the current layer.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.DrawingFinder.StyleOrCurrent(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,System.String)">
+            <summary>Text style <paramref name="preferred"/> when it exists, else the current style.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.DrawingFinder.AddText(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,Autodesk.AutoCAD.DatabaseServices.BlockTableRecord,System.Double,System.Double,System.Double,System.String,Autodesk.AutoCAD.DatabaseServices.ObjectId,Autodesk.AutoCAD.DatabaseServices.ObjectId)">
+            <summary>Adds a middle-centred single-line text to <paramref name="space"/>; returns its id.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.DrawingFinder.SetText(Autodesk.AutoCAD.DatabaseServices.Transaction,Autodesk.AutoCAD.DatabaseServices.ObjectId,System.String)">
+            <summary>Replaces the text of a TEXT or MTEXT object; true when it changed.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.ModelSpaceScan">
+            <summary>
+            Model space as the drawing-set tools see it: every object with extents as a <see cref="T:AcadCopilot.Core.Sheets.ClusterItem"/> (box, text,
+            annotation / wall flags), with its ObjectId and layer at the same index. Main thread, inside the caller's transaction.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.ModelSpaceScan.Items">
+            <summary>The items for <see cref="M:AcadCopilot.Core.Sheets.DrawingClusters.Find(System.Collections.Generic.IReadOnlyList{AcadCopilot.Core.Sheets.ClusterItem},System.Double)"/>.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.ModelSpaceScan.Ids">
+            <summary>The object of each item.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.ModelSpaceScan.Layers">
+            <summary>The layer of each item.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.ModelSpaceScan.Read(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction)">
+            <summary>Reads model space of <paramref name="database"/>.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.ModelSpaceScan.IdsOf(AcadCopilot.Core.Sheets.DrawingCluster)">
+            <summary>The objects of <paramref name="cluster"/>.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.PlotOutcome">
+            <summary>The result of plot_to_pdf.</summary>
+            <param name="Path">The PDF written.</param>
+            <param name="Sheets">The layouts plotted, in page order.</param>
+            <param name="Notes">What was adjusted (layouts switched to DWG To PDF for this plot).</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.PlotOutcome.#ctor(System.String,System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>The result of plot_to_pdf.</summary>
+            <param name="Path">The PDF written.</param>
+            <param name="Sheets">The layouts plotted, in page order.</param>
+            <param name="Notes">What was adjusted (layouts switched to DWG To PDF for this plot).</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.PlotOutcome.Path">
+            <summary>The PDF written.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.PlotOutcome.Sheets">
+            <summary>The layouts plotted, in page order.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.PlotOutcome.Notes">
+            <summary>What was adjusted (layouts switched to DWG To PDF for this plot).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.PdfPlotter">
+            <summary>
+            plot_to_pdf in AutoCAD: plots layouts into one multi-page PDF with the publish engine
+            (PlotFactory.CreatePublishEngine, one BeginDocument, a page per layout) on DWG To PDF.pc3, with BACKGROUNDPLOT 0
+            during the plot (restored after) and the current layout restored. Main thread, application context.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.PdfPlotter.ChooseLayouts(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>The layouts plot_to_pdf would plot: <paramref name="requested"/>, else the create_sheets sheets, else all, in tab order.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.PdfPlotter.Plot(Autodesk.AutoCAD.ApplicationServices.Document,System.Collections.Generic.IReadOnlyList{System.String},System.String)">
+            <summary>Plots the <paramref name="requested"/> layouts (null = the sheets) of <paramref name="document"/> into <paramref name="path"/>.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.SheetsRequest">
+            <summary>What create_sheets was asked.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.SheetsRequest.#ctor(AcadCopilot.Core.Sheets.PaperSize,AcadCopilot.Core.Sheets.TitleBlockValues,System.Collections.Generic.IReadOnlyList{System.Int32},System.Collections.Generic.IReadOnlyList{AcadCopilot.Core.Sheets.DrawingLabel},System.Boolean,AcadCopilot.Core.Sheets.DrawingScale,System.Nullable{System.Double},System.Boolean)">
+            <summary>What create_sheets was asked.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.BuiltSheet">
+            <summary>One sheet made.</summary>
+            <param name="Spec">The planned sheet.</param>
+            <param name="LayoutName">The layout's actual name (" (2)" added when the name was taken).</param>
+            <param name="Viewports">Its viewports.</param>
+            <param name="Media">The plotter paper chosen.</param>
+            <param name="Replaced">True when a layout of that name was deleted first.</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.BuiltSheet.#ctor(AcadCopilot.Core.Sheets.SheetSpec,System.String,System.Collections.Generic.IReadOnlyList{Autodesk.AutoCAD.DatabaseServices.ObjectId},System.String,System.Boolean)">
+            <summary>One sheet made.</summary>
+            <param name="Spec">The planned sheet.</param>
+            <param name="LayoutName">The layout's actual name (" (2)" added when the name was taken).</param>
+            <param name="Viewports">Its viewports.</param>
+            <param name="Media">The plotter paper chosen.</param>
+            <param name="Replaced">True when a layout of that name was deleted first.</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.BuiltSheet.Spec">
+            <summary>The planned sheet.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.BuiltSheet.LayoutName">
+            <summary>The layout's actual name (" (2)" added when the name was taken).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.BuiltSheet.Viewports">
+            <summary>Its viewports.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.BuiltSheet.Media">
+            <summary>The plotter paper chosen.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.BuiltSheet.Replaced">
+            <summary>True when a layout of that name was deleted first.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.SheetsOutcome">
+            <summary>The result of create_sheets.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.SheetsOutcome.#ctor(AcadCopilot.Core.Sheets.SheetSetPlan,System.Collections.Generic.IReadOnlyList{AcadCopilot.Plugin.Sheets.BuiltSheet},System.String,System.Boolean,System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{Autodesk.AutoCAD.DatabaseServices.ObjectId},System.Collections.Generic.IReadOnlyList{Autodesk.AutoCAD.DatabaseServices.ObjectId})">
+            <summary>The result of create_sheets.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.SheetBuilder">
+            <summary>
+            create_sheets in AutoCAD: plans the sheets (Core <see cref="T:AcadCopilot.Core.Sheets.SheetPlanner"/>), then for each one creates a layout
+            (LayoutManager.CreateLayout), sets DWG To PDF.pc3 with the matching paper at 1:1 in millimetres
+            (PlotSettingsValidator), inserts the title block with its attributes and adds locked viewports at the planned scale.
+            Main thread, inside the caller's write transaction (document locked).
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.SheetBuilder.Build(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,AcadCopilot.Plugin.Sheets.SheetsRequest)">
+            <summary>Builds the sheets.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.SheetBuilder.LayoutNames(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction)">
+            <summary>The names of the paper-space layouts.</summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.Tools.ToolContext">
             <summary>
             Everything a tool handler needs for one call: main-thread access to the active drawing (through
@@ -2968,33 +3898,12 @@
         <member name="M:AcadCopilot.Plugin.Tools.ToolContext.Warn(System.String,System.Exception)">
             <summary>Writes a warning line to addin.log, tagged with the tool name and call id.</summary>
         </member>
-        <member name="T:AcadCopilot.Plugin.Tools.ToolSpec">
-            <summary>
-            One AutoCAD tool: its definition (name, title, LLM description, risk, strict input schema) and its handler.
-            The handler receives schema-validated arguments, runs on a thread-pool thread (use <see cref="T:AcadCopilot.Plugin.Tools.ToolContext"/> to reach
-            AutoCAD's main thread), returns a <see cref="T:AcadCopilot.Core.Tools.ToolResult"/> (failures as results; throw <see cref="T:AcadCopilot.Core.Tools.ToolException"/> for
-            problems the AI can fix) and honours the cancellation token (Stop in the panel, or the bridge abandoning the call).
-            </summary>
-            <param name="Definition">What the LLM sees.</param>
-            <param name="Handler">The implementation.</param>
-        </member>
-        <member name="M:AcadCopilot.Plugin.Tools.ToolSpec.#ctor(AcadCopilot.Core.Tools.ToolDefinition,System.Func{AcadCopilot.Plugin.Tools.ToolContext,System.Text.Json.Nodes.JsonObject,System.Threading.CancellationToken,System.Threading.Tasks.Task{AcadCopilot.Core.Tools.ToolResult}})">
-            <summary>
-            One AutoCAD tool: its definition (name, title, LLM description, risk, strict input schema) and its handler.
-            The handler receives schema-validated arguments, runs on a thread-pool thread (use <see cref="T:AcadCopilot.Plugin.Tools.ToolContext"/> to reach
-            AutoCAD's main thread), returns a <see cref="T:AcadCopilot.Core.Tools.ToolResult"/> (failures as results; throw <see cref="T:AcadCopilot.Core.Tools.ToolException"/> for
-            problems the AI can fix) and honours the cancellation token (Stop in the panel, or the bridge abandoning the call).
-            </summary>
-            <param name="Definition">What the LLM sees.</param>
-            <param name="Handler">The implementation.</param>
-        </member>
-        <member name="P:AcadCopilot.Plugin.Tools.ToolSpec.Definition">
-            <summary>What the LLM sees.</summary>
-        </member>
-        <member name="P:AcadCopilot.Plugin.Tools.ToolSpec.Handler">
-            <summary>The implementation.</summary>
-        </member>
         <member name="T:AcadCopilot.Plugin.Tools.ToolRegistry">
+            <summary>
+            Accuracy tools: validate_plan (pure checks of a plan in numbers, saved per drawing), check_drawing (the drawn geometry
+            against that plan) and apply_drawing_template (units, layers, styles, title block in one undo step). Definitions and
+            all checks live in AcadCopilot.Core.Accuracy; this file only reads or changes the drawing on AutoCAD's main thread.
+            </summary>
             <summary>
             All AutoCAD tools of the plug-in, exposed over the pipe (tools.list / tools.call) and through the MCP bridge.
             The tools are contributed by partial methods in the other ToolRegistry.*.cs files:
@@ -3036,6 +3945,18 @@
             export_view_png (a shareable PNG). Definitions live in AcadCopilot.Core (Services/, Presentation/), the AutoCAD work
             in Plugin/Services/. Everything touching AutoCAD runs through <see cref="T:AcadCopilot.Plugin.Tools.ToolContext"/> on the main thread.
             </summary>
+            <summary>
+            Drawing-set tools: arrange_drawings (line up model space, titles and scales), create_sheets (layouts with title
+            block and viewports), plot_to_pdf (one multi-page PDF; the user approves) and plan_full_set (the full set's to-do
+            list from the ground floor plan). Definitions and the pure maths are in AcadCopilot.Core/Sheets, the AutoCAD work in
+            Plugin/Sheets. Everything touching AutoCAD runs through <see cref="T:AcadCopilot.Plugin.Tools.ToolContext"/> on the main thread.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Tools.ToolRegistry.AddAccuracyTools(System.Collections.Generic.List{AcadCopilot.Plugin.Tools.ToolSpec})">
+            <summary>Adds the accuracy tools (called from CreateDefault).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Tools.ToolRegistry.PlanDrawingKey(Autodesk.AutoCAD.ApplicationServices.Document)">
+            <summary>The key of a drawing's plan file (as for checkpoints: unsaved drawings are keyed by process and name).</summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Tools.ToolRegistry.#ctor(System.Collections.Generic.IEnumerable{AcadCopilot.Plugin.Tools.ToolSpec})">
             <summary>Creates a registry from explicit specs (tests); validates them.</summary>
@@ -3100,6 +4021,35 @@
         </member>
         <member name="M:AcadCopilot.Plugin.Tools.ToolRegistry.AddServicesTools(System.Collections.Generic.List{AcadCopilot.Plugin.Tools.ToolSpec})">
             <summary>Adds the services and presentation tools (called from CreateDefault).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Tools.ToolRegistry.AddSheetsTools(System.Collections.Generic.List{AcadCopilot.Plugin.Tools.ToolSpec})">
+            <summary>Adds the drawing-set tools (called from CreateDefault).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Tools.ToolSpec">
+            <summary>
+            One AutoCAD tool: its definition (name, title, LLM description, risk, strict input schema) and its handler.
+            The handler receives schema-validated arguments, runs on a thread-pool thread (use <see cref="T:AcadCopilot.Plugin.Tools.ToolContext"/> to reach
+            AutoCAD's main thread), returns a <see cref="T:AcadCopilot.Core.Tools.ToolResult"/> (failures as results; throw <see cref="T:AcadCopilot.Core.Tools.ToolException"/> for
+            problems the AI can fix) and honours the cancellation token (Stop in the panel, or the bridge abandoning the call).
+            </summary>
+            <param name="Definition">What the LLM sees.</param>
+            <param name="Handler">The implementation.</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Tools.ToolSpec.#ctor(AcadCopilot.Core.Tools.ToolDefinition,System.Func{AcadCopilot.Plugin.Tools.ToolContext,System.Text.Json.Nodes.JsonObject,System.Threading.CancellationToken,System.Threading.Tasks.Task{AcadCopilot.Core.Tools.ToolResult}})">
+            <summary>
+            One AutoCAD tool: its definition (name, title, LLM description, risk, strict input schema) and its handler.
+            The handler receives schema-validated arguments, runs on a thread-pool thread (use <see cref="T:AcadCopilot.Plugin.Tools.ToolContext"/> to reach
+            AutoCAD's main thread), returns a <see cref="T:AcadCopilot.Core.Tools.ToolResult"/> (failures as results; throw <see cref="T:AcadCopilot.Core.Tools.ToolException"/> for
+            problems the AI can fix) and honours the cancellation token (Stop in the panel, or the bridge abandoning the call).
+            </summary>
+            <param name="Definition">What the LLM sees.</param>
+            <param name="Handler">The implementation.</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Tools.ToolSpec.Definition">
+            <summary>What the LLM sees.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Tools.ToolSpec.Handler">
+            <summary>The implementation.</summary>
         </member>
         <member name="T:AcadCopilot.Plugin.ViewModels.ActivityState">
             <summary>State of one tool call row.</summary>
@@ -4767,6 +5717,12 @@
         </member>
         <member name="M:AcadCopilot.Plugin.ViewModels.ChatViewModel.ToolReport.#ctor(System.String,System.Text.Json.Nodes.JsonObject,AcadCopilot.Core.Tools.ToolResult)">
             <summary>One plug-in report: a tool call starting (no result yet) or finished.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.QuickAskSettings">
+            <summary>The Quick Ask settings (floating button, shortcut): one set for every tab, shown in the panel's Settings.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.ResetQuickAskShortcutCommand">
+            <summary>Puts the Quick Ask shortcut back to Ctrl+Shift+Space.</summary>
         </member>
         <member name="M:AcadCopilot.Plugin.ViewModels.ChatViewModel.SendQuickAsk(System.String,System.String,System.String)">
             <summary>

@@ -139,14 +139,16 @@ something does not work.
    with clickable option cards. The suggested option is marked. You can also type your own answer.
 3. **Room sizes first.** Before drawing a new plan, the AI shows a table of the plot, the setbacks, the building
    outline and every room with its size and position (for example "Bedroom 1, 11'-0" x 12'-0", rear left").
-   Then it asks **"Shall I draw this?"**: *Draw it* / *Change sizes* / *Change rooms*. Nothing is drawn until you
+   Before it shows the table it checks the plan in numbers and fixes every mistake it finds (section 6j), so the
+   sizes add up to the outline exactly. Then it asks **"Shall I draw this?"**: *Draw it* / *Change sizes* / *Change rooms*. Nothing is drawn until you
    say OK.
 4. **You watch it draw.** It works in stages, shown as a checklist (**Task Progress**): set-up (units, layers,
    text and dimension style), plot and outer walls, inner walls, openings, doors and windows, stair, room names,
    dimensions, title. In the command line you see every command and every value it types.
-5. **It checks its own work.** After each stage it takes a picture of the drawing and reads the objects. It looks
-   for closed walls, clean wall junctions, doors swinging into the rooms, text that does not overlap and readable
-   dimensions, and fixes what is wrong.
+5. **It checks its own work.** After each stage it takes a picture of the drawing and reads the objects, and an
+   automatic checker measures what was drawn against the checked numbers (section 6j). It looks for closed walls,
+   clean wall junctions, room sizes within 1/2", doors swinging into the rooms, text that does not overlap and
+   dimensions that add up, and fixes what is wrong.
 6. **Next step.** When a drawing is finished it asks what to do next: *First floor plan*, *Front elevation*,
    *Section*, *Site plan* or *Stop here*. It never starts the next floor or drawing without asking.
 
@@ -558,6 +560,57 @@ drawings before they are used for approval or construction.
 
 ---
 
+## 6j. Exact plans: numbers first, then an automatic check
+
+The AI works like an architect with a dimensioned sketch: it settles every number before it draws, and measures the
+drawing afterwards.
+
+**1. The plan in numbers.** Before it shows you the room table, the AI writes the whole plan as numbers: the plot and
+setbacks, the building outline, every room's clear size and position, every wall (its centre line and thickness),
+every door and window (which wall, where, how wide, sill and head) and the stair. AI Copilot then checks it:
+
+- the rooms and walls fill the building exactly: no gaps, no overlaps, no room running into a wall;
+- every room is at least the usual minimum size and not long and thin;
+- every room can be reached through doors (from the entrance, or from the stair on upper floors), and no room is
+  reached only through a bedroom;
+- doors do not hit walls, the stair or each other, swing into the room and have their hinge near a corner;
+- living rooms, bedrooms and the kitchen have a window on an outside wall (about 1/10 to 1/8 of the floor area), and
+  toilets a ventilator or a shaft;
+- the stair: risers 6" to 7", treads 10" or more, width 3'-0" or more, the risers add up to the floor height, the
+  flights and landing fit in the stair room (headroom is a note for the section);
+- G+1 and G+2: the stair, the toilets and kitchen and the outer walls are stacked over the floor below;
+- every size is a whole inch (half inches only where 4 1/2" walls force them), the building keeps the setbacks;
+- the areas (carpet, built-up, ground coverage, FAR) are worked out for you.
+
+The AI fixes every error and checks again; only then do you see the table and **"Shall I draw this?"**. Warnings (for
+example a small window) are mentioned in one line.
+
+**The sizes it uses** are typical for Indian homes, not a bylaw check: bedroom 10'x10' (master 11'x12'), living
+11'x12', kitchen 7'x10' (counter 2' deep), toilet 4'6"x7', bath + WC 5'x7', dining 8'x10', stair 3'3" wide with
+6 1/2" risers and 10" treads, passage 3'6", parking 9'x17' per car, doors 3'6" (main) / 3'0" (rooms) / 2'6"
+(toilets), walls 9" outside and 4 1/2" inside, floor to floor 10'0" to 10'6". **Change them by telling the AI**, for
+example *"bedrooms can be 9 by 10 in my plans"* or *"toilet doors 2 feet 4"*: it saves a rule (section 4, "It learns from
+you") and the check uses it from then on. Say *"follow Vastu"* and it also gives Vastu hints (kitchen SE, master
+bedroom SW, entrance E or N ...); they are preferences, never errors.
+
+**2. The automatic check.** The checked plan is kept for the drawing (`%LOCALAPPDATA%\AcadCopilot\plans`). After each
+stage the AI runs the checker, which reads the drawn lines, arcs, text and dimensions and compares them with the
+plan: gaps and loose ends in the wall lines, rooms measured between the wall lines (within 1/2"), missing or extra
+doors and windows, doors swinging the wrong way, room names missing, text on top of other text, walls or door
+swings, dimensions with typed-over values or chains that do not add up to the overall size, and objects on the wrong
+layer (or on layer 0). The AI fixes what it finds before the next stage.
+
+**3. The standard set-up.** In a new drawing the AI sets everything up in one step (one Ctrl+Z removes it):
+architectural units in inches, the layers A-WALL, A-DOOR, A-GLAZ, A-FURN, A-STRS, A-ANNO-TEXT, A-ANNO-DIMS, A-SITE,
+A-GRID, A-HATCH, A-TTLB (and A-ELEV) with their colours, linetypes and lineweights, the text style ARCH (Arial), the
+dimension styles ARCH-48 (1/4" = 1'-0") and ARCH-96 (1/8" = 1'-0") with tick marks and the text above the line, and
+an A3 title block (block A-TTLB-A3). Layers and styles you already have are kept. **Your own office template:** say
+*"use my template C:\Templates\Office.dwt from now on"*: its layers, styles, units and blocks are copied into your
+drawings instead (AI Copilot remembers the path in `%LOCALAPPDATA%\AcadCopilot\accuracy.json`; *"use the standard
+template again"* forgets it).
+
+---
+
 ## 7. What needs your approval, and what it cannot do
 
 The AI asks first, with an **Approval needed** card in the panel (**Approve** / **Reject**), before it runs commands
@@ -666,6 +719,7 @@ Server", which is also installed on this PC. The two do not interfere.
 | Focus layout (2026-11-20) | Tested without AutoCAD: focus mode on and off, restoring exactly what it changed (and nothing you changed yourself), the crash recovery from `focus-layout.json`, the ViewCube per drawing and around saves, the zoom decision of "Follow the AI's drawing" (outside, too small, 10% margin, at most 8 times closer), the remembered panel width, the Focus button, the DRAWING AREA settings and the slim header (rendered off-screen, `artifacts\ui\21-*.png`). **Compile-verified only:** the ribbon (`RibbonControl.AutoHideMode`), NAVBARDISPLAY / NAVVCUBEDISPLAY inside AutoCAD (keeping the drawing unmodified), the zoom (`Editor.SetCurrentView`), and the palette's docking and width inside AutoCAD. |
 | Quick Ask (2026-11-20) | Tested without AutoCAD: the shortcut and its settings, the message (cursor or picked point, selection), the short job name in the bubble, where the button and the box go, sending to the chat of the active drawing (a background tab when there is none, the panel untouched), the chat's queue, the bubble (working, needs your answer + opening that chat, done, Undo, errors), Pick, the mic in the box, and the views rendered off-screen (`artifacts\ui\25-quick-ask-*.png`). **Compile-verified only:** the floating windows over AutoCAD's drawing area, following the drawing window, the shortcut inside AutoCAD (`Application.PreTranslateMessage`), the cursor position (`Editor.PointMonitor`), the `AI` / `-AI` / `AIBUTTON` commands, Undo inside AutoCAD, and closing on drawing switch / exit. |
 | Drawing set, sheets, PDF (2026-11-20) | Tested without AutoCAD: finding the drawings in model space (gaps, titles, splitting drawings placed too close, notes and north arrows joined to their drawing, labels), the arrangement (plans in one row at equal wall spacing, elevations / section / site plan below, no overlaps, titles and scale lines), the scale choice (1/4" or 1/8", 1:50 or 1:100, shared by the floor plans), paper sizes and plotter paper names, the title block layout, sheet numbers, names, packing and PDF file names, the full-set planner (stages, coordinates, levels, section cut, schedule, area statement), reading the ground floor from the drawing or from the validated plan, the tool definitions and the new quick prompt. **Compile-verified only:** moving the drawings and adding titles in AutoCAD, creating layouts, plot settings (`PlotSettingsValidator`), the title block insert and viewports, and plotting with the publish engine (`PlotFactory`, `PlotEngine`). |
+| Exact plans (2026-11-20) | Tested without AutoCAD: the plan check on 30x40 (ground floor, G+1, G+2) and 30x50 plans and on plans with mistakes (gaps, overlaps, rooms without doors, clashing or blocked doors, missing windows and ventilators, wrong stairs, unstacked floors, sizes off the inch, setbacks), your rules changing the sizes, Vastu hints, the size table and areas, the automatic drawing check against a drawn floor and its faults, and the standard template's data. **Compile-verified only:** reading the real drawing for the check, and applying the template (or your own DWT/DWG) inside AutoCAD. |
 | Chat tabs (2026-11-18) | Tested without AutoCAD: parallel turns, the 4-at-once limit, per-tab provider / history / approvals, the turn queue (order, Stop leaves it), routing of questions and plans to their tab over the real pipe, the bridge's `--session` (built `AcadCopilotMcp.exe`), and the tab strip rendered off-screen. **Compile-verified only:** binding a tab to its AutoCAD drawing and switching AutoCAD to that drawing (`DocumentCollection.MdiActiveDocument`) when its turn comes. |
 
 ### First-run checklist
@@ -729,4 +783,11 @@ Server", which is also installed on this PC. The two do not interfere.
     scale* 0.5292 for 1/4" = 1'-0" or 0.2646 for 1/8", because the sheets are in millimetres and the drawing in
     inches), that viewports are locked and their frames do not print. Ask *"plot all sheets to PDF"*: **Approve**, then open the PDF in `Documents\AcadCopilot
     Exports` (one page per sheet) and check that `BACKGROUNDPLOT` is back to its old value.
+9j. Exact plans: in a new drawing ask *"set up this drawing"*: one step should create the A-* layers (check colours and
+    lineweights with `LAYER`), the ARCH text style, ARCH-48 / ARCH-96 (`DIMSTYLE`), architectural units (`UNITS`) and
+    the block A-TTLB-A3 (`-INSERT` then `?`); **Ctrl+Z** once removes it all. Ask for a 30x40 G+1 plan: before the
+    table the AI should check the plan in numbers (its activity shows *validate_plan*), and after each stage
+    *check_drawing*. Move one wall line by an inch and ask *"check the drawing"*: it should name the room and the size.
+    Say *"bedrooms can be 9 by 10"* and check that the next plan accepts a 9'x10' bedroom. If you have an office
+    template, say *"use my template <path>.dwt"* and check that its layers and styles arrive.
 10. If anything fails, keep `%LOCALAPPDATA%\AcadCopilot\logs\addin.log` and `bridge.log` and describe what you saw.

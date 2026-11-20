@@ -24,6 +24,7 @@ pipe), so a new tool needs **no change anywhere else**. Build, restart AutoCAD, 
 | `src/AcadCopilot.Plugin/Tools/ToolContext.cs` | what a handler gets: main-thread access, approvals, units, handles, log | foundation |
 | `src/AcadCopilot.Plugin/Tools/ToolRegistry.Sheets.cs` | `plan_full_set`, `arrange_drawings`, `create_sheets`, `plot_to_pdf` (definitions and pure maths in `Core/Sheets/`, AutoCAD work in `Plugin/Sheets/`) | drawing sets |
 | `src/AcadCopilot.Plugin/Tools/ToolRegistry.Learning.cs` | `learn_style_from_drawing` (reads the drawing; analysis in `Core/Learning/StyleAnalyzer.cs`) | learning |
+| `src/AcadCopilot.Plugin/Tools/ToolRegistry.Accuracy.cs` | `validate_plan`, `check_drawing`, `apply_drawing_template` (definitions and all checks in `Core/Accuracy/`, pure and unit-tested; the plug-in only reads the drawing or applies the template) | accuracy |
 | `src/AcadCopilot.Core/Interaction/BridgeTools.cs` | `ask_user`, `update_plan`, `acad_status`, implemented by the bridge itself | core |
 | `src/AcadCopilot.Core/Learning/KnowledgeTools.cs` | `recall_knowledge`, `remember_rule`, `save_recipe`, `save_lesson`, `forget`, implemented by the bridge itself over the knowledge files (no AutoCAD needed) | learning |
 

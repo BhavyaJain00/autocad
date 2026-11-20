@@ -27,3 +27,7 @@ C:\Users\pc\Desktop\AUTOCAD\acad-copilot\artifacts\build\bin\AcadCopilot.Plugin\
 C:\Users\pc\Desktop\AUTOCAD\acad-copilot\artifacts\build\bin\AcadCopilot.Plugin\release\Microsoft.Windows.SDK.NET.dll
 C:\Users\pc\Desktop\AUTOCAD\acad-copilot\artifacts\build\bin\AcadCopilot.Plugin\release\WinRT.Runtime.dll
 C:\Users\pc\Desktop\AUTOCAD\acad-copilot\artifacts\build\obj\AcadCopilot.Plugin\release\AcadCopilot.Plugin.sourcelink.json
+C:\Users\pc\Desktop\AUTOCAD\acad-copilot\artifacts\build\obj\AcadCopilot.Plugin\release\QuickAsk\QuickAskBoxView.g.cs
+C:\Users\pc\Desktop\AUTOCAD\acad-copilot\artifacts\build\obj\AcadCopilot.Plugin\release\QuickAsk\QuickAskButtonView.g.cs
+C:\Users\pc\Desktop\AUTOCAD\acad-copilot\artifacts\build\obj\AcadCopilot.Plugin\release\QuickAsk\QuickAskBoxView.baml
+C:\Users\pc\Desktop\AUTOCAD\acad-copilot\artifacts\build\obj\AcadCopilot.Plugin\release\QuickAsk\QuickAskButtonView.baml

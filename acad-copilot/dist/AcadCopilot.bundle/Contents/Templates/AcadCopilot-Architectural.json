@@ -1,0 +1,383 @@
+{
+  "name": "AcadCopilot Architectural (feet-inches)",
+  "units": {
+    "LUNITS": 4,
+    "LUPREC": 4,
+    "INSUNITS": 1,
+    "MEASUREMENT": 0,
+    "AUNITS": 0,
+    "AUPREC": 0,
+    "LTSCALE": 24,
+    "PSLTSCALE": 1,
+    "MSLTSCALE": 1
+  },
+  "linetypes": [
+    "CENTER",
+    "HIDDEN",
+    "DASHED",
+    "PHANTOM"
+  ],
+  "layers": [
+    {
+      "name": "A-WALL",
+      "color": 7,
+      "linetype": "Continuous",
+      "lineweight": 0.5,
+      "description": "Walls"
+    },
+    {
+      "name": "A-DOOR",
+      "color": 4,
+      "linetype": "Continuous",
+      "lineweight": 0.25,
+      "description": "Doors: leaves and swings"
+    },
+    {
+      "name": "A-GLAZ",
+      "color": 5,
+      "linetype": "Continuous",
+      "lineweight": 0.25,
+      "description": "Windows and ventilators"
+    },
+    {
+      "name": "A-FURN",
+      "color": 6,
+      "linetype": "Continuous",
+      "lineweight": 0.18,
+      "description": "Furniture and fixtures"
+    },
+    {
+      "name": "A-STRS",
+      "color": 4,
+      "linetype": "Continuous",
+      "lineweight": 0.25,
+      "description": "Stairs"
+    },
+    {
+      "name": "A-ANNO-TEXT",
+      "color": 7,
+      "linetype": "Continuous",
+      "lineweight": 0.25,
+      "description": "Room names, notes, titles"
+    },
+    {
+      "name": "A-ANNO-DIMS",
+      "color": 3,
+      "linetype": "Continuous",
+      "lineweight": 0.18,
+      "description": "Dimensions"
+    },
+    {
+      "name": "A-SITE",
+      "color": 2,
+      "linetype": "Continuous",
+      "lineweight": 0.35,
+      "description": "Plot, setbacks, compound wall, road"
+    },
+    {
+      "name": "A-GRID",
+      "color": 1,
+      "linetype": "CENTER",
+      "lineweight": 0.18,
+      "description": "Centre lines and grids"
+    },
+    {
+      "name": "A-HATCH",
+      "color": 8,
+      "linetype": "Continuous",
+      "lineweight": 0.13,
+      "description": "Hatching"
+    },
+    {
+      "name": "A-TTLB",
+      "color": 7,
+      "linetype": "Continuous",
+      "lineweight": 0.35,
+      "description": "Title block"
+    },
+    {
+      "name": "A-ELEV",
+      "color": 7,
+      "linetype": "Continuous",
+      "lineweight": 0.35,
+      "description": "Elevations and sections"
+    }
+  ],
+  "textStyles": [
+    {
+      "name": "ARCH",
+      "font": "arial.ttf",
+      "height": 0,
+      "widthFactor": 1
+    }
+  ],
+  "textHeights": [
+    {
+      "use": "room names",
+      "paper": 0.1875,
+      "quarterInch": 9,
+      "eighthInch": 18
+    },
+    {
+      "use": "room sizes and notes",
+      "paper": 0.125,
+      "quarterInch": 6,
+      "eighthInch": 12
+    },
+    {
+      "use": "door and window tags",
+      "paper": 0.09375,
+      "quarterInch": 4.5,
+      "eighthInch": 9
+    },
+    {
+      "use": "drawing titles",
+      "paper": 0.25,
+      "quarterInch": 12,
+      "eighthInch": 24
+    },
+    {
+      "use": "dimension text",
+      "paper": 0.09375,
+      "quarterInch": 4.5,
+      "eighthInch": 9
+    }
+  ],
+  "dimStyles": [
+    {
+      "name": "ARCH-48",
+      "textStyle": "ARCH",
+      "variables": {
+        "DIMSCALE": 48,
+        "DIMLUNIT": 4,
+        "DIMDEC": 1,
+        "DIMFRAC": 2,
+        "DIMZIN": 3,
+        "DIMTSZ": 0.09375,
+        "DIMASZ": 0.09375,
+        "DIMTXT": 0.09375,
+        "DIMTAD": 1,
+        "DIMTIH": 0,
+        "DIMTOH": 0,
+        "DIMEXO": 0.0625,
+        "DIMEXE": 0.125,
+        "DIMDLE": 0.0625,
+        "DIMGAP": 0.0625,
+        "DIMATFIT": 3,
+        "DIMTMOVE": 0,
+        "DIMJUST": 0
+      }
+    },
+    {
+      "name": "ARCH-96",
+      "textStyle": "ARCH",
+      "variables": {
+        "DIMSCALE": 96,
+        "DIMLUNIT": 4,
+        "DIMDEC": 1,
+        "DIMFRAC": 2,
+        "DIMZIN": 3,
+        "DIMTSZ": 0.09375,
+        "DIMASZ": 0.09375,
+        "DIMTXT": 0.09375,
+        "DIMTAD": 1,
+        "DIMTIH": 0,
+        "DIMTOH": 0,
+        "DIMEXO": 0.0625,
+        "DIMEXE": 0.125,
+        "DIMDLE": 0.0625,
+        "DIMGAP": 0.0625,
+        "DIMATFIT": 3,
+        "DIMTMOVE": 0,
+        "DIMJUST": 0
+      }
+    }
+  ],
+  "titleBlock": {
+    "name": "A-TTLB-A3",
+    "width": 16.535,
+    "height": 11.693,
+    "lines": [
+      [
+        0,
+        0,
+        16.535,
+        0
+      ],
+      [
+        16.535,
+        0,
+        16.535,
+        11.693
+      ],
+      [
+        16.535,
+        11.693,
+        0,
+        11.693
+      ],
+      [
+        0,
+        11.693,
+        0,
+        0
+      ],
+      [
+        0.787,
+        0.394,
+        16.141000000000002,
+        0.394
+      ],
+      [
+        16.141000000000002,
+        0.394,
+        16.141000000000002,
+        11.299
+      ],
+      [
+        16.141000000000002,
+        11.299,
+        0.787,
+        11.299
+      ],
+      [
+        0.787,
+        11.299,
+        0.787,
+        0.394
+      ],
+      [
+        9.641000000000002,
+        2.794,
+        16.141000000000002,
+        2.794
+      ],
+      [
+        9.641000000000002,
+        0.394,
+        9.641000000000002,
+        2.794
+      ],
+      [
+        9.641000000000002,
+        2.194,
+        16.141000000000002,
+        2.194
+      ],
+      [
+        9.641000000000002,
+        1.4940000000000002,
+        16.141000000000002,
+        1.4940000000000002
+      ],
+      [
+        9.641000000000002,
+        0.9440000000000001,
+        16.141000000000002,
+        0.9440000000000001
+      ],
+      [
+        12.891000000000002,
+        0.394,
+        12.891000000000002,
+        1.4940000000000002
+      ]
+    ],
+    "texts": [
+      {
+        "text": "PROJECT",
+        "x": 9.721000000000002,
+        "y": 2.6340000000000003,
+        "height": 0.07
+      },
+      {
+        "text": "DRAWING",
+        "x": 9.721000000000002,
+        "y": 2.034,
+        "height": 0.07
+      },
+      {
+        "text": "SCALE",
+        "x": 9.721000000000002,
+        "y": 1.334,
+        "height": 0.07
+      },
+      {
+        "text": "DATE",
+        "x": 12.971000000000002,
+        "y": 1.334,
+        "height": 0.07
+      },
+      {
+        "text": "DRAWN BY",
+        "x": 9.721000000000002,
+        "y": 0.784,
+        "height": 0.07
+      },
+      {
+        "text": "SHEET",
+        "x": 12.971000000000002,
+        "y": 0.784,
+        "height": 0.07
+      }
+    ],
+    "attributes": [
+      {
+        "tag": "PROJECT",
+        "prompt": "Project name",
+        "default": "RESIDENCE",
+        "x": 9.721000000000002,
+        "y": 2.314,
+        "height": 0.16
+      },
+      {
+        "tag": "TITLE",
+        "prompt": "Drawing title",
+        "default": "GROUND FLOOR PLAN",
+        "x": 9.721000000000002,
+        "y": 1.6139999999999999,
+        "height": 0.2
+      },
+      {
+        "tag": "SCALE",
+        "prompt": "Scale",
+        "default": "1/4\u0022 = 1\u0027-0\u0022",
+        "x": 9.721000000000002,
+        "y": 1.054,
+        "height": 0.12
+      },
+      {
+        "tag": "DATE",
+        "prompt": "Date",
+        "default": "-",
+        "x": 12.971000000000002,
+        "y": 1.054,
+        "height": 0.12
+      },
+      {
+        "tag": "DRAWN",
+        "prompt": "Drawn by",
+        "default": "-",
+        "x": 9.721000000000002,
+        "y": 0.504,
+        "height": 0.12
+      },
+      {
+        "tag": "SHEET",
+        "prompt": "Sheet number",
+        "default": "A-101",
+        "x": 12.971000000000002,
+        "y": 0.504,
+        "height": 0.12
+      },
+      {
+        "tag": "NOTE",
+        "prompt": "Note",
+        "default": "ALL DIMENSIONS IN FEET AND INCHES",
+        "x": 0.887,
+        "y": 0.494,
+        "height": 0.09
+      }
+    ]
+  }
+}

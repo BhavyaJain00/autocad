@@ -106,7 +106,7 @@ public sealed class QuickPromptsViewModel : ObservableObject
         new("builtin-review", "Review this plan", ChatViewModel.ReviewPrompt, isBuiltIn: true),
         new("builtin-learn-style", "Learn my style from this drawing", ChatViewModel.LearnStylePrompt, isBuiltIn: true),
         new("builtin-plot-pdf", "Plot to PDF",
-            "Plot the current layout to PDF (DWG To PDF.pc3, fit to paper) and save the PDF next to the drawing.",
+            "Plot the sheets to one PDF with plot_to_pdf (create the sheets with create_sheets first if there are none).",
             isBuiltIn: true),
         new("builtin-electrical-draft", "Electrical layout (draft)",
             "Draw a first-draft electrical layout of this floor plan for my electrician: switchboards, lights, fans, sockets, AC and geyser points, DB, with the legend and the draft note.",
