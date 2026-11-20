@@ -202,6 +202,9 @@ public sealed class PluginPipeHandler : IPipeHandler
         }
 
         session.UpdatePlan(plan);
+
+        // The job journal (crash recovery) keeps the latest task list so an unfinished job can be resumed later.
+        AcadCopilot.Plugin.Recovery.RecoveryHooks.PlanUpdated(_dispatcher, sessionId, session?.Drawing?.Id, plan);
         return Task.CompletedTask;
     }
 
@@ -224,7 +227,7 @@ public sealed class PluginPipeHandler : IPipeHandler
         {
             if (target is null)
             {
-                return await RunHandlerAsync(spec, context, arguments, null, cancellationToken).ConfigureAwait(false);
+                return await RunHandlerAsync(spec, context, arguments, null, owner, cancellationToken).ConfigureAwait(false);
             }
 
             // Reading needs no turn while the chat's drawing is the active one (also during another chat's command in it).
@@ -232,7 +235,7 @@ public sealed class PluginPipeHandler : IPipeHandler
             {
                 try
                 {
-                    return await RunHandlerAsync(spec, context, arguments, target.Id, cancellationToken).ConfigureAwait(false);
+                    return await RunHandlerAsync(spec, context, arguments, target.Id, owner, cancellationToken).ConfigureAwait(false);
                 }
                 catch (DrawingNotActiveException)
                 {
@@ -252,14 +255,16 @@ public sealed class PluginPipeHandler : IPipeHandler
             note = await _dispatcher.InvokeAsync(() => DrawingDirectory.ActivateAsync(_dispatcher, target, cancellationToken), cancellationToken).ConfigureAwait(false);
         }
 
-        var result = await RunHandlerAsync(spec, context, arguments, target?.Id, cancellationToken).ConfigureAwait(false);
+        var result = await RunHandlerAsync(spec, context, arguments, target?.Id, owner, cancellationToken).ConfigureAwait(false);
         return note is null ? result : result with { Message = string.IsNullOrWhiteSpace(result.Message) ? note : note + " " + result.Message };
     }
 
-    private static async Task<ToolResult> RunHandlerAsync(ToolSpec spec, ToolContext context, JsonObject arguments, string? drawingId, CancellationToken cancellationToken)
+    private static async Task<ToolResult> RunHandlerAsync(ToolSpec spec, ToolContext context, JsonObject arguments, string? drawingId, string? owner, CancellationToken cancellationToken)
     {
-        // Flows into every main-thread item the handler posts: they refuse to act on another drawing.
+        // Flow into every main-thread item the handler posts: they refuse to act on another drawing, and the job journal
+        // (crash recovery) records the call under the chat session that made it.
         AcadDispatcher.ExpectedDrawingId = drawingId;
+        AcadCopilot.Plugin.Recovery.RecoveryContext.SessionId = owner;
         try
         {
             return await spec.Handler(context, arguments, cancellationToken).ConfigureAwait(false);
@@ -267,6 +272,7 @@ public sealed class PluginPipeHandler : IPipeHandler
         finally
         {
             AcadDispatcher.ExpectedDrawingId = null;
+            AcadCopilot.Plugin.Recovery.RecoveryContext.SessionId = null;
         }
     }
 

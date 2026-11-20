@@ -78,10 +78,12 @@ public sealed partial class ChatViewModel
 
     /// <summary>
     /// Shows the "Resume previous job" card for <paramref name="info"/> (unless one for the same journal is already shown).
-    /// Resume sends a message that makes the AI read get_resume_info and continue; <paramref name="dismissed"/> is called
-    /// when the user dismisses it (forget the journal).
+    /// Resume calls <paramref name="resume"/> (inside AutoCAD: <c>PaletteHost</c> sends <c>ResumeMonitor.ResumePrompt</c> in
+    /// a tab bound to that drawing; it returns false when it could not, and the card stays open), or, when null, sends
+    /// <see cref="ResumeCardItem.ResumePrompt"/> in this tab. After a resume and on Dismiss, <paramref name="dismissed"/>
+    /// is called so the journal is not offered again.
     /// </summary>
-    public void ShowResumeOffer(ResumeInfo info, Action<ResumeInfo>? dismissed = null)
+    public void ShowResumeOffer(ResumeInfo info, Action<ResumeInfo>? dismissed = null, Func<ResumeInfo, bool>? resume = null)
     {
         ArgumentNullException.ThrowIfNull(info);
         RunOnUi(() =>
@@ -97,22 +99,51 @@ public sealed partial class ChatViewModel
                 info,
                 card =>
                 {
+                    if (resume is not null)
+                    {
+                        bool sent;
+                        try
+                        {
+                            sent = resume(info);
+                        }
+                        catch (Exception ex)
+                        {
+                            CopilotLog.Warn("Could not resume the unfinished job", ex);
+                            ShowNotice("Could not resume the previous job: " + ex.Message, isError: true);
+                            return;
+                        }
+
+                        if (!sent)
+                        {
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        SendOrQueue("Resume previous job" + (info.PlanTitle is { Length: > 0 } plan ? $": {plan}" : string.Empty), card.ResumePrompt);
+                    }
+
                     card.Outcome = "Resuming";
-                    SendOrQueue("Resume previous job" + (info.PlanTitle is { Length: > 0 } plan ? $": {plan}" : string.Empty), card.ResumePrompt);
+                    Forget(dismissed, info);
                 },
                 card =>
                 {
                     card.Outcome = "Dismissed";
-                    try
-                    {
-                        dismissed?.Invoke(info);
-                    }
-                    catch (Exception ex)
-                    {
-                        CopilotLog.Warn("Could not dismiss the unfinished job", ex);
-                    }
+                    Forget(dismissed, info);
                 }));
         });
+    }
+
+    private static void Forget(Action<ResumeInfo>? dismissed, ResumeInfo info)
+    {
+        try
+        {
+            dismissed?.Invoke(info);
+        }
+        catch (Exception ex)
+        {
+            CopilotLog.Warn("Could not dismiss the unfinished job", ex);
+        }
     }
 
     /// <summary>

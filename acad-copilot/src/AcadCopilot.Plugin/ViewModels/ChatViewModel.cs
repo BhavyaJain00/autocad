@@ -82,6 +82,7 @@ public sealed partial class ChatViewModel : ObservableObject, ICopilotUi, IToolA
     private string? _tabStatusText;
     private bool _isWaitingForUser;
     private RelayCommand? _openKnowledgeFolder;
+    private RelayCommand? _openExportFolder;
     private RelayCommand? _learnStyle;
 
     /// <summary>Creates the view model and attaches it to <paramref name="backend"/> as the panel UI.</summary>
@@ -595,6 +596,18 @@ public sealed partial class ChatViewModel : ObservableObject, ICopilotUi, IToolA
 
     /// <summary>Opens <see cref="KnowledgeDirectory"/> in Windows Explorer (only when clicked).</summary>
     public RelayCommand OpenKnowledgeFolderCommand => _openKnowledgeFolder ??= new RelayCommand(OpenKnowledgeFolder, () => HasKnowledgeDirectory);
+
+    /// <summary>
+    /// Shows an exported file selected in its folder; null = Windows Explorer (<c>explorer /select,</c>; tests replace it).
+    /// </summary>
+    public Action<string>? FileRevealer { get; init; }
+
+    /// <summary>
+    /// "Open exports folder" under an export_view_png row: the parameter is the PNG's full path (only when clicked).
+    /// </summary>
+    public RelayCommand OpenExportFolderCommand => _openExportFolder ??= new RelayCommand(
+        file => OpenExportFolder(file as string),
+        file => file is string { Length: > 0 });
 
     /// <summary>Sends "Learn my style from this drawing" (or puts it in the message box while a turn runs).</summary>
     public RelayCommand LearnStyleCommand => _learnStyle ??= new RelayCommand(LearnStyle);
@@ -1148,6 +1161,39 @@ public sealed partial class ChatViewModel : ObservableObject, ICopilotUi, IToolA
         {
             CopilotLog.Warn($"Could not open the knowledge folder '{folder}'", ex);
             SetNotice("Could not open the knowledge folder: " + ex.Message, isError: true);
+        }
+    }
+
+    private void OpenExportFolder(string? file)
+    {
+        if (string.IsNullOrWhiteSpace(file))
+        {
+            return;
+        }
+
+        try
+        {
+            if (FileRevealer is { } reveal)
+            {
+                reveal(file);
+            }
+            else if (File.Exists(file))
+            {
+                Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { "/select," + file }, UseShellExecute = false })?.Dispose();
+            }
+            else if (Path.GetDirectoryName(file) is { Length: > 0 } folder && Directory.Exists(folder))
+            {
+                (FolderOpener ?? OpenInExplorer)(folder);
+            }
+            else
+            {
+                SetNotice($"The exported picture is no longer there: {file}", isError: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            CopilotLog.Warn($"Could not open the exports folder for '{file}'", ex);
+            SetNotice("Could not open the exports folder: " + ex.Message, isError: true);
         }
     }
 

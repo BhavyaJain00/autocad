@@ -8,7 +8,7 @@ namespace AcadCopilot.Core.Panel;
 
 /// <summary>
 /// One chat tab (<see cref="ICopilotSession"/>): owns its per-provider CLI session ids, provider and model choice, the
-/// attached tab UI, the "always approve" memory, the running turn and a <see cref="JobJournal"/> of the conversation.
+/// attached tab UI, the "always approve" memory, the running turn and a <see cref="ConversationJournal"/> of the conversation.
 /// Created by <see cref="CopilotBackend.CreateSession"/>; the backend holds what is shared (runners, settings, sign-in,
 /// the AutoCAD turn queue, the running-turn limit, the feature switches).
 /// <para>
@@ -59,7 +59,7 @@ public sealed class CopilotSession : ICopilotSession, ICopilotAssist
     public IReadOnlyList<IAgentRunner> Runners => _hub.Runners;
 
     /// <summary>What this chat remembers about its conversation and the job in progress (for handovers and reviews).</summary>
-    public JobJournal Journal { get; } = new();
+    public ConversationJournal Journal { get; } = new();
 
     /// <summary>The last second-opinion review of this chat, if any ("fix these" sends its findings).</summary>
     public ReviewReport? LastReview

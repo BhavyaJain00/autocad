@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "dnPLwRFGAl4=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\pc\\Desktop\\AUTOCAD\\acad-copilot\\src\\AcadCopilot.Plugin\\AcadCopilot.Plugin.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\pc\\.nuget\\packages\\system.speech\\10.0.15\\system.speech.10.0.15.nupkg.sha512",
+    "C:\\Users\\pc\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
+  ],
+  "logs": []
+}

@@ -1,19 +1,7 @@
+# Kept on purpose:
+# - node_modules has electron.exe (239 MB); GitHub rejects files over 100 MB. Run "npm install" on the other device.
+# - .env files hold secrets and must never be uploaded.
 node_modules/
-dist/
-bin/
-obj/
-*.user
-.vs/
-out/
-coverage/
-test-results/
-playwright-report/
-*.tsbuildinfo
-*.log
-.vite/
-.DS_Store
-Thumbs.db
-*.tmp
 .env
 .env.*
 !.env.example

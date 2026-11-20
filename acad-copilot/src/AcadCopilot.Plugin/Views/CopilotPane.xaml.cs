@@ -44,6 +44,9 @@ public sealed record CopilotPaneOptions
     /// <summary>Opens a folder (the knowledge folder link); null uses Windows Explorer.</summary>
     public Action<string>? OpenFolder { get; init; }
 
+    /// <summary>Shows an exported picture selected in its folder ("Open exports folder"); null uses Windows Explorer.</summary>
+    public Action<string>? RevealFile { get; init; }
+
     /// <summary>The "Learn from me" recorder of the session; null hides the Learning bar.</summary>
     public AcadCopilot.Plugin.Learning.IUserActionRecorder? Recorder { get; init; }
 
@@ -55,16 +58,6 @@ public sealed record CopilotPaneOptions
 
     /// <summary>False hides the ⚡ quick-prompt menu.</summary>
     public bool EnableQuickPrompts { get; init; } = true;
-
-    /// <summary>
-    /// Finds unfinished drafting jobs of the active drawing (agent A's job journal); called on the UI thread when the pane
-    /// first loads and by <see cref="CopilotPane.OfferResumableJobs"/>. Each one becomes a "Resume previous job" card.
-    /// Null = no cards.
-    /// </summary>
-    public Func<IReadOnlyList<AcadCopilot.Core.Recovery.ResumeInfo>>? ResumableJobs { get; init; }
-
-    /// <summary>Called when the user dismisses a "Resume previous job" card (forget that journal).</summary>
-    public Action<AcadCopilot.Core.Recovery.ResumeInfo>? DismissJob { get; init; }
 }
 
 /// <summary>
@@ -124,6 +117,7 @@ public partial class CopilotPane : UserControl
             {
                 KnowledgeDirectory = knowledge,
                 FolderOpener = options.OpenFolder,
+                FileRevealer = options.RevealFile,
                 Interaction = options.Interaction,
                 QuickPrompts = quickPrompts,
             },
@@ -184,40 +178,8 @@ public partial class CopilotPane : UserControl
         Theme = theme;
     }
 
-    /// <summary>
-    /// Shows a "Resume previous job" card in the tab shown for each unfinished job that
-    /// <see cref="CopilotPaneOptions.ResumableJobs"/> finds (call it after the active drawing changed). UI thread.
-    /// </summary>
-    public void OfferResumableJobs()
-    {
-        if (_options.ResumableJobs is not { } find)
-        {
-            return;
-        }
-
-        try
-        {
-            foreach (var job in find().Take(3))
-            {
-                ViewModel.ShowResumeOffer(job, _options.DismissJob);
-            }
-        }
-        catch (Exception ex)
-        {
-            CopilotLog.Warn("Could not look for unfinished jobs", ex);
-        }
-    }
-
-    private bool _offeredJobs;
-
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (!_offeredJobs)
-        {
-            _offeredJobs = true;
-            OfferResumableJobs();
-        }
-
         if (_themeTimer is not null)
         {
             FollowAcadTheme();

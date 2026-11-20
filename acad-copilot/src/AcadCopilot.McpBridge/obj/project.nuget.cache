@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "EQoA1yPr1Js=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\pc\\Desktop\\AUTOCAD\\acad-copilot\\src\\AcadCopilot.McpBridge\\AcadCopilot.McpBridge.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\pc\\.nuget\\packages\\microsoft.extensions.ai.abstractions\\10.11.0\\microsoft.extensions.ai.abstractions.10.11.0.nupkg.sha512",
+    "C:\\Users\\pc\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.14\\microsoft.extensions.dependencyinjection.abstractions.10.0.14.nupkg.sha512",
+    "C:\\Users\\pc\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\10.0.14\\microsoft.extensions.logging.abstractions.10.0.14.nupkg.sha512",
+    "C:\\Users\\pc\\.nuget\\packages\\modelcontextprotocol.core\\2.4.0\\modelcontextprotocol.core.2.4.0.nupkg.sha512"
+  ],
+  "logs": []
+}

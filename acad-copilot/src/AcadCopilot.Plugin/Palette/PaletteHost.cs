@@ -83,8 +83,6 @@ public sealed class PaletteHost : IDisposable
         {
             Recorder = _recorder,
             Interaction = CreateInteraction(),
-            ResumableJobs = FindUnfinishedJobs,
-            DismissJob = job => Core.Recovery.JobJournalStore.CreateDefault().Dismiss(job.Session),
         });
         var paletteSet = new PaletteSet(Title, PaletteId)
         {
@@ -97,6 +95,13 @@ public sealed class PaletteHost : IDisposable
         paletteSet.StateChanged += OnStateChanged;
         paletteSet.SizeChanged += OnSizeChanged;
         _paletteSet = paletteSet;
+
+        // "Resume previous job" cards: the crash-recovery monitor offers unfinished jobs of opened drawings.
+        Recovery.ResumeMonitor.OfferChanged += OnResumeOfferChanged;
+        if (Recovery.ResumeMonitor.CurrentOffer is { } pending)
+        {
+            ShowResumeOffer(pending, Recovery.ResumeMonitor.CurrentDrawingId);
+        }
 
         if (firstRun)
         {
@@ -134,17 +139,69 @@ public sealed class PaletteHost : IDisposable
         }
     }
 
-    // "Resume previous job" cards: unfinished jobs of the active drawing left by an AutoCAD session that ended (job journal).
-    private static IReadOnlyList<Core.Recovery.ResumeInfo> FindUnfinishedJobs()
+    // ResumeMonitor raises this on AutoCAD's main thread (the pane's UI thread).
+    private void OnResumeOfferChanged(object? sender, Recovery.ResumeOfferEventArgs e)
     {
-        var document = Autodesk.AutoCAD.ApplicationServices.Core.Application.DocumentManager.MdiActiveDocument;
-        if (document is null)
+        if (e.Offer is { } offer)
         {
-            return [];
+            ShowResumeOffer(offer, e.DrawingId);
+        }
+    }
+
+    // The card goes into the tab working on that drawing, else the tab shown. Resume and Dismiss forget the journal.
+    private void ShowResumeOffer(Core.Recovery.ResumeInfo offer, string? drawingId)
+    {
+        try
+        {
+            if (_pane is not { } pane)
+            {
+                return;
+            }
+
+            var shell = pane.Shell;
+            var tab = (drawingId is null ? null : shell.TabForDrawing(drawingId)) ?? shell.SelectedTab;
+            tab.ShowResumeOffer(offer, job => Recovery.ResumeMonitor.Dismiss(job.Session), job => Resume(job, drawingId));
+        }
+        catch (Exception ex)
+        {
+            CopilotLog.Warn("Could not show the unfinished job card", ex);
+        }
+    }
+
+    // Sends ResumeMonitor.ResumePrompt in a tab bound to the job's drawing (a new tab when none is, which binds to the
+    // active drawing, so that drawing must be the active one). False keeps the card open. Main thread.
+    private bool Resume(Core.Recovery.ResumeInfo offer, string? drawingId)
+    {
+        if (_pane is not { } pane)
+        {
+            return false;
         }
 
-        var drawing = new Core.Recovery.JournalDrawing(document.Name, System.IO.Path.GetFileName(document.Name), document.IsNamedDrawing);
-        return Core.Recovery.JobJournalStore.CreateDefault().FindUnfinished(drawing, otherSessionsOnly: true);
+        var shell = pane.Shell;
+        var selected = shell.SelectedTab;
+        var tab = drawingId is null ? selected : shell.TabForDrawing(drawingId);
+        if (tab is null)
+        {
+            var title = offer.DrawingTitle ?? "the drawing of that job";
+            if (!Acad.DrawingDirectory.IsActive(drawingId!))
+            {
+                selected.ShowNotice($"Switch to {title} in AutoCAD first, then click Resume again.");
+                return false;
+            }
+
+            tab = selected.Backend is ICopilotSession { Drawing: null } && !selected.IsBusy ? selected : shell.NewTab();
+            if (tab is null)
+            {
+                selected.ShowNotice("Close a chat tab first (too many are open), then click Resume again.");
+                return false;
+            }
+        }
+
+        shell.SelectTab(tab);
+        var job = offer.PlanTitle is { Length: > 0 } plan ? $": {plan}" : string.Empty;
+        tab.SendOrQueue("Resume previous job" + job, Recovery.ResumeMonitor.ResumePrompt(offer));
+        CopilotLog.Info($"Recovery: resuming the unfinished job of {offer.DrawingTitle} (journal {offer.Session}).");
+        return true;
     }
 
     /// <summary>Shows the palette (creating it if needed).</summary>
@@ -224,6 +281,7 @@ public sealed class PaletteHost : IDisposable
     public void Dispose()
     {
         Freeze();
+        Recovery.ResumeMonitor.OfferChanged -= OnResumeOfferChanged;
         if (_paletteSet is { } paletteSet)
         {
             paletteSet.StateChanged -= OnStateChanged;

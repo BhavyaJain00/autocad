@@ -910,6 +910,8 @@
                         <TextBlock Grid.Column="1" TextTrimming="CharacterEllipsis" FontFamily="{StaticResource MonoFont}" FontSize="11"
                                    VerticalAlignment="Center"><Run Text="{Binding Command, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" /><Run Text="{Binding InputsDisplay, Mode=OneWay}" Foreground="{DynamicResource TextSecondary}" /></TextBlock>
                     </Grid>
+                    <TextBlock Text="{Binding AutoFixedText}" Margin="14,1,0,1" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondary}"
+                               Visibility="{Binding HasAutoFixed, Converter={StaticResource Vis}}" AutomationProperties.Name="Auto-fixed" />
                     <TextBlock Text="{Binding Problem}" Margin="14,1,0,1" FontSize="11" TextWrapping="Wrap"
                                Visibility="{Binding HasProblem, Converter={StaticResource Vis}}">
                         <TextBlock.Style>
@@ -1006,11 +1008,20 @@
                                                        TextTrimming="CharacterEllipsis" Visibility="{Binding HasOutcome, Converter={StaticResource Vis}}" />
                                             <TextBlock Text="{Binding ResultSummary}" FontSize="11" Foreground="{DynamicResource TextSecondary}" Margin="32,0,10,3"
                                                        TextWrapping="Wrap" Visibility="{Binding ShowResultLine, Converter={StaticResource Vis}}" />
+                                            <TextBlock Text="{Binding CheckpointText}" FontSize="11" Foreground="{DynamicResource TextSecondary}" Margin="32,0,10,3"
+                                                       TextWrapping="Wrap" Visibility="{Binding HasCheckpoint, Converter={StaticResource Vis}}" />
                                             <Border CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource LineBrush}" Margin="32,1,10,4" HorizontalAlignment="Left"
                                                     Visibility="{Binding HasPicture, Converter={StaticResource Vis}}">
                                                 <Image Source="{Binding Picture}" MaxHeight="150" MaxWidth="320" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
                                                        AutomationProperties.Name="Picture of the drawing" />
                                             </Border>
+                                            <StackPanel Orientation="Horizontal" Margin="32,0,10,3" Visibility="{Binding HasExportFile, Converter={StaticResource Vis}}">
+                                                <Button Style="{StaticResource LinkButton}" Content="Open exports folder" ToolTip="{Binding ExportFile}"
+                                                        Command="{Binding DataContext.OpenExportFolderCommand, RelativeSource={RelativeSource AncestorType={x:Type v:CopilotPane}}}" CommandParameter="{Binding ExportFile}"
+                                                        AutomationProperties.Name="Open exports folder" />
+                                                <TextBlock Text="{Binding ExportFileName}" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="8,0,0,0"
+                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
                                             <ItemsControl ItemsSource="{Binding Warnings}" Margin="32,0,10,3" Focusable="False"
                                                           Visibility="{Binding HasWarnings, Converter={StaticResource Vis}}">
                                                 <ItemsControl.ItemTemplate>

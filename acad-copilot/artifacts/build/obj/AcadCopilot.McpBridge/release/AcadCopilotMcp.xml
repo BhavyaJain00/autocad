@@ -1,0 +1,293 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AcadCopilotMcp</name>
+    </assembly>
+    <members>
+        <member name="T:AcadCopilot.McpBridge.ToolsChangeReason">
+            <summary>Why <see cref="E:AcadCopilot.McpBridge.AcadLink.ToolsChanged"/> was raised.</summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.ToolsChangeReason.Connected">
+            <summary>A connection to AutoCAD was established.</summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.ToolsChangeReason.Disconnected">
+            <summary>The connection to AutoCAD was lost.</summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.ToolsChangeReason.AddinNotification">
+            <summary>The add-in reported that its tool list changed.</summary>
+        </member>
+        <member name="T:AcadCopilot.McpBridge.AcadUnavailableException">
+            <summary>Thrown when no AutoCAD instance with the add-in can be reached. The message is shown to the LLM.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.AcadUnavailableException.#ctor(System.String,System.Exception)">
+            <summary>Creates the exception.</summary>
+        </member>
+        <member name="T:AcadCopilot.McpBridge.AcadLink">
+            <summary>
+            Owns the bridge's pipe connection to the add-in: finds the AutoCAD instance through discovery files, connects
+            lazily, reconnects after AutoCAD restarts, and polls in the background while disconnected so the MCP client can
+            be told (tools/list_changed) when AutoCAD tools become available.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.AcadLink.#ctor(AcadCopilot.McpBridge.BridgeOptions)">
+            <summary>Creates the link (no connection yet).</summary>
+        </member>
+        <member name="E:AcadCopilot.McpBridge.AcadLink.ToolsChanged">
+            <summary>Raised when the set of AutoCAD tools may have changed (connected, disconnected, add-in notification).</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.AcadLink.Current">
+            <summary>The live client, or null when disconnected.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.AcadLink.GetClientAsync(System.Threading.CancellationToken)">
+            <summary>Returns a connected, authenticated client, connecting if needed.</summary>
+            <exception cref="T:AcadCopilot.McpBridge.AcadUnavailableException">AutoCAD is not running / the add-in is not reachable.</exception>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.AcadLink.StartWatching">
+            <summary>
+            Starts a background loop that tries to connect every few seconds while disconnected and raises
+            <see cref="E:AcadCopilot.McpBridge.AcadLink.ToolsChanged"/> when it succeeds. Safe to call more than once.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.AcadLink.DisposeAsync">
+            <summary>Stops polling and closes the pipe.</summary>
+        </member>
+        <member name="T:AcadCopilot.McpBridge.BridgeOptions">
+            <summary>Command-line options of AcadCopilotMcp.exe.</summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.BridgeOptions.Usage">
+            <summary>Usage text printed by --help.</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeOptions.Pid">
+            <summary>AutoCAD process to connect to; null = newest live instance.</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeOptions.Panel">
+            <summary>Expose the panel-only tools ask_user and update_plan.</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeOptions.SessionId">
+            <summary>Panel chat session (tab) id, sent with every call to the add-in; null = not a panel tab.</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeOptions.ReadOnly">
+            <summary>Read-only server (second-opinion reviewer): only tools that read are listed and run.</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeOptions.InstancesDirectory">
+            <summary>Discovery folder override (tests); null = default.</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeOptions.ConnectTimeout">
+            <summary>Pipe connect timeout.</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeOptions.LogFile">
+            <summary>Log file path; null = default location; "none" disables logging.</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeOptions.ShowHelp">
+            <summary>--help was given.</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeOptions.ShowVersion">
+            <summary>--version was given.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeOptions.Parse(System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>Parses the command line; throws <see cref="T:System.ArgumentException"/> with a readable message on bad input.</summary>
+        </member>
+        <member name="T:AcadCopilot.McpBridge.BridgeServer">
+            <summary>Glue between <see cref="T:AcadCopilot.McpBridge.BridgeToolService"/> and the official MCP C# SDK server.</summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.BridgeServer.ServerName">
+            <summary>MCP server name reported in serverInfo.</summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.BridgeServer.Instructions">
+            <summary>Instructions sent to MCP clients on initialize.</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeServer.Version">
+            <summary>Bridge version (assembly informational version).</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeServer.CreateOptions(AcadCopilot.McpBridge.BridgeToolService)">
+            <summary>Creates the MCP server options with tools/list and tools/call handlers backed by <paramref name="service"/>.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeServer.Create(ModelContextProtocol.Protocol.ITransport,AcadCopilot.McpBridge.BridgeToolService,AcadCopilot.McpBridge.AcadLink)">
+            <summary>Creates the server on <paramref name="transport"/> and wires tools/list_changed notifications.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeServer.ToMcpResult(AcadCopilot.McpBridge.BridgeCallResult)">
+            <summary>
+            Maps a bridge result to MCP: one text block (the JSON result without image data) followed by one image block
+            per image; isError is kept.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeServer.ToMcpTool(AcadCopilot.Core.Tools.ToolDefinition)">
+            <summary>Maps a AutoCAD tool definition to an MCP tool.</summary>
+        </member>
+        <member name="T:AcadCopilot.McpBridge.BridgeCallResult">
+            <summary>What the MCP client gets for one tool call: a text part, then any images.</summary>
+            <param name="Text">Result text (JSON for AutoCAD tools, with images described but never their base64 data).</param>
+            <param name="IsError">True when the call failed (MCP isError).</param>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeCallResult.#ctor(System.String,System.Boolean)">
+            <summary>What the MCP client gets for one tool call: a text part, then any images.</summary>
+            <param name="Text">Result text (JSON for AutoCAD tools, with images described but never their base64 data).</param>
+            <param name="IsError">True when the call failed (MCP isError).</param>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeCallResult.Text">
+            <summary>Result text (JSON for AutoCAD tools, with images described but never their base64 data).</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeCallResult.IsError">
+            <summary>True when the call failed (MCP isError).</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeCallResult.Images">
+            <summary>Validated images sent after the text as MCP image content (empty for most tools).</summary>
+        </member>
+        <member name="T:AcadCopilot.McpBridge.BridgeToolService">
+            <summary>
+            The bridge's tool logic, independent of the MCP SDK types: lists AutoCAD tools (cached per connection) plus the
+            bridge's own tools, and routes calls to the add-in (tools.call), to the panel (ui.askUser / ui.updatePlan) or to the
+            local knowledge files (the learning tools of <see cref="T:AcadCopilot.Core.Learning.KnowledgeTools"/>, which need neither AutoCAD nor a turn at
+            its command line, so they are answered here, also while AutoCAD is busy or closed).
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.BridgeToolService.MaxImageBytes">
+            <summary>Largest image (decoded bytes) forwarded to the MCP client; bigger ones are dropped with a warning.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeToolService.#ctor(AcadCopilot.McpBridge.AcadLink,System.Boolean,AcadCopilot.Core.Learning.KnowledgeStore,System.Boolean,AcadCopilot.McpBridge.ResponseCache)">
+            <summary>Creates the service.</summary>
+            <param name="link">Connection to AutoCAD.</param>
+            <param name="panel">Expose ask_user and update_plan (bridge launched by the panel).</param>
+            <param name="knowledge">The knowledge base of the learning tools (default: <see cref="P:AcadCopilot.Core.AppPaths.Knowledge"/>).</param>
+            <param name="readOnly">Only list and run tools that read (the second-opinion reviewer, bridge flag --readonly).</param>
+            <param name="cache">Cache of read results (default: a new one per service).</param>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeToolService.LastListIncludedAcad">
+            <summary>
+            Whether the last tools/list answer contained AutoCAD tools (null before the first list). Used to decide if the
+            MCP client must be told that the list changed.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeToolService.IsListStale(AcadCopilot.McpBridge.ToolsChangeReason)">
+            <summary>True when a change of the given kind makes the client's last tool list stale.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeToolService.ListToolsAsync(System.Threading.CancellationToken)">
+            <summary>AutoCAD tools (when reachable) followed by the bridge's own tools (status, panel tools, learning tools).</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeToolService.CallToolAsync(System.String,System.Text.Json.Nodes.JsonObject,System.Threading.CancellationToken)">
+            <summary>Runs one tool call. Never throws for tool or connection failures (they become IsError results).</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeToolService.ToCallResult(AcadCopilot.Core.Tools.ToolResult)">
+            <summary>
+            Converts an add-in result for the MCP client: the JSON text describes the images without their data, and the
+            images that an LLM can take (supported type, valid base64, at most <see cref="F:AcadCopilot.McpBridge.BridgeToolService.MaxImageBytes"/>) travel separately.
+            Images that cannot be sent are dropped and named in the result's warnings. The error flag is kept.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeToolService.Cache">
+            <summary>The cache of read results (tests look at it).</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.BridgeToolService.IsReadOnly">
+            <summary>True when this bridge only lists and runs tools that read (--readonly).</summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.BridgeToolService.RevisionProbe">
+            <summary>Name of the call that only fetches the drawing revision (the add-in answers an unknown tool at once, with the revision).</summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.BridgeToolService.ReadOnlyBridgeTools">
+            <summary>The bridge's own tools that only read (allowed with --readonly).</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeToolService.RefuseInReadOnlyAsync(System.String,System.Threading.CancellationToken)">
+            <summary>The refusal for a tool a read-only bridge may not run, or null when it reads.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeToolService.RecallKnowledge(System.Text.Json.Nodes.JsonObject)">
+            <summary>recall_knowledge: the user's knowledge plus the matching built-in guides, cached until a knowledge file changes.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeToolService.KnowledgeStamp">
+            <summary>A stamp that changes whenever a knowledge file is added, removed or written.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeToolService.CallAcadAsync(System.String,System.Text.Json.Nodes.JsonObject,System.Threading.CancellationToken)">
+            <summary>
+            An AutoCAD tool call. All of this bridge's AutoCAD calls pass a FIFO gate, so calls the CLI sends together (the next
+            run_commands stage queued behind the current one) reach AutoCAD in order, one at a time; a run_commands that waited
+            behind a run_commands that failed is skipped, so a queued stage never builds on a broken one. Read results of
+            <see cref="P:AcadCopilot.McpBridge.ResponseCache.DrawingTools"/> are served from the cache while the drawing revision is unchanged; every
+            other call clears those entries.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeToolService.ProbeRevisionAsync(AcadCopilot.Core.Ipc.PipeClient,System.Threading.CancellationToken)">
+            <summary>The add-in's drawing revision now, or null when it could not be read.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.BridgeToolService.ToJsonObject(System.Collections.Generic.IEnumerable{System.Collections.Generic.KeyValuePair{System.String,System.Text.Json.JsonElement}})">
+            <summary>Converts MCP argument elements to a JsonObject (null when there are none).</summary>
+        </member>
+        <member name="T:AcadCopilot.McpBridge.ResponseCache">
+            <summary>
+            Cache of deterministic, expensive read results of one bridge (one CLI call of one chat): get_drawing_info,
+            list_layers, list_entities pages, get_entity and recall_knowledge. Every entry carries the stamp it is valid for: the
+            drawing revision (AutoCAD bumps it on every object change, undo and drawing switch) for drawing tools, and the knowledge
+            files' stamp for recall_knowledge. The bridge serves an entry only when the current stamp is the same and the entry is
+            young enough, and clears the drawing entries after every call that may change the drawing.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.ResponseCache.MaxEntries">
+            <summary>Most entries kept (the oldest go first).</summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.ResponseCache.MaxTextLength">
+            <summary>Largest result text kept (bigger results are not cached).</summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.ResponseCache.DrawingInfoMaxAge">
+            <summary>
+            get_drawing_info also reports the view and the active command, which change without a revision change (ZOOM, the
+            user starting a command): its entries live only briefly.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.McpBridge.ResponseCache.MaxAge">
+            <summary>Lifetime of the other entries (layers, entities, knowledge).</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.ResponseCache.#ctor(System.TimeProvider)">
+            <summary>Creates the cache.</summary>
+            <param name="time">Clock (tests replace it).</param>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.ResponseCache.DrawingTools">
+            <summary>The AutoCAD tools whose results depend only on the drawing (and their arguments).</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.ResponseCache.Count">
+            <summary>Entries now.</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.ResponseCache.Hits">
+            <summary>Results served from the cache.</summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.ResponseCache.Misses">
+            <summary>Lookups that had to call AutoCAD (or read the files).</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.ResponseCache.Key(System.String,System.Text.Json.Nodes.JsonObject)">
+            <summary>The cache key of a call: tool name plus its arguments with the object keys sorted.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.ResponseCache.TryGet(System.String,System.Int64,AcadCopilot.McpBridge.BridgeCallResult@)">
+            <summary>
+            A young-enough entry for <paramref name="key"/> stored with <paramref name="stamp"/>; a different stamp drops the
+            entry (the drawing or the knowledge changed).
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.ResponseCache.Has(System.String)">
+            <summary>True when there is any entry for <paramref name="key"/> (whatever its stamp).</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.ResponseCache.Store(System.String,System.Int64,AcadCopilot.McpBridge.BridgeCallResult)">
+            <summary>Stores a successful result for <paramref name="key"/> at <paramref name="stamp"/>; failures and huge results are skipped.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.ResponseCache.InvalidateDrawing">
+            <summary>Forgets the drawing results (after a call that may change the drawing); knowledge results stay.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.ResponseCache.Clear">
+            <summary>Forgets everything.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.ResponseCache.MarkCached(AcadCopilot.McpBridge.BridgeCallResult)">
+            <summary>
+            The result as served from the cache: its JSON gets "cached": true (other text is returned unchanged), so the AI
+            knows nothing changed since it last asked.
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.McpBridge.FifoGate">
+            <summary>
+            First-in-first-out gate for the calls one bridge sends to AutoCAD: when a CLI sends several calls at once (the next
+            run_commands stage queued behind the current one), they reach AutoCAD in the order they were sent, one at a time.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.McpBridge.FifoGate.Pending">
+            <summary>Calls inside or waiting for the gate.</summary>
+        </member>
+        <member name="M:AcadCopilot.McpBridge.FifoGate.EnterAsync(System.Threading.CancellationToken)">
+            <summary>Waits until every call that entered before has left; dispose the result to let the next one in.</summary>
+        </member>
+    </members>
+</doc>

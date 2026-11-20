@@ -92,6 +92,7 @@ public sealed class CommandStepItem : ObservableObject
     private string? _requested;
     private CommandStepState _state;
     private string? _problem;
+    private string? _autoFixed;
 
     /// <summary>Creates the step.</summary>
     /// <param name="number">1-based position in the call.</param>
@@ -160,6 +161,11 @@ public sealed class CommandStepItem : ObservableObject
                 text.AppendLine().Append(Problem);
             }
 
+            if (AutoFixedText is not null)
+            {
+                text.AppendLine().Append(AutoFixedText);
+            }
+
             return text.ToString();
         }
     }
@@ -208,6 +214,25 @@ public sealed class CommandStepItem : ObservableObject
     /// <summary>True when <see cref="Problem"/> is shown.</summary>
     public bool HasProblem => Problem is not null;
 
+    /// <summary>
+    /// "Auto-fixed: added the missing Enter" when the copilot repaired this command's inputs (run_commands auto-fix:
+    /// dialog version retyped as its '-' version, a missing Enter, feet-inches syntax), or null.
+    /// </summary>
+    public string? AutoFixedText
+    {
+        get => _autoFixed;
+        private set
+        {
+            if (Set(ref _autoFixed, value))
+            {
+                OnPropertiesChanged(nameof(HasAutoFixed), nameof(ToolTip));
+            }
+        }
+    }
+
+    /// <summary>True when <see cref="AutoFixedText"/> is shown.</summary>
+    public bool HasAutoFixed => AutoFixedText is not null;
+
     /// <summary>Shows how the command ended, from the run_commands report.</summary>
     public void ApplyReport(StepReport report)
     {
@@ -229,6 +254,9 @@ public sealed class CommandStepItem : ObservableObject
             _ => CommandStepState.Unknown,
         };
         Problem = ProblemText(report);
+        AutoFixedText = report.AutoFixed is { Count: > 0 } fixes
+            ? "Auto-fixed: " + string.Join("; ", fixes.Where(f => !string.IsNullOrWhiteSpace(f)).Select(f => f.Trim().TrimEnd('.'))) + "."
+            : null;
         OnPropertyChanged(nameof(ToolTip));
     }
 
@@ -384,6 +412,8 @@ public sealed class ToolActivityItem : ObservableObject
     private string? _learningMessage;
     private IReadOnlyList<string> _warnings = [];
     private ImageSource? _picture;
+    private string? _checkpoint;
+    private string? _exportFile;
 
     /// <summary>Creates a running row.</summary>
     /// <param name="group">The group the row belongs to.</param>
@@ -601,6 +631,34 @@ public sealed class ToolActivityItem : ObservableObject
     /// <summary>True when the picture is shown.</summary>
     public bool HasPicture => Picture is not null;
 
+    /// <summary>
+    /// "Checkpoint 'before Outer walls' saved first (restore_checkpoint goes back)": the checkpoint run_commands created
+    /// before typing (from its report), or null.
+    /// </summary>
+    public string? CheckpointText => _checkpoint is null ? null : $"Checkpoint '{_checkpoint}' saved first (the AI can go back to it).";
+
+    /// <summary>True when <see cref="CheckpointText"/> is shown.</summary>
+    public bool HasCheckpoint => _checkpoint is not null;
+
+    /// <summary>The PNG export_view_png wrote (full path, from its result data), or null.</summary>
+    public string? ExportFile
+    {
+        get => _exportFile;
+        private set
+        {
+            if (Set(ref _exportFile, value))
+            {
+                OnPropertiesChanged(nameof(HasExportFile), nameof(ExportFileName));
+            }
+        }
+    }
+
+    /// <summary>True when the "Open exports folder" link is shown.</summary>
+    public bool HasExportFile => ExportFile is not null;
+
+    /// <summary>The exported picture's file name ("House-front_20261120-101500.png").</summary>
+    public string ExportFileName => ExportFile is { } file ? Path.GetFileName(file) : string.Empty;
+
     /// <summary>The call's full arguments, once the plug-in reported them (a private copy).</summary>
     public JsonObject? Arguments { get; private set; }
 
@@ -722,10 +780,20 @@ public sealed class ToolActivityItem : ObservableObject
             }
 
             warnings.AddRange(report.Warnings ?? []);
+            if (!string.IsNullOrWhiteSpace(report.Checkpoint) && !string.Equals(_checkpoint, report.Checkpoint.Trim(), StringComparison.Ordinal))
+            {
+                _checkpoint = report.Checkpoint.Trim();
+                OnPropertiesChanged(nameof(CheckpointText), nameof(HasCheckpoint));
+            }
         }
         else
         {
             OutcomeText = ToolActivityText.Outcome(result);
+        }
+
+        if (result.Success && string.Equals(Name, ExportViewPngTool, StringComparison.Ordinal))
+        {
+            ExportFile = ExportedFile(result.Data);
         }
 
         warnings.AddRange(result.Warnings);
@@ -739,6 +807,23 @@ public sealed class ToolActivityItem : ObservableObject
         }
 
         OnPropertyChanged(nameof(ShowResultLine));
+    }
+
+    // export_view_png (AcadCopilot.Core.Presentation.PresentationToolDefinitions.ExportViewPng).
+    private const string ExportViewPngTool = "export_view_png";
+
+    private static string? ExportedFile(JsonNode? data)
+    {
+        try
+        {
+            return data is JsonObject json && json["file"] is JsonValue value && value.TryGetValue<string>(out var file) && Path.IsPathFullyQualified(file)
+                ? file
+                : null;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     private void ApplyReport(RunCommandsReport report)

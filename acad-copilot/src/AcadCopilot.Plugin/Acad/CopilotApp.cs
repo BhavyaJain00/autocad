@@ -277,6 +277,10 @@ public sealed class CopilotApp : IExtensionApplication
         {
             CopilotLog.Info("AI Copilot ready.");
         }
+
+        // Crash recovery: offer an unfinished job of the open drawing (and of drawings opened later) in the panel.
+        // After the palette exists, so its "Resume previous job" card hears the first offer. Never throws.
+        AcadCopilot.Plugin.Recovery.ResumeMonitor.Start();
     }
 
     private PaletteHost? EnsurePalette()
@@ -387,6 +391,8 @@ public sealed class CopilotApp : IExtensionApplication
             AcadApp.Idle -= OnFirstIdle;
             _idleHooked = false;
         }
+
+        AcadCopilot.Plugin.Recovery.ResumeMonitor.Stop();
 
         try
         {

@@ -192,6 +192,19 @@ public sealed class CopilotPanelViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// The tab whose chat works on drawing <paramref name="drawingId"/> (an idle one first, then the shown one), or null.
+    /// </summary>
+    public ChatViewModel? TabForDrawing(string drawingId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(drawingId);
+        var tabs = Tabs.Where(t => SessionOf(t)?.Drawing is { IsClosed: false } drawing && drawing.Id == drawingId).ToList();
+        return tabs.FirstOrDefault(t => ReferenceEquals(t, _selectedTab) && !t.IsBusy)
+            ?? tabs.FirstOrDefault(t => !t.IsBusy)
+            ?? tabs.FirstOrDefault(t => ReferenceEquals(t, _selectedTab))
+            ?? tabs.FirstOrDefault();
+    }
+
     /// <summary>Closes <paramref name="tab"/>; a working tab asks first (<see cref="PendingClose"/>).</summary>
     public void RequestClose(ChatViewModel? tab)
     {
