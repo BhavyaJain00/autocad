@@ -116,10 +116,15 @@ public sealed class LearningViewModel : ObservableObject, IDisposable
     /// <summary>The discard question.</summary>
     public string DiscardQuestion => $"Discard this recording ({ActionsText})? It is deleted and nothing is learned.";
 
+    /// <summary>Idle banner text shown on the Learning bar.</summary>
+    public string IdleBannerText => AcadCopilot.Core.AppPaths.Root.Contains("BlenderCopilot", StringComparison.OrdinalIgnoreCase)
+        ? "Teach it by modeling: it learns from your own Blender actions"
+        : "Teach it by drawing: it learns from your own commands";
+
     /// <summary>Tool tip of Start learning.</summary>
-    public string StartToolTip =>
-        "Records your own work in AutoCAD (commands, what you type, the objects you draw) until you stop it. The AI's own " +
-        "commands are never recorded. Stop & learn saves it on this PC and asks the AI to learn your way of drawing from it.";
+    public string StartToolTip => AcadCopilot.Core.AppPaths.Root.Contains("BlenderCopilot", StringComparison.OrdinalIgnoreCase)
+        ? "Records your own 3D modeling actions in Blender 5.3 until you stop it. The AI's own actions are never recorded. Stop & learn saves it on this PC and asks the AI to learn your 3D workflow from it."
+        : "Records your own work in AutoCAD (commands, what you type, the objects you draw) until you stop it. The AI's own commands are never recorded. Stop & learn saves it on this PC and asks the AI to learn your way of drawing from it.";
 
     /// <summary>Starts recording.</summary>
     public RelayCommand StartCommand { get; }

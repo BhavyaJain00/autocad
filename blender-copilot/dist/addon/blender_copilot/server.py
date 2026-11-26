@@ -87,6 +87,7 @@ class BlenderWorkerServer:
         # Inner workspace dock state (0 = not split yet, 1 = vertical split done, 2 = middle Outliner/Props ready)
         self._dock_layout_stage: int = 0
         self._mid_col_area: Optional[Any] = None
+        self._configured_screens: set[str] = set()
         self._panel_visible: bool = True
 
         # Step-by-step Watch-mode state
@@ -159,10 +160,14 @@ class BlenderWorkerServer:
             json.dump(info, f, indent=2)
         return worker_file
 
+    def _target_dock_width(self, win_width: int) -> int:
+        return min(410, max(340, int(win_width * 0.265)))
+
     def ensure_inner_dock_layout(self) -> None:
         """
-        Reserve a dedicated rightmost column inside Blender's workspace for the AI Copilot panel
-        by shifting Outliner and Properties into a middle-right column next to the 3D Viewport.
+        Reserve a dedicated rightmost column of exact width `_target_dock_width(win.width)` inside Blender's workspace
+        for the AI Copilot panel, and place Outliner (top) and Properties (bottom) in the middle-right column
+        immediately to the left of the AI Copilot panel with zero overlap.
         """
         if self.bpy.app.background or not self._panel_visible:
             return
@@ -172,51 +177,89 @@ class BlenderWorkerServer:
                 return
             win = wm.windows[0]
             scr = win.screen
-            if not scr or not scr.areas:
+            if not scr or not scr.areas or win.width <= 0:
                 return
 
+            dock_w = self._target_dock_width(win.width)
+            dock_start_x = win.width - dock_w
+
+            # Stage 0: Maximize Blender and split VIEW_3D at exact x = dock_start_x so nothing to the left is covered
             if self._dock_layout_stage == 0:
                 maximize_blender_window()
                 v3ds = [a for a in scr.areas if a.type == "VIEW_3D"]
                 if not v3ds:
                     return
                 v3d = max(v3ds, key=lambda a: a.width * a.height)
-                if v3d.width < 800:
+                if v3d.width < 600:
+                    return
+                v3d_right = v3d.x + v3d.width
+                if v3d_right > dock_start_x + 20:
+                    factor1 = max(0.55, min(0.94, (dock_start_x - v3d.x) / float(v3d.width)))
+                    with self.bpy.context.temp_override(window=win, screen=scr, area=v3d):
+                        self.bpy.ops.screen.area_split(direction="VERTICAL", factor=factor1)
+                self._dock_layout_stage = 1
+                return
+
+            # Stage 1: Split the remaining left VIEW_3D (2..dock_start_x) at 0.76 to create the middle Outliner/Props column
+            if self._dock_layout_stage == 1:
+                v3ds = [a for a in scr.areas if a.type == "VIEW_3D" and (a.x + a.width) <= dock_start_x + 25]
+                if not v3ds:
+                    self._dock_layout_stage = 3
+                    return
+                v3d = max(v3ds, key=lambda a: a.width * a.height)
+                if v3d.width < 500:
+                    self._dock_layout_stage = 3
                     return
                 before = set(scr.areas)
                 with self.bpy.context.temp_override(window=win, screen=scr, area=v3d):
-                    self.bpy.ops.screen.area_split(direction="VERTICAL", factor=0.77)
+                    self.bpy.ops.screen.area_split(direction="VERTICAL", factor=0.76)
                 added = list(set(scr.areas) - before)
                 if added:
                     self._mid_col_area = added[0]
-                    self._dock_layout_stage = 1
-                else:
                     self._dock_layout_stage = 2
+                else:
+                    self._dock_layout_stage = 3
                 return
 
-            if self._dock_layout_stage == 1:
+            # Stage 2: Split the middle column horizontally into OUTLINER (top) and PROPERTIES (bottom),
+            # and blank out the underlying areas in the rightmost dock zone (x >= dock_start_x - 10).
+            if self._dock_layout_stage == 2:
                 mid = self._mid_col_area
                 if mid is None or mid not in list(scr.areas):
-                    self._dock_layout_stage = 2
+                    self._dock_layout_stage = 3
                     return
                 if mid.height < 150:
-                    return  # wait for Blender to compute layout dimensions
+                    return
                 before = set(scr.areas)
                 with self.bpy.context.temp_override(window=win, screen=scr, area=mid):
-                    self.bpy.ops.screen.area_split(direction="HORIZONTAL", factor=0.74)
+                    self.bpy.ops.screen.area_split(direction="HORIZONTAL", factor=0.72)
                 added = list(set(scr.areas) - before)
                 mid.type = "PROPERTIES"
                 if added:
                     added[0].type = "OUTLINER"
-                self._dock_layout_stage = 2
+
+                for a in list(scr.areas):
+                    if a.x >= dock_start_x - 15:
+                        try:
+                            a.type = "TEXT_EDITOR"
+                            for sp in a.spaces:
+                                if hasattr(sp, "show_region_header"):
+                                    sp.show_region_header = False
+                                if hasattr(sp, "show_region_footer"):
+                                    sp.show_region_footer = False
+                        except Exception:
+                            pass
+                self._configured_screens.add(scr.name)
+                self._dock_layout_stage = 3
         except Exception as ex:
             print(f"[AI Copilot] Layout split note: {ex}")
-            self._dock_layout_stage = 2
+            self._dock_layout_stage = 3
 
     def compute_layout_rects(self) -> Tuple[Optional[Dict[str, int]], Optional[Dict[str, int]]]:
         """
         Return (dockRect, view3dRect) in Blender client-area pixels (origin bottom-left of client area).
-        - dockRect is the rightmost column inside Blender's window (between TOPBAR and STATUSBAR).
+        - dockRect is the exact rightmost column inside Blender's window (between TOPBAR and STATUSBAR),
+          locked directly to the right edge of the middle Outliner/Properties column.
         - view3dRect is the main 3D Viewport area (so Quick Ask's AI button sits inside the 3D Viewport).
         """
         if self.bpy.app.background:
@@ -234,26 +277,25 @@ class BlenderWorkerServer:
             min_y = min(a.y for a in areas)
             max_top = max(a.y + a.height for a in areas)
 
-            # Find the rightmost column areas
-            max_right = max(a.x + a.width for a in areas)
-            right_areas = [a for a in areas if (a.x + a.width) >= max_right - 8 and a.width < win.width * 0.5]
-            if right_areas:
-                dock_x = min(a.x for a in right_areas)
-                dock_w = max_right - dock_x
+            mid_areas = [a for a in areas if a.type in ("OUTLINER", "PROPERTIES") and (a.x + a.width) < win.width - 220]
+            if mid_areas:
+                mid_right = max(a.x + a.width for a in mid_areas)
+                dock_x = max(200, min(win.width - 240, mid_right + 2))
+                dock_w = win.width - dock_x
             else:
-                dock_w = min(430, int(win.width * 0.25))
+                dock_w = self._target_dock_width(win.width)
                 dock_x = win.width - dock_w
 
             dock_rect = {
                 "x": int(dock_x),
                 "y": int(min_y),
-                "width": int(max(340, dock_w)),
+                "width": int(dock_w),
                 "height": int(max(300, max_top - min_y)),
                 "winWidth": int(win.width),
                 "winHeight": int(win.height),
             }
 
-            v3ds = [a for a in areas if a.type == "VIEW_3D"]
+            v3ds = [a for a in areas if a.type == "VIEW_3D" and a.x < dock_x - 50]
             v3d_rect = None
             if v3ds:
                 v3d = max(v3ds, key=lambda a: a.width * a.height)
@@ -375,8 +417,23 @@ class BlenderWorkerServer:
 
     def pump_main_thread(self) -> float:
         """Called every 50 ms on Blender's main thread via bpy.app.timers."""
-        if not self.bpy.app.background and self._dock_layout_stage < 2:
-            self.ensure_inner_dock_layout()
+        if not self.bpy.app.background:
+            try:
+                wm = self.bpy.context.window_manager
+                if wm and wm.windows and wm.windows[0].screen:
+                    scr = wm.windows[0].screen
+                    if scr.name not in self._configured_screens and self._dock_layout_stage == 3:
+                        has_mid = any(a.type in ("OUTLINER", "PROPERTIES") and (a.x + a.width) < wm.windows[0].width - 220 for a in scr.areas)
+                        if not has_mid:
+                            self._dock_layout_stage = 0
+                        else:
+                            self._configured_screens.add(scr.name)
+            except Exception:
+                pass
+            if self._dock_layout_stage < 3:
+                self.ensure_inner_dock_layout()
+            elif self._host_proc is None:
+                self.launch_wpf_host_if_needed()
 
         try:
             self._capture_manual_user_actions()
@@ -498,9 +555,10 @@ class BlenderWorkerServer:
             "inputs": inputs,
             "note": note,
             "status": "failed" if step_error else "finished",
+            "transcript": [f"{cmd}: {', '.join(inputs[:4])}"],
             "prompts": [f"{cmd}: {', '.join(inputs[:4])}"],
             "error": step_error,
-            "autoFixed": auto_fixed if auto_fixed else None,
+            "autoFixed": [auto_fixed] if auto_fixed else None,
             "createdCount": len(step_created),
             "modifiedCount": len(step_modified),
             "erasedCount": len(step_erased),
@@ -530,7 +588,7 @@ class BlenderWorkerServer:
         self._copilot_busy = False
 
         failed_steps = [s for s in step_reports if s["status"] == "failed"]
-        outcome = "completed" if not failed_steps else "partial"
+        outcome = "completed" if not failed_steps else ("failed" if len(failed_steps) == len(steps) else "stopped")
         msg = (
             f"{title}: {len(steps)} step(s) executed in Blender 5.3 "
             f"({len(created_handles)} created, {len(modified_handles)} modified, {len(erased_handles)} erased)."
@@ -538,11 +596,15 @@ class BlenderWorkerServer:
         report_data = {
             "title": title,
             "outcome": outcome,
+            "pace": "watch",
+            "stepsTotal": len(steps),
+            "stepsRun": len(steps),
             "stepCount": len(steps),
             "completedSteps": len(steps) - len(failed_steps),
             "createdCount": len(created_handles),
             "modifiedCount": len(modified_handles),
             "erasedCount": len(erased_handles),
+            "oneUndoStep": True,
             "steps": step_reports,
             "created": job["created_summaries"][:60],
             "warnings": job["warnings"],

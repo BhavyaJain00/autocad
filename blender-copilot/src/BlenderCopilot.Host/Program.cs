@@ -260,14 +260,37 @@ public static class Program
         if (!string.IsNullOrWhiteSpace(artifactsDir))
         {
             Directory.CreateDirectory(artifactsDir);
+            backend.UpdateAcad(new AcadSessionInfo(instanceInfo.Pid, "5.3", "Untitled.blend") { Product = "Blender 5.3" });
+            const double width = 420;
+            const double height = 900;
+            pane.Width = width;
+            pane.Height = height;
+            for (var i = 0; i < 4; i++)
+            {
+                pane.Measure(new Size(width, height));
+                pane.Arrange(new Rect(0, 0, width, height));
+                pane.UpdateLayout();
+                dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+            }
+
+            var welcomeBmp = new RenderTargetBitmap((int)(width * 1.5), (int)(height * 1.5), 96 * 1.5, 96 * 1.5, PixelFormats.Pbgra32);
+            welcomeBmp.Render(pane);
+            var welcomeEncoder = new PngBitmapEncoder();
+            welcomeEncoder.Frames.Add(BitmapFrame.Create(welcomeBmp));
+            var welcomePng = Path.Combine(artifactsDir, "blender-copilot-welcome-dark.png");
+            using (var fs = File.Create(welcomePng))
+            {
+                welcomeEncoder.Save(fs);
+            }
+
             // Populate the CopilotPane with a preview turn showing the 3D Blender scene and commands
             backend.UpdateAcad(new AcadSessionInfo(instanceInfo.Pid, "5.3", "3D-House-30x40.blend") { Product = "Blender 5.3" });
             var vm = pane.ViewModel;
             var turn = new AcadCopilot.Plugin.ViewModels.TurnInfo(1, vm.SelectedProvider, "Opus");
-            vm.Items.Add(new AcadCopilot.Plugin.ViewModels.UserMessageItem("Build a 3D ground floor house on a 30' x 40' plot with walls, doors, windows, dog-legged staircase, furniture and dimensions in Blender 5.3", []));
-            vm.Apply(new TextDone("Building the 3D ground floor slab, 9\" outer walls, 4.5\" partition walls, doors, windows, dog-legged staircase, 3D furniture, and annotations in Blender 5.3."), turn);
+            vm.Items.Add(new AcadCopilot.Plugin.ViewModels.UserMessageItem("Model a 3D sci-fi robot with metallic PBR shaders, glowing emission eyes, Subdivision & Bevel modifiers, and studio lighting", []));
+            vm.Apply(new TextDone("Modeling the 3D sci-fi robot with Bevel & Subdivision Surface modifiers, metallic and glowing emission Principled BSDF materials, and 3-point studio lighting in Blender 5.3."), turn);
             vm.Apply(new ToolCallStarted("c1", "get_drawing_info", "", "acad"), turn);
-            vm.Apply(new ToolCallFinished("c1", true, "3D-House-30x40.blend (Blender 5.3)"), turn);
+            vm.Apply(new ToolCallFinished("c1", true, "Untitled.blend (Blender 5.3)"), turn);
             vm.Apply(new ToolCallStarted("c3", "run_commands", "{\"title\":\"3D House Ground Floor (30' x 40')\",\"steps\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14]}", "acad"), turn);
             vm.OnToolCallStarting("run_commands", result.runArgs);
             vm.OnToolCallFinished("run_commands", result.runArgs, result.runRes);
@@ -281,16 +304,13 @@ public static class Program
                 Tasks =
                 [
                     new() { Title = "Setup 3D collections & Principled BSDF materials", Status = AcadCopilot.Core.Interaction.PlanTaskStatus.Completed },
-                    new() { Title = "3D floor slab & 9\" outer walls", Status = AcadCopilot.Core.Interaction.PlanTaskStatus.Completed },
-                    new() { Title = "3D doors, windows & dog-legged staircase", Status = AcadCopilot.Core.Interaction.PlanTaskStatus.Completed },
-                    new() { Title = "3D furniture, room text & dimensions", Status = AcadCopilot.Core.Interaction.PlanTaskStatus.Completed },
+                    new() { Title = "3D meshes with Bevel & Subdivision modifiers", Status = AcadCopilot.Core.Interaction.PlanTaskStatus.Completed },
+                    new() { Title = "3-point studio area lighting & camera", Status = AcadCopilot.Core.Interaction.PlanTaskStatus.Completed },
                 ],
             });
 
             dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
 
-            const double width = 460;
-            const double height = 980;
             pane.Width = width;
             pane.Height = height;
             for (var i = 0; i < 4; i++)

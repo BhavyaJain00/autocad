@@ -51,6 +51,7 @@ public sealed class BlenderDockWindow : Window
     private double _dragStartWidthDip;
     private bool _syncingPing;
     private bool _maximizedBlenderOnce;
+    private bool _isEmbeddedChild;
 
     // Inner layout rects reported by Blender 5.3 in client-area pixels (origin bottom-left)
     private (int X, int Y, int Width, int Height, int WinW, int WinH)? _blenderDockRect;
@@ -125,28 +126,35 @@ public sealed class BlenderDockWindow : Window
         rootGrid.Children.Add(Pane);
         Content = rootGrid;
 
-        if (_blenderHwnd != IntPtr.Zero && Win32.IsWindow(_blenderHwnd))
+        PreviewMouseDown += (_, _) =>
         {
-            new WindowInteropHelper(this).Owner = _blenderHwnd;
-        }
+            var myHwnd = new WindowInteropHelper(this).Handle;
+            if (myHwnd != IntPtr.Zero && _isEmbeddedChild)
+            {
+                _ = Win32.SendMessage(myHwnd, Win32.WmActivate, new IntPtr(1), IntPtr.Zero);
+                _ = Win32.SetFocus(myHwnd);
+            }
+        };
 
         SourceInitialized += (_, _) =>
         {
             var myHwnd = new WindowInteropHelper(this).Handle;
             QuickAskNative.SetToolStyle(myHwnd, noActivate: false);
             EnsureBlenderMaximizedOnce();
+            EmbedInsideBlenderIfNeeded();
             ApplyDockLayout();
         };
 
         _syncTimer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher)
         {
-            Interval = TimeSpan.FromMilliseconds(180),
+            Interval = TimeSpan.FromMilliseconds(120),
         };
         _syncTimer.Tick += OnSyncTick;
         Loaded += (_, _) =>
         {
             _syncTimer.Start();
             EnsureBlenderMaximizedOnce();
+            EmbedInsideBlenderIfNeeded();
             ApplyDockLayout();
             UpdateQuickAskOverlay();
         };
@@ -221,6 +229,63 @@ public sealed class BlenderDockWindow : Window
         }
     }
 
+    private void EmbedInsideBlenderIfNeeded()
+    {
+        if (_isEmbeddedChild || _blenderHwnd == IntPtr.Zero || !Win32.IsWindow(_blenderHwnd))
+        {
+            return;
+        }
+
+        var myHwnd = new WindowInteropHelper(this).Handle;
+        if (myHwnd == IntPtr.Zero || !Win32.IsWindow(myHwnd))
+        {
+            return;
+        }
+
+        try
+        {
+            // 1. Ensure Blender's main window clips child windows so OpenGL/Vulkan buffer swaps never paint over the AI panel
+            var blenderStyle = Win32.GetWindowLongPtr(_blenderHwnd, Win32.GwlStyle).ToInt64();
+            if ((blenderStyle & Win32.WsClipChildren) == 0)
+            {
+                _ = Win32.SetWindowLongPtr(_blenderHwnd, Win32.GwlStyle, new IntPtr(blenderStyle | Win32.WsClipChildren));
+            }
+
+            // 2. Clear owner and set WS_CHILD style before parenting directly inside Blender's HWND
+            _ = Win32.SetWindowLongPtr(myHwnd, Win32.GwlpHwndParent, IntPtr.Zero);
+            var myStyle = Win32.GetWindowLongPtr(myHwnd, Win32.GwlStyle).ToInt64();
+            myStyle = (myStyle & ~Win32.WsPopup & ~Win32.WsCaption & ~Win32.WsThickFrame)
+                      | Win32.WsChild | Win32.WsVisible | Win32.WsClipSiblings | Win32.WsClipChildren;
+            _ = Win32.SetWindowLongPtr(myHwnd, Win32.GwlStyle, new IntPtr(myStyle));
+
+            _ = Win32.SetParent(myHwnd, _blenderHwnd);
+            _ = Win32.SetWindowPos(
+                myHwnd,
+                IntPtr.Zero,
+                0,
+                0,
+                0,
+                0,
+                Win32.SwpNoMove | Win32.SwpNoSize | Win32.SwpNoZOrder | Win32.SwpNoActivate | Win32.SwpFrameChanged);
+
+            // 3. Attach thread input so keyboard focus and typing in the WPF message box work seamlessly
+            var myThread = Win32.GetCurrentThreadId();
+            var blenderThread = Win32.GetWindowThreadProcessId(_blenderHwnd, out _);
+            if (myThread != 0 && blenderThread != 0 && myThread != blenderThread)
+            {
+                _ = Win32.AttachThreadInput(myThread, blenderThread, true);
+            }
+
+            _ = Win32.SendMessage(myHwnd, Win32.WmActivate, new IntPtr(1), IntPtr.Zero);
+            _isEmbeddedChild = Win32.GetParent(myHwnd) == _blenderHwnd;
+            CopilotLog.Info($"Embedded AI Copilot panel inside Blender HWND {_blenderHwnd} (isChild={_isEmbeddedChild}).");
+        }
+        catch (Exception ex)
+        {
+            CopilotLog.Warn("Could not embed as Win32 child window; falling back to docked owner.", ex);
+        }
+    }
+
     private void OnDividerMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (sender is UIElement el && Win32.GetCursorPos(out var pt))
@@ -290,8 +355,8 @@ public sealed class BlenderDockWindow : Window
                     _blenderHwnd = new IntPtr(hval);
                     if (Win32.IsWindow(_blenderHwnd))
                     {
-                        new WindowInteropHelper(this).Owner = _blenderHwnd;
                         EnsureBlenderMaximizedOnce();
+                        EmbedInsideBlenderIfNeeded();
                     }
                 }
 
@@ -364,6 +429,22 @@ public sealed class BlenderDockWindow : Window
 
         var fg = Win32.GetForegroundWindow();
         var myHwnd = new WindowInteropHelper(this).Handle;
+        if (_isEmbeddedChild && myHwnd != IntPtr.Zero)
+        {
+            var mouseDown = QuickAskNative.IsKeyDown(0x01) || QuickAskNative.IsKeyDown(0x02) || QuickAskNative.IsKeyDown(0x04);
+            if (mouseDown && Win32.GetFocus() == myHwnd && Win32.GetCursorPos(out var cur))
+            {
+                if (QuickAskNative.WindowRect(myHwnd) is { } myRect &&
+                    !myRect.Contains(cur.X, cur.Y) &&
+                    QuickAskNative.ClientRect(_blenderHwnd) is { } blClient &&
+                    blClient.Contains(cur.X, cur.Y))
+                {
+                    Keyboard.ClearFocus();
+                    _ = Win32.SetFocus(_blenderHwnd);
+                }
+            }
+        }
+
         if (fg != _blenderHwnd && fg != myHwnd)
         {
             _shortcutDown = false;
@@ -439,52 +520,57 @@ public sealed class BlenderDockWindow : Window
             return;
         }
 
+        EmbedInsideBlenderIfNeeded();
+
         var scale = Math.Max(1.0, VisualTreeHelper.GetDpi(this).DpiScaleX);
         var minWidthPx = (int)Math.Round(MinDockWidth * scale);
         var maxWidthPx = (int)Math.Round(MaxDockWidth * scale);
         var defaultWidthPx = (int)Math.Round(_dockWidthDip * scale);
 
-        int panelLeft;
-        int panelTop;
+        int relLeft;
+        int relTop;
         int panelWidth;
         int panelHeight;
 
         if (_blenderDockRect is { } dock && dock.WinH > 0)
         {
-            // Blender's area Y origin is at bottom-left of client area; convert to Win32 top-left screen pixels
+            // Blender's area Y origin is at bottom-left of client area; convert 1:1 physical pixels to client-area top-left
             var topInsetPx = Math.Max(48, client.Height - (dock.Y + dock.Height));
             var bottomInsetPx = Math.Max(22, dock.Y);
-            panelTop = client.Top + topInsetPx;
-            var panelBottom = client.Bottom - bottomInsetPx;
-            panelHeight = Math.Max(260, panelBottom - panelTop);
+            relTop = topInsetPx;
+            panelHeight = Math.Max(260, client.Height - topInsetPx - bottomInsetPx);
 
             panelWidth = _userResizedWidth
                 ? Math.Clamp(defaultWidthPx, minWidthPx, maxWidthPx)
-                : Math.Clamp(Math.Max(dock.Width, (int)Math.Round(390 * scale)), minWidthPx, maxWidthPx);
-            panelLeft = client.Right - panelWidth - 2;
+                : dock.Width;
+            relLeft = client.Width - panelWidth;
         }
         else
         {
-            // Fallback before first ping: inside client area below TOPBAR (54px) and above STATUSBAR (24px)
-            var topBarPx = (int)Math.Round(54 * scale);
-            var statusBarPx = (int)Math.Round(24 * scale);
-            panelTop = client.Top + topBarPx;
-            panelHeight = Math.Max(260, client.Height - topBarPx - statusBarPx);
-            panelWidth = Math.Clamp(defaultWidthPx, minWidthPx, maxWidthPx);
-            panelLeft = client.Right - panelWidth - 2;
+            // Fallback before first ping: inside client area below TOPBAR (52px) and above STATUSBAR (23px)
+            var fallbackW = Math.Min(410, Math.Max(340, (int)(client.Width * 0.265)));
+            relTop = 52;
+            panelHeight = Math.Max(260, client.Height - 52 - 23);
+            panelWidth = _userResizedWidth ? Math.Clamp(defaultWidthPx, minWidthPx, maxWidthPx) : fallbackW;
+            relLeft = client.Width - panelWidth;
         }
 
+        var expectedScreenLeft = client.Left + relLeft;
+        var expectedScreenTop = client.Top + relTop;
+        var posX = _isEmbeddedChild ? relLeft : expectedScreenLeft;
+        var posY = _isEmbeddedChild ? relTop : expectedScreenTop;
+
         if (QuickAskNative.WindowRect(myHwnd) is not { } current ||
-            Math.Abs(current.Left - panelLeft) > 2 ||
-            Math.Abs(current.Top - panelTop) > 2 ||
+            Math.Abs(current.Left - expectedScreenLeft) > 2 ||
+            Math.Abs(current.Top - expectedScreenTop) > 2 ||
             Math.Abs(current.Width - panelWidth) > 2 ||
             Math.Abs(current.Height - panelHeight) > 2)
         {
             _ = Win32.SetWindowPos(
                 myHwnd,
                 IntPtr.Zero,
-                panelLeft,
-                panelTop,
+                posX,
+                posY,
                 panelWidth,
                 panelHeight,
                 Win32.SwpNoZOrder | Win32.SwpNoActivate);
@@ -584,8 +670,23 @@ internal static class Win32
 {
     public const int SwMaximize = 3;
     public const int SwRestore = 9;
+    public const int GwlStyle = -16;
+    public const int GwlpHwndParent = -8;
+    public const uint WmActivate = 0x0006;
+    public const uint SwpNoSize = 0x0001;
+    public const uint SwpNoMove = 0x0002;
     public const uint SwpNoZOrder = 0x0004;
     public const uint SwpNoActivate = 0x0010;
+    public const uint SwpFrameChanged = 0x0020;
+
+    public const long WsChild = 0x40000000L;
+    public const long WsPopup = 0x80000000L;
+    public const long WsVisible = 0x10000000L;
+    public const long WsClipSiblings = 0x04000000L;
+    public const long WsClipChildren = 0x02000000L;
+    public const long WsCaption = 0x00C00000L;
+    public const long WsThickFrame = 0x00040000L;
+
     private const uint MonitorDefaultToNearest = 2;
 
     [StructLayout(LayoutKind.Sequential)]
@@ -643,6 +744,37 @@ internal static class Win32
 
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetParent(IntPtr hWnd);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    public static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    public static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr SetFocus(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetFocus();
+
+    [DllImport("user32.dll", EntryPoint = "SendMessageW")]
+    public static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    [DllImport("kernel32.dll")]
+    public static extern uint GetCurrentThreadId();
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, [MarshalAs(UnmanagedType.Bool)] bool fAttach);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

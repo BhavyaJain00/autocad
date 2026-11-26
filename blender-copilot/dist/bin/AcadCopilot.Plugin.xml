@@ -4407,6 +4407,9 @@
         <member name="P:AcadCopilot.Plugin.ViewModels.ActivityGroupItem.HasFailures">
             <summary>True when any row failed.</summary>
         </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ActivityGroupItem.GroupTitle">
+            <summary>Header title ("3D Scene activity" in Blender, "CAD activity" in AutoCAD).</summary>
+        </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.ActivityGroupItem.CountText">
             <summary>Right-hand count text ("3 actions", "3 actions · 1 failed").</summary>
         </member>
@@ -5560,6 +5563,15 @@
         <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.HasItems">
             <summary>True when the conversation has entries.</summary>
         </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.IsBlenderHost">
+            <summary>True when running inside Blender 5.3 Desktop.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.WelcomeTitle">
+            <summary>Welcome screen heading adapted to the host software.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.WelcomeSubtitle">
+            <summary>Welcome screen description adapted to the host software.</summary>
+        </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.ExamplePrompts">
             <summary>Example prompts on the welcome screen.</summary>
         </member>
@@ -6062,6 +6074,9 @@
         </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.LearningViewModel.DiscardQuestion">
             <summary>The discard question.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.LearningViewModel.IdleBannerText">
+            <summary>Idle banner text shown on the Learning bar.</summary>
         </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.LearningViewModel.StartToolTip">
             <summary>Tool tip of Start learning.</summary>

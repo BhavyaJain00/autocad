@@ -878,6 +878,11 @@ public sealed class ActivityGroupItem : ChatItem
     /// <summary>True when any row failed.</summary>
     public bool HasFailures => Rows.Any(r => r.IsFailed);
 
+    /// <summary>Header title ("3D Scene activity" in Blender, "CAD activity" in AutoCAD).</summary>
+    public string GroupTitle => AcadCopilot.Core.AppPaths.Root.Contains("BlenderCopilot", StringComparison.OrdinalIgnoreCase)
+        ? "3D Scene activity"
+        : "CAD activity";
+
     /// <summary>Right-hand count text ("3 actions", "3 actions · 1 failed").</summary>
     public string CountText
     {
@@ -1031,6 +1036,17 @@ public static partial class ToolActivityText
     /// <summary>Readable title of a tool call in a state ("Looking at the drawing" / "Looked at the drawing").</summary>
     public static string Title(string name, ActivityState state)
     {
+        var isBlender = AcadCopilot.Core.AppPaths.Root.Contains("BlenderCopilot", StringComparison.OrdinalIgnoreCase);
+        if (isBlender && BlenderTitles.TryGetValue(name, out var blenderTitles))
+        {
+            return state switch
+            {
+                ActivityState.Running => blenderTitles.Running,
+                ActivityState.Succeeded => blenderTitles.Done,
+                _ => blenderTitles.Plain,
+            };
+        }
+
         if (!Titles.TryGetValue(name, out var titles))
         {
             return ToolNames.Humanize(name);
@@ -1043,6 +1059,20 @@ public static partial class ToolActivityText
             _ => titles.Plain,
         };
     }
+
+    private static readonly Dictionary<string, (string Running, string Done, string Plain)> BlenderTitles = new(StringComparer.Ordinal)
+    {
+        [CaptureView] = ("Looking at the 3D viewport", "Looked at the 3D viewport", "Look at the 3D viewport"),
+        ["get_drawing_info"] = ("Reading the Blender scene info", "Read the Blender scene info", "Read the Blender scene info"),
+        ["list_layers"] = ("Listing collections & materials", "Listed collections & materials", "List collections & materials"),
+        ["list_entities"] = ("Listing 3D scene objects", "Listed 3D scene objects", "List 3D scene objects"),
+        ["get_entity"] = ("Reading a 3D object", "Read a 3D object", "Read a 3D object"),
+        ["get_sysvars"] = ("Reading render & scene settings", "Read render & scene settings", "Read render & scene settings"),
+        [DraftingTools.Undo] = ("Undoing", "Undid the last 3D step", "Undo"),
+        ["acad_status"] = ("Checking the Blender connection", "Checked the Blender connection", "Check the Blender connection"),
+        [KnowledgeTools.LearnStyleFromDrawing] = ("Learning your style from this 3D scene", "Learned your style from this 3D scene", "Learn your style from this 3D scene"),
+        ["pick_point"] = ("Reading the 3D cursor location", "Got the 3D cursor location", "Read the 3D cursor location"),
+    };
 
     /// <summary>Outcome of a result from its created / modified / deleted ids (see <see cref="Outcome(int, int, int)"/>).</summary>
     public static string? Outcome(ToolResult result)

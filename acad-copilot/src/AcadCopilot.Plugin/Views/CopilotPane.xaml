@@ -945,7 +945,7 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <v:Icon Data="{StaticResource IconDraft}" Foreground="{DynamicResource AccentText}" />
-                                <TextBlock Grid.Column="1" Text="CAD activity" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding GroupTitle}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
                                 <v:Spinner Grid.Column="2" Width="12" Height="12" Margin="0,0,8,0" Foreground="{DynamicResource AccentText}"
                                            Visibility="{Binding HasRunning, Converter={StaticResource Vis}}" />
                                 <TextBlock Grid.Column="3" Text="{Binding CountText}" Style="{StaticResource Caption}" VerticalAlignment="Center" TextWrapping="NoWrap" />
@@ -1620,7 +1620,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <v:Icon Data="{StaticResource IconLearn}" Width="14" Height="14" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="1" Text="Teach it by drawing: it learns from your own commands" FontSize="11" Foreground="{DynamicResource TextSecondary}"
+                                    <TextBlock Grid.Column="1" Text="{Binding IdleBannerText}" FontSize="11" Foreground="{DynamicResource TextSecondary}"
                                                Margin="7,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding StartToolTip}" />
                                     <Button x:Name="StartLearningButton" Grid.Column="2" Style="{StaticResource SecondaryButton}" Padding="9,3" FontSize="11"
                                             Command="{Binding StartCommand}" ToolTip="{Binding StartToolTip}" AutomationProperties.Name="Start learning">
@@ -2183,8 +2183,8 @@
                     <Border Width="40" Height="40" CornerRadius="10" Background="{DynamicResource AccentSoft}" HorizontalAlignment="Left">
                         <v:Icon Data="{StaticResource IconDraft}" Width="20" Height="20" Foreground="{DynamicResource AccentText}" />
                     </Border>
-                    <TextBlock Text="What should I draw?" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,4" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
-                    <TextBlock Style="{StaticResource Caption}" FontSize="12"><Run Text="Describe it in plain words." /> <Run Text="{Binding SelectedProvider.DisplayName, Mode=OneWay}" /> <Run Text="drafts it in your open drawing with AutoCAD's own commands, step by step, while you watch. Ctrl+Z undoes any step." /></TextBlock>
+                    <TextBlock Text="{Binding WelcomeTitle, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,4" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
+                    <TextBlock Style="{StaticResource Caption}" FontSize="12" Text="{Binding WelcomeSubtitle, Mode=OneWay}" TextWrapping="Wrap" />
                     <TextBlock Text="TRY" Style="{StaticResource SectionTitle}" Margin="0,16,0,6" />
                     <ItemsControl ItemsSource="{Binding ExamplePrompts}" Focusable="False">
                         <ItemsControl.ItemTemplate>

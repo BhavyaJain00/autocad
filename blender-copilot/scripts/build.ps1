@@ -15,11 +15,14 @@ if (-not (Test-Path $dotnet)) {
     $dotnet = "dotnet"
 }
 
-$artifactsBuild = Join-Path $repoRoot "artifacts\build"
+Get-ChildItem -Path (Join-Path $repoRoot "artifacts") -Filter "build*" -Directory -ErrorAction SilentlyContinue |
+    ForEach-Object { Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+$artifactsBuild = Join-Path $repoRoot "artifacts\build-$PID"
 $hostProj = Join-Path $repoRoot "src\BlenderCopilot.Host\BlenderCopilot.Host.csproj"
 
 Write-Host "Building BlenderCopilot.Host ($Configuration) in isolated artifacts folder..." -ForegroundColor Cyan
-& $dotnet build $hostProj -c $Configuration --artifacts-path $artifactsBuild -m:1 -nodeReuse:false -p:UseSharedCompilation=false
+& $dotnet build-server shutdown | Out-Null
+& $dotnet build $hostProj -c $Configuration --artifacts-path $artifactsBuild --disable-build-servers -m:1 -nodeReuse:false -p:UseSharedCompilation=false
 $exitCode = $LASTEXITCODE
 & $dotnet build-server shutdown | Out-Null
 if ($exitCode -ne 0) {
@@ -39,7 +42,7 @@ $distBridge = Join-Path $distBin "bridge"
 $distAddon = Join-Path $distDir "addon\blender_copilot"
 
 if (Test-Path $distDir) {
-    Remove-Item -Path $distDir -Recurse -Force
+    Remove-Item -Path $distDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 New-Item -ItemType Directory -Path $distBin -Force | Out-Null
 New-Item -ItemType Directory -Path $distBridge -Force | Out-Null

@@ -496,9 +496,10 @@ class BlenderCadEngine:
                 "inputs": inputs,
                 "note": note,
                 "status": "failed" if step_error else "finished",
+                "transcript": [f"{cmd}: {', '.join(inputs[:4])}"],
                 "prompts": [f"{cmd}: {', '.join(inputs[:4])}"],
                 "error": step_error,
-                "autoFixed": auto_fixed if auto_fixed else None,
+                "autoFixed": [auto_fixed] if auto_fixed else None,
                 "createdCount": len(step_created),
                 "modifiedCount": len(step_modified),
                 "erasedCount": len(step_erased),
@@ -523,7 +524,7 @@ class BlenderCadEngine:
             pass
 
         failed_steps = [s for s in step_reports if s["status"] == "failed"]
-        outcome = "completed" if not failed_steps else "partial"
+        outcome = "completed" if not failed_steps else ("failed" if len(failed_steps) == len(steps) else "stopped")
         msg = (
             f"{title}: {len(steps)} step(s) executed in Blender 5.3 "
             f"({len(created_handles)} created, {len(modified_handles)} modified, {len(erased_handles)} erased)."
@@ -532,11 +533,15 @@ class BlenderCadEngine:
         report_data = {
             "title": title,
             "outcome": outcome,
+            "pace": "watch" if self.watch_mode else "fast",
+            "stepsTotal": len(steps),
+            "stepsRun": len(steps),
             "stepCount": len(steps),
             "completedSteps": len(steps) - len(failed_steps),
             "createdCount": len(created_handles),
             "modifiedCount": len(modified_handles),
             "erasedCount": len(erased_handles),
+            "oneUndoStep": True,
             "steps": step_reports,
             "created": created_summaries[:60],
             "warnings": warnings,

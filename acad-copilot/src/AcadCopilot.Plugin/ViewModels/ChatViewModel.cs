@@ -570,8 +570,23 @@ public sealed partial class ChatViewModel : ObservableObject, ICopilotUi, IToolA
     /// <summary>True when the conversation has entries.</summary>
     public bool HasItems => Items.Count > 0;
 
+    /// <summary>True when running inside Blender 5.3 Desktop.</summary>
+    public bool IsBlenderHost =>
+        AcadCopilot.Core.AcadProduct.IsBlender(_backend.Acad.Product) ||
+        AcadCopilot.Core.AppPaths.Root.Contains("BlenderCopilot", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Welcome screen heading adapted to the host software.</summary>
+    public string WelcomeTitle => IsBlenderHost
+        ? "What should I model or build in 3D?"
+        : "What should I draw?";
+
+    /// <summary>Welcome screen description adapted to the host software.</summary>
+    public string WelcomeSubtitle => IsBlenderHost
+        ? $"Describe any 3D model, environment, material, modifier, lighting or animation. {SelectedProvider.DisplayName} builds it live in your Blender 5.3 viewport step by step. Ctrl+Z undoes any step."
+        : $"Describe it in plain words. {SelectedProvider.DisplayName} drafts it in your open drawing with AutoCAD's own commands, step by step, while you watch. Ctrl+Z undoes any step.";
+
     /// <summary>Example prompts on the welcome screen.</summary>
-    public IReadOnlyList<string> ExamplePrompts => AcadCopilot.Core.AcadProduct.IsBlender(_backend.Acad.Product)
+    public IReadOnlyList<string> ExamplePrompts => IsBlenderHost
         ? BlenderExamplePrompts
         : DefaultExamplePrompts;
 
@@ -586,11 +601,11 @@ public sealed partial class ChatViewModel : ObservableObject, ICopilotUi, IToolA
 
     private static readonly IReadOnlyList<string> BlenderExamplePrompts =
     [
-        "Build a 3D G+1 house on a 30' x 40' east-facing plot with 3D walls, doors, windows, dog-legged staircase, roof, furniture and materials",
-        "Create a 3D modern living room interior with sofa, coffee table, floor lamp, warm Principled BSDF materials and camera",
-        "Model a 3D architectural facade / front elevation in Blender 5.3 with windows, balcony, roof overhang and sun lighting",
-        "What 3D objects, meshes, materials and collections are in this Blender scene?",
-        LearnStylePrompt,
+        "Model a 3D sci-fi robot with metallic PBR shaders, glowing emission eyes, Subdivision & Bevel modifiers, and studio lighting",
+        "Create a 3D low-poly floating island with pine trees, rocks, water, warm sunset lighting, and a camera",
+        "Set up a 3D product render studio: curved backdrop, 3-point area lighting, glass & brushed-metal materials, and camera",
+        "Add Bevel and Subdivision Surface modifiers with smooth shading and a Principled BSDF material to the selected mesh",
+        "Inspect this Blender 5.3 scene: list all 3D meshes, materials, modifiers, lights, cameras, and collections",
     ];
 
     /// <summary>The message the "Learn my style" button sends.</summary>
@@ -1214,7 +1229,9 @@ public sealed partial class ChatViewModel : ObservableObject, ICopilotUi, IToolA
     private static void OpenInExplorer(string folder) =>
         Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { folder }, UseShellExecute = false })?.Dispose();
 
-    private void LearnStyle() => SendOrDraft(LearnStylePrompt);
+    private void LearnStyle() => SendOrDraft(IsBlenderHost
+        ? "Learn my 3D modeling, material, modifier and lighting style from this Blender 5.3 scene"
+        : LearnStylePrompt);
 
     /// <summary>
     /// Sends <paramref name="text"/> as the user's message (visible in the chat), or, while this tab is working or the
@@ -1275,7 +1292,7 @@ public sealed partial class ChatViewModel : ObservableObject, ICopilotUi, IToolA
 
         if (Set(ref _selectedProvider, selected, nameof(SelectedProvider)))
         {
-            OnPropertiesChanged(nameof(Models), nameof(HasModelChoice), nameof(SelectedModel), nameof(ComposerPlaceholder));
+            OnPropertiesChanged(nameof(Models), nameof(HasModelChoice), nameof(SelectedModel), nameof(ComposerPlaceholder), nameof(WelcomeSubtitle));
         }
     }
 
