@@ -49,6 +49,7 @@ Copy-Item -Path (Join-Path $binOut "*") -Destination $distBin -Recurse -Force
 
 # Copy the MCP bridge from AcadCopilot's dist/artifacts/bin
 $bridgeCandidates = @(
+    (Join-Path $artifactsBuild "bin\AcadCopilot.McpBridge\$cfgLower"),
     (Join-Path $acadRoot "dist\AcadCopilot.bundle\Contents\bridge"),
     (Join-Path $acadRoot "artifacts\build\bin\AcadCopilot.McpBridge\release"),
     (Join-Path $acadRoot "src\AcadCopilot.McpBridge\bin\Release\net10.0")

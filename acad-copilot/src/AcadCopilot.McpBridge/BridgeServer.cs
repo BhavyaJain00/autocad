@@ -39,6 +39,16 @@ public static class BridgeServer
         "6) Also: pick_point / get_selection / select_objects (the user's clicks and selection), create_checkpoint / " +
         "restore_checkpoint / get_resume_info (recovery), and the services and presentation tools (see their descriptions).";
 
+    /// <summary>Instructions sent to MCP clients on initialize when connected to Blender 5.3 Desktop.</summary>
+    public const string BlenderInstructions =
+        "Models and builds 3D scenes & 3D architecture live in the user's Blender 5.3 Desktop through AI Copilot. " +
+        "1) Start with get_drawing_info to inspect the active Blender 5.3 scene (.blend file, collections, 3D objects, extents, camera, revision). " +
+        "2) Model and build with run_commands: you have FULL access to Blender 5.3! Use step command 'BPY' with inputs ['<python code using bpy, bmesh, mathutils>'] " +
+        "to execute any Blender Python API script (meshes, modifiers, Principled BSDF materials/shaders, geometry nodes, lighting, cameras, animations, collections), " +
+        "OR use 3D architectural commands ('WALL_3D', 'SLAB_3D', 'DOOR_3D', 'WINDOW_3D', 'STAIR_3D', 'ROOF_3D', 'FURNITURE_3D', 'MESH_CUBE', 'MESH_CYLINDER', 'MESH_SPHERE', 'MATERIAL', 'MODIFIER', 'LIGHT', 'CAMERA'). " +
+        "One run_commands call is one Undo step in Blender 5.3. " +
+        "3) After creating or modifying 3D geometry, call capture_view to render a live PNG snapshot of the Blender 5.3 3D Viewport and verify your work visually.";
+
     /// <summary>Bridge version (assembly informational version).</summary>
     public static string Version { get; } =
         typeof(BridgeServer).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion?.Split('+')[0] ?? "0.0.0";
@@ -47,7 +57,7 @@ public static class BridgeServer
     public static McpServerOptions CreateOptions(BridgeToolService service) => new()
     {
         ServerInfo = new Implementation { Name = ServerName, Version = Version },
-        ServerInstructions = Instructions,
+        ServerInstructions = AcadCopilot.Core.AppPaths.Root.Contains("BlenderCopilot", StringComparison.OrdinalIgnoreCase) ? BlenderInstructions : Instructions,
         Capabilities = new ServerCapabilities { Tools = new ToolsCapability { ListChanged = true } },
         Handlers = new McpServerHandlers
         {

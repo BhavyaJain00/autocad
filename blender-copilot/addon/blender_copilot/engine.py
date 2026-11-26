@@ -1222,36 +1222,93 @@ class BlenderCadEngine:
             modified.append(cam)
             return
 
-        # 30. BPY: safe Python execution inside Blender
-        if cmd in ("BPY", "PYTHON"):
-            code = "\n".join(inputs)
+        # 30. DELETE / REMOVE / CLEAR
+        if cmd in ("DELETE", "REMOVE", "CLEAR", "CLEAR_SCENE"):
+            if cmd in ("CLEAR", "CLEAR_SCENE") or any(x.strip().upper() == "ALL" for x in inputs):
+                for obj in list(self.bpy.context.scene.objects):
+                    if obj.type in ("MESH", "FONT", "CURVE", "EMPTY"):
+                        erased.append(self.get_handle(obj))
+                        self.bpy.data.objects.remove(obj, do_unlink=True)
+            else:
+                targets = list(inputs) if inputs else [o.name for o in self.bpy.context.selected_objects]
+                for tok in targets:
+                    t = tok.strip()
+                    if not t:
+                        continue
+                    obj = self.find_by_handle(t) or self.bpy.data.objects.get(t)
+                    if obj is not None:
+                        erased.append(self.get_handle(obj))
+                        self.bpy.data.objects.remove(obj, do_unlink=True)
+            return
+
+        # 31. SHADE_SMOOTH
+        if cmd in ("SHADE_SMOOTH", "SMOOTH"):
+            targets = [self.find_by_handle(x) or self.bpy.data.objects.get(x) for x in inputs if x.strip()]
+            if not targets:
+                targets = [o for o in self.bpy.context.scene.objects if o.type == "MESH"]
+            for obj in targets:
+                if obj is not None and obj.type == "MESH" and obj.data is not None:
+                    for poly in obj.data.polygons:
+                        poly.use_smooth = True
+                    modified.append(obj)
+            return
+
+        # 32. BPY / PYTHON / direct bpy.* statement execution inside Blender 5.3
+        if cmd in ("BPY", "PYTHON", "EXEC", "SCRIPT") or cmd.startswith("BPY.") or "(" in cmd or "=" in cmd:
+            if cmd in ("BPY", "PYTHON", "EXEC", "SCRIPT"):
+                code = "\n".join(inputs)
+            else:
+                # The AI put the python statement in command (or command + inputs)
+                raw_stmt = cmd if not inputs else (cmd + "\n" + "\n".join(inputs))
+                code = raw_stmt
             forbidden = ("os.system", "subprocess", "shutil.rmtree", "wm.quit_blender")
             for f in forbidden:
                 if f in code:
                     raise ValueError(f"Blocked unsafe statement '{f}' in BPY command.")
-            before = set(self.bpy.context.scene.objects)
+            before_objs = {o.name: o for o in self.bpy.context.scene.objects}
+            before_handles = {o.name: self.get_handle(o) for o in self.bpy.context.scene.objects}
             import bmesh
             import mathutils
             env = {
                 "bpy": self.bpy,
                 "bmesh": bmesh,
                 "mathutils": mathutils,
+                "Vector": mathutils.Vector,
+                "Euler": mathutils.Euler,
+                "Matrix": mathutils.Matrix,
+                "Quaternion": mathutils.Quaternion,
+                "Color": mathutils.Color,
+                "C": self.bpy.context,
+                "D": self.bpy.data,
+                "O": self.bpy.ops,
+                "scene": self.bpy.context.scene,
                 "math": math,
                 "engine": self,
+                "ensure_collection": lambda name: ensure_collection(self.bpy, name),
+                "ensure_material": lambda name, rgba=(0.8, 0.8, 0.8, 1.0), roughness=0.5, metallic=0.0: ensure_material(self.bpy, name, rgba, roughness, metallic),
+                "assign_object_to_layer": lambda obj, layer: assign_object_to_layer(self.bpy, obj, layer),
+                "du_to_meters": du_to_meters,
+                "meters_to_du": meters_to_du,
+                "parse_length": parse_length,
+                "parse_point": parse_point,
             }
             exec(code, env, env)
-            after = set(self.bpy.context.scene.objects)
-            for new_obj in (after - before):
-                self._alloc_handle(new_obj)
-                if not new_obj.get("acad_layer"):
-                    new_obj["acad_layer"] = self.current_layer
-                if not new_obj.get("acad_dxf_type"):
-                    new_obj["acad_dxf_type"] = "3DSOLID" if new_obj.type == "MESH" else new_obj.type
-                created.append(new_obj)
+            after_objs = {o.name: o for o in self.bpy.context.scene.objects}
+            for name, new_obj in after_objs.items():
+                if name not in before_objs:
+                    self._alloc_handle(new_obj)
+                    if not new_obj.get("acad_layer"):
+                        new_obj["acad_layer"] = self.current_layer
+                    if not new_obj.get("acad_dxf_type"):
+                        new_obj["acad_dxf_type"] = "3DSOLID" if new_obj.type == "MESH" else new_obj.type
+                    created.append(new_obj)
+            for name, old_handle in before_handles.items():
+                if name not in after_objs:
+                    erased.append(old_handle)
             return
 
         # Fallback: create a marker or note if an unknown command was sent
-        raise ValueError(f"Unsupported command '{cmd}'. Use LINE, PLINE, RECTANG, OFFSET, BREAK, ARC, TEXT, DIMLINEAR, WALL_3D, SLAB_3D, DOOR_3D, WINDOW_3D, STAIR_3D, ROOF_3D, FURNITURE_3D, MESH_*, MATERIAL, MODIFIER, LIGHT, CAMERA, or BPY.")
+        raise ValueError(f"Unsupported command '{cmd}'. Use BPY (for any Blender Python bpy/bmesh/mathutils script), WALL_3D, SLAB_3D, DOOR_3D, WINDOW_3D, STAIR_3D, ROOF_3D, FURNITURE_3D, MESH_*, MATERIAL, MODIFIER, LIGHT, CAMERA, LINE, PLINE, RECTANG, OFFSET, BREAK, ARC, TEXT, or DIMLINEAR.")
 
     # ------------------------------------------------------------------ CAD editing helpers
 

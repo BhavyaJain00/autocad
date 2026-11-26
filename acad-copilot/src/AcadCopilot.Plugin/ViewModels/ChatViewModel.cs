@@ -344,6 +344,7 @@ public sealed partial class ChatViewModel : ObservableObject, ICopilotUi, IToolA
     {
         VoiceState.Starting => "One moment: starting the microphone...",
         VoiceState.Listening or VoiceState.Stopping => "Speak now: your words appear here...",
+        _ when AcadCopilot.Core.AcadProduct.IsBlender(_backend.Acad.Product) => $"Ask {SelectedProvider.DisplayName} to model in 3D, run bpy or build in Blender 5.3...",
         _ => $"Ask {SelectedProvider.DisplayName} to draw or check the drawing...",
     };
 
@@ -570,12 +571,25 @@ public sealed partial class ChatViewModel : ObservableObject, ICopilotUi, IToolA
     public bool HasItems => Items.Count > 0;
 
     /// <summary>Example prompts on the welcome screen.</summary>
-    public IReadOnlyList<string> ExamplePrompts { get; } =
+    public IReadOnlyList<string> ExamplePrompts => AcadCopilot.Core.AcadProduct.IsBlender(_backend.Acad.Product)
+        ? BlenderExamplePrompts
+        : DefaultExamplePrompts;
+
+    private static readonly IReadOnlyList<string> DefaultExamplePrompts =
     [
         "Draw the ground floor plan for a 30' x 40' east-facing plot: car parking, living, kitchen, 2 bedrooms, 1 toilet, staircase",
         "Draw the front elevation of this plan",
         "Add dimensions to the plan",
         "What is in this drawing?",
+        LearnStylePrompt,
+    ];
+
+    private static readonly IReadOnlyList<string> BlenderExamplePrompts =
+    [
+        "Build a 3D G+1 house on a 30' x 40' east-facing plot with 3D walls, doors, windows, dog-legged staircase, roof, furniture and materials",
+        "Create a 3D modern living room interior with sofa, coffee table, floor lamp, warm Principled BSDF materials and camera",
+        "Model a 3D architectural facade / front elevation in Blender 5.3 with windows, balcony, roof overhang and sun lighting",
+        "What 3D objects, meshes, materials and collections are in this Blender scene?",
         LearnStylePrompt,
     ];
 

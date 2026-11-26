@@ -2952,6 +2952,9 @@
         <member name="P:AcadCopilot.Core.Agents.DraftingGuides.All">
             <summary>All guides.</summary>
         </member>
+        <member name="P:AcadCopilot.Core.Agents.DraftingGuides.BlenderGuides">
+            <summary>Built-in 3D guides when running inside Blender 5.3 Desktop.</summary>
+        </member>
         <member name="M:AcadCopilot.Core.Agents.DraftingGuides.Match(System.String)">
             <summary>The guides whose keywords appear in <paramref name="query"/> (best first, at most <see cref="F:AcadCopilot.Core.Agents.DraftingGuides.MaxPerQuery"/>).</summary>
         </member>

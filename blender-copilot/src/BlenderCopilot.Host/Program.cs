@@ -237,6 +237,7 @@ public static class Program
                     new JsonObject { ["command"] = "TEXT", ["inputs"] = new JsonArray("J", "MC", "8'6,15'", "10", "0", "LIVING 12'x18'", "") },
                     new JsonObject { ["command"] = "TEXT", ["inputs"] = new JsonArray("J", "MC", "21'6,25'", "10", "0", "BEDROOM 12'x14'", "") },
                     new JsonObject { ["command"] = "DIMLINEAR", ["inputs"] = new JsonArray("2',3'", "@26',0", "H", "@0,-4'") },
+                    new JsonObject { ["command"] = "BPY", ["inputs"] = new JsonArray("bpy.ops.mesh.primitive_uv_sphere_add(radius=0.35, location=(3.0, 4.0, 2.2))\nobj = bpy.context.active_object\nobj.name = 'ChandelierLight'") },
                 },
             };
             var runRes = await client.CallToolAsync("run_commands", runArgs, "c3", CancellationToken.None);

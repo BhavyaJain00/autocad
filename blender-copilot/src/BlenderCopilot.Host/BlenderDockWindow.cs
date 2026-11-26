@@ -19,14 +19,15 @@ using AcadCopilot.Plugin.Voice;
 namespace BlenderCopilot.Host;
 
 /// <summary>
-/// Native WPF window that hosts <see cref="CopilotPane"/> docked on the right side of Blender 5.3 Desktop,
-/// plus the floating <see cref="QuickAskOverlayWindow"/> and <see cref="QuickAskBoxWindow"/> over Blender's 3D area.
+/// Native WPF window that hosts <see cref="CopilotPane"/> embedded INSIDE Blender 5.3's main window
+/// (in the rightmost workspace column below Blender's top menu/workspace bar and above Blender's bottom status bar),
+/// plus the floating <see cref="QuickAskOverlayWindow"/> and <see cref="QuickAskBoxWindow"/> inside Blender's 3D Viewport.
 /// </summary>
 public sealed class BlenderDockWindow : Window
 {
-    public const double DefaultDockWidth = 460;
+    public const double DefaultDockWidth = 430;
     public const double MinDockWidth = 340;
-    public const double MaxDockWidth = 860;
+    public const double MaxDockWidth = 780;
 
     private readonly int _blenderPid;
     private readonly BlenderWorkerClient _worker;
@@ -44,10 +45,16 @@ public sealed class BlenderDockWindow : Window
     private bool _panelWanted = true;
     private bool _shortcutDown;
     private double _dockWidthDip = DefaultDockWidth;
+    private bool _userResizedWidth;
     private bool _resizingDivider;
     private int _dragStartMouseX;
     private double _dragStartWidthDip;
     private bool _syncingPing;
+    private bool _maximizedBlenderOnce;
+
+    // Inner layout rects reported by Blender 5.3 in client-area pixels (origin bottom-left)
+    private (int X, int Y, int Width, int Height, int WinW, int WinH)? _blenderDockRect;
+    private (int X, int Y, int Width, int Height, int WinW, int WinH)? _blenderView3dRect;
 
     public BlenderDockWindow(
         int blenderPid,
@@ -72,7 +79,7 @@ public sealed class BlenderDockWindow : Window
         _interaction = new BlenderDrawingInteraction(worker, Dispatcher);
         _recorder = new BlenderActionRecorder(worker, backend.Knowledge);
         _focusHost = new BlenderFocusLayoutHost();
-        _focusHost.Changed += (_, _) => ApplyDockLayout(forceResizeBlender: true);
+        _focusHost.Changed += (_, _) => ApplyDockLayout();
 
         var voice = new VoiceInputService();
         Pane = new CopilotPane(backend, new CopilotPaneOptions
@@ -98,16 +105,16 @@ public sealed class BlenderDockWindow : Window
         _quickAsk.BoxChanged += OnQuickAskBoxChanged;
         QuickAskOptions.Shared.PropertyChanged += (_, _) => UpdateQuickAskOverlay();
 
-        // Root grid: 5px left resize divider + the CopilotPane
+        // Root grid: 4px left resize divider + the CopilotPane
         var rootGrid = new Grid();
-        rootGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(5) });
+        rootGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
         rootGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
         var divider = new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(0x2B, 0x33, 0x40)),
+            Background = new SolidColorBrush(Color.FromRgb(0x28, 0x30, 0x3C)),
             Cursor = Cursors.SizeWE,
-            ToolTip = "Drag to resize the AI Copilot panel",
+            ToolTip = "Drag to resize the AI Copilot panel inside Blender",
         };
         divider.MouseLeftButtonDown += OnDividerMouseDown;
         divider.MouseMove += OnDividerMouseMove;
@@ -127,18 +134,20 @@ public sealed class BlenderDockWindow : Window
         {
             var myHwnd = new WindowInteropHelper(this).Handle;
             QuickAskNative.SetToolStyle(myHwnd, noActivate: false);
-            ApplyDockLayout(forceResizeBlender: true);
+            EnsureBlenderMaximizedOnce();
+            ApplyDockLayout();
         };
 
         _syncTimer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher)
         {
-            Interval = TimeSpan.FromMilliseconds(220),
+            Interval = TimeSpan.FromMilliseconds(180),
         };
         _syncTimer.Tick += OnSyncTick;
         Loaded += (_, _) =>
         {
             _syncTimer.Start();
-            ApplyDockLayout(forceResizeBlender: true);
+            EnsureBlenderMaximizedOnce();
+            ApplyDockLayout();
             UpdateQuickAskOverlay();
         };
         Closed += (_, _) =>
@@ -161,7 +170,7 @@ public sealed class BlenderDockWindow : Window
             Show();
         }
 
-        ApplyDockLayout(forceResizeBlender: true);
+        ApplyDockLayout();
         Activate();
     }
 
@@ -172,8 +181,6 @@ public sealed class BlenderDockWindow : Window
         {
             Hide();
         }
-
-        RestoreBlenderFullWorkArea();
     }
 
     public void TogglePanel()
@@ -198,6 +205,20 @@ public sealed class BlenderDockWindow : Window
     {
         ShowPanel();
         Pane.ShowSession(sessionId);
+    }
+
+    private void EnsureBlenderMaximizedOnce()
+    {
+        if (_maximizedBlenderOnce || _blenderHwnd == IntPtr.Zero || !Win32.IsWindow(_blenderHwnd))
+        {
+            return;
+        }
+
+        _maximizedBlenderOnce = true;
+        if (!Win32.IsZoomed(_blenderHwnd))
+        {
+            _ = Win32.ShowWindow(_blenderHwnd, Win32.SwMaximize);
+        }
     }
 
     private void OnDividerMouseDown(object sender, MouseButtonEventArgs e)
@@ -225,7 +246,8 @@ public sealed class BlenderDockWindow : Window
         if (Math.Abs(next - _dockWidthDip) >= 2)
         {
             _dockWidthDip = next;
-            ApplyDockLayout(forceResizeBlender: true);
+            _userResizedWidth = true;
+            ApplyDockLayout();
         }
     }
 
@@ -241,7 +263,6 @@ public sealed class BlenderDockWindow : Window
 
     private async void OnSyncTick(object? sender, EventArgs e)
     {
-        // 1. Check if Blender process is still alive
         if (!IsBlenderProcessAlive(_blenderPid))
         {
             Close();
@@ -249,11 +270,9 @@ public sealed class BlenderDockWindow : Window
             return;
         }
 
-        // 2. Track window position & global Ctrl+Shift+Space shortcut when Blender is focused
         CheckShortcut();
         SyncWindowVisibilityAndDock();
 
-        // 3. Poll Blender worker for selection, 3D cursor, active .blend title, recorder actions, and N-panel button clicks
         if (_syncingPing)
         {
             return;
@@ -272,9 +291,12 @@ public sealed class BlenderDockWindow : Window
                     if (Win32.IsWindow(_blenderHwnd))
                     {
                         new WindowInteropHelper(this).Owner = _blenderHwnd;
-                        ApplyDockLayout(forceResizeBlender: true);
+                        EnsureBlenderMaximizedOnce();
                     }
                 }
+
+                _blenderDockRect = ParseRect(data["dockRect"] as JsonObject);
+                _blenderView3dRect = ParseRect(data["view3dRect"] as JsonObject);
 
                 var docTitle = data["documentTitle"]?.GetValue<string>() ?? "Untitled.blend";
                 if (!string.Equals(_backend.Acad.DocumentTitle, docTitle, StringComparison.Ordinal))
@@ -302,6 +324,9 @@ public sealed class BlenderDockWindow : Window
                         }
                     }
                 }
+
+                ApplyDockLayout();
+                UpdateQuickAskOverlay();
             }
         }
         catch
@@ -312,6 +337,22 @@ public sealed class BlenderDockWindow : Window
         {
             _syncingPing = false;
         }
+    }
+
+    private static (int X, int Y, int Width, int Height, int WinW, int WinH)? ParseRect(JsonObject? obj)
+    {
+        if (obj is null)
+        {
+            return null;
+        }
+
+        var x = obj["x"]?.GetValue<int>() ?? 0;
+        var y = obj["y"]?.GetValue<int>() ?? 0;
+        var w = obj["width"]?.GetValue<int>() ?? 0;
+        var h = obj["height"]?.GetValue<int>() ?? 0;
+        var ww = obj["winWidth"]?.GetValue<int>() ?? 0;
+        var wh = obj["winHeight"]?.GetValue<int>() ?? 0;
+        return w > 0 && h > 0 ? (x, y, w, h, ww, wh) : null;
     }
 
     private void CheckShortcut()
@@ -370,93 +411,104 @@ public sealed class BlenderDockWindow : Window
         if (_panelWanted && !IsVisible)
         {
             Show();
-            ApplyDockLayout(forceResizeBlender: false);
         }
 
         if (_panelWanted && IsVisible)
         {
-            ApplyDockLayout(forceResizeBlender: false);
+            ApplyDockLayout();
         }
 
         UpdateQuickAskOverlay();
     }
 
-    private void ApplyDockLayout(bool forceResizeBlender)
+    /// <summary>
+    /// Positions the AI Copilot panel strictly INSIDE Blender 5.3's client area on the right side:
+    /// below Blender's top menu &amp; workspace bar (TOPBAR) and above Blender's bottom status bar (STATUSBAR).
+    /// Blender's main window is never un-maximized or shrunk.
+    /// </summary>
+    private void ApplyDockLayout()
     {
-        if (_blenderHwnd == IntPtr.Zero || !QuickAskNative.IsShown(_blenderHwnd))
+        if (_blenderHwnd == IntPtr.Zero || !QuickAskNative.IsShown(_blenderHwnd) || !_panelWanted)
         {
             return;
         }
 
         var myHwnd = new WindowInteropHelper(this).Handle;
-        if (myHwnd == IntPtr.Zero)
+        if (myHwnd == IntPtr.Zero || QuickAskNative.ClientRect(_blenderHwnd) is not { } client)
         {
             return;
         }
 
-        var scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
-        var panelWidthPx = (int)Math.Round(_dockWidthDip * Math.Max(1.0, scale));
-        var work = Win32.GetMonitorWorkArea(_blenderHwnd);
-        if (work.Width <= panelWidthPx + 300)
+        var scale = Math.Max(1.0, VisualTreeHelper.GetDpi(this).DpiScaleX);
+        var minWidthPx = (int)Math.Round(MinDockWidth * scale);
+        var maxWidthPx = (int)Math.Round(MaxDockWidth * scale);
+        var defaultWidthPx = (int)Math.Round(_dockWidthDip * scale);
+
+        int panelLeft;
+        int panelTop;
+        int panelWidth;
+        int panelHeight;
+
+        if (_blenderDockRect is { } dock && dock.WinH > 0)
         {
-            return;
-        }
+            // Blender's area Y origin is at bottom-left of client area; convert to Win32 top-left screen pixels
+            var topInsetPx = Math.Max(48, client.Height - (dock.Y + dock.Height));
+            var bottomInsetPx = Math.Max(22, dock.Y);
+            panelTop = client.Top + topInsetPx;
+            var panelBottom = client.Bottom - bottomInsetPx;
+            panelHeight = Math.Max(260, panelBottom - panelTop);
 
-        if (forceResizeBlender && _panelWanted)
+            panelWidth = _userResizedWidth
+                ? Math.Clamp(defaultWidthPx, minWidthPx, maxWidthPx)
+                : Math.Clamp(Math.Max(dock.Width, (int)Math.Round(390 * scale)), minWidthPx, maxWidthPx);
+            panelLeft = client.Right - panelWidth - 2;
+        }
+        else
         {
-            if (Win32.IsZoomed(_blenderHwnd))
-            {
-                _ = Win32.ShowWindow(_blenderHwnd, Win32.SwRestore);
-            }
-
-            var blenderWidth = work.Width - panelWidthPx;
-            _ = Win32.SetWindowPos(
-                _blenderHwnd,
-                IntPtr.Zero,
-                work.Left,
-                work.Top,
-                blenderWidth,
-                work.Height,
-                Win32.SwpNoZOrder | Win32.SwpNoActivate);
+            // Fallback before first ping: inside client area below TOPBAR (54px) and above STATUSBAR (24px)
+            var topBarPx = (int)Math.Round(54 * scale);
+            var statusBarPx = (int)Math.Round(24 * scale);
+            panelTop = client.Top + topBarPx;
+            panelHeight = Math.Max(260, client.Height - topBarPx - statusBarPx);
+            panelWidth = Math.Clamp(defaultWidthPx, minWidthPx, maxWidthPx);
+            panelLeft = client.Right - panelWidth - 2;
         }
-
-        var panelX = work.Right - panelWidthPx;
-        var panelY = work.Top;
-        var panelH = work.Height;
 
         if (QuickAskNative.WindowRect(myHwnd) is not { } current ||
-            Math.Abs(current.Left - panelX) > 2 ||
-            Math.Abs(current.Top - panelY) > 2 ||
-            Math.Abs(current.Width - panelWidthPx) > 2 ||
-            Math.Abs(current.Height - panelH) > 2)
+            Math.Abs(current.Left - panelLeft) > 2 ||
+            Math.Abs(current.Top - panelTop) > 2 ||
+            Math.Abs(current.Width - panelWidth) > 2 ||
+            Math.Abs(current.Height - panelHeight) > 2)
         {
             _ = Win32.SetWindowPos(
                 myHwnd,
                 IntPtr.Zero,
-                panelX,
-                panelY,
-                panelWidthPx,
-                panelH,
+                panelLeft,
+                panelTop,
+                panelWidth,
+                panelHeight,
                 Win32.SwpNoZOrder | Win32.SwpNoActivate);
         }
     }
 
-    private void RestoreBlenderFullWorkArea()
+    private ScreenRect? GetView3dScreenRect()
     {
-        if (_blenderHwnd == IntPtr.Zero || !QuickAskNative.IsShown(_blenderHwnd))
+        if (QuickAskNative.ClientRect(_blenderHwnd) is not { } client)
         {
-            return;
+            return null;
         }
 
-        var work = Win32.GetMonitorWorkArea(_blenderHwnd);
-        _ = Win32.SetWindowPos(
-            _blenderHwnd,
-            IntPtr.Zero,
-            work.Left,
-            work.Top,
-            work.Width,
-            work.Height,
-            Win32.SwpNoZOrder | Win32.SwpNoActivate);
+        if (_blenderView3dRect is { } v3d && v3d.Width > 200 && v3d.Height > 200)
+        {
+            var left = client.Left + v3d.X;
+            var top = client.Top + (client.Height - (v3d.Y + v3d.Height)) + 54; // below 3D View header + tool settings
+            var right = left + v3d.Width;
+            var bottom = top + Math.Max(100, v3d.Height - 54);
+            return new ScreenRect(left, top, right, bottom);
+        }
+
+        // Fallback: left 60% of Blender's client area
+        return new ScreenRect(client.Left, client.Top + 105, client.Left + (int)(client.Width * 0.60), client.Bottom - 24);
     }
 
     private void UpdateQuickAskOverlay()
@@ -467,7 +519,7 @@ public sealed class BlenderDockWindow : Window
             return;
         }
 
-        if (QuickAskNative.ClientRect(_blenderHwnd) is not { } area ||
+        if (GetView3dScreenRect() is not { } area ||
             area.Width < QuickAskPlacement.MinAreaSize ||
             area.Height < QuickAskPlacement.MinAreaSize)
         {
@@ -489,7 +541,7 @@ public sealed class BlenderDockWindow : Window
             return;
         }
 
-        var area = QuickAskNative.ClientRect(_blenderHwnd) ?? Win32.GetMonitorWorkArea(_blenderHwnd);
+        var area = GetView3dScreenRect() ?? QuickAskNative.ClientRect(_blenderHwnd) ?? Win32.GetMonitorWorkArea(_blenderHwnd);
         var window = new QuickAskBoxWindow(box, PanelTheme.Dark, _blenderHwnd);
         window.ClickedAway += (_, _) => _quickAsk.CloseBox();
         _boxWindow = window;
@@ -530,6 +582,7 @@ public sealed class BlenderDockWindow : Window
 
 internal static class Win32
 {
+    public const int SwMaximize = 3;
     public const int SwRestore = 9;
     public const uint SwpNoZOrder = 0x0004;
     public const uint SwpNoActivate = 0x0010;

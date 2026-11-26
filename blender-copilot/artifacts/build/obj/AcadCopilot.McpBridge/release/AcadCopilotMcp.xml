@@ -96,6 +96,9 @@
         <member name="F:AcadCopilot.McpBridge.BridgeServer.Instructions">
             <summary>Instructions sent to MCP clients on initialize.</summary>
         </member>
+        <member name="F:AcadCopilot.McpBridge.BridgeServer.BlenderInstructions">
+            <summary>Instructions sent to MCP clients on initialize when connected to Blender 5.3 Desktop.</summary>
+        </member>
         <member name="P:AcadCopilot.McpBridge.BridgeServer.Version">
             <summary>Bridge version (assembly informational version).</summary>
         </member>

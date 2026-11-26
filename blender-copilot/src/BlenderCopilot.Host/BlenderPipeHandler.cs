@@ -41,9 +41,68 @@ public sealed class BlenderPipeHandler : IPipeHandler
         _backend = backend;
         _revealPanel = revealPanel;
         var defaultRegistry = ToolRegistry.CreateDefault();
-        _definitions = defaultRegistry.Definitions;
+        _definitions = [.. defaultRegistry.Definitions.Select(AdaptToolForBlender)];
         _byName = _definitions.ToDictionary(d => d.Name, StringComparer.Ordinal);
     }
+
+    private static ToolDefinition AdaptToolForBlender(ToolDefinition def) => def.Name switch
+    {
+        "get_drawing_info" => def with
+        {
+            Title = "Blender scene info",
+            Description =
+                "Read the full state of the active Blender 5.3 scene (.blend file, units, collections/layers, all 3D objects by type " +
+                "(MESH, LIGHT, CAMERA, FONT, CURVE, EMPTY, 3DSOLID, LINE, LWPOLYLINE), 3D bounding-box extents, active collection, " +
+                "camera/viewport, and scene revision). Call this at the start of every request.",
+        },
+        "run_commands" => def with
+        {
+            Title = "Blender 5.3 commands",
+            Description =
+                "Execute 1 to 30 Blender 5.3 3D modeling, Python (BPY), or architectural building steps visibly in the active Blender 5.3 scene as ONE undo step. " +
+                "You have FULL access to everything in Blender 5.3:\n" +
+                "1) Full Blender Python API ('BPY'): {command: 'BPY', inputs: ['<any python code using bpy, bmesh, mathutils, Vector, Euler, Matrix, C=bpy.context, D=bpy.data, O=bpy.ops>'], note: '...'}. " +
+                "Use 'BPY' to create or modify ANY 3D mesh, object, modifier (Bevel, Subdivision, Boolean, Array, Solidify, Mirror), Principled BSDF material & shader nodes, " +
+                "Geometry Nodes, curves, 3D text, lighting, cameras, armatures, keyframes, collections, or delete/transform selected objects.\n" +
+                "2) 3D Architectural building commands (lengths accept feet-inches like \"30'\", \"12'-6\\\"\", \"9\", \"4.5\" or meters like \"3.5m\"):\n" +
+                "   - 'WALL_3D': inputs ['fromX,fromY', 'toX,toY', 'thickness?', 'height?', 'name?']\n" +
+                "   - 'SLAB_3D': inputs ['x,y', 'width,depth', 'thickness?', 'elevation?', 'name?']\n" +
+                "   - 'DOOR_3D': inputs ['x,y', 'width?', 'height?', 'angle?', 'swing?']\n" +
+                "   - 'WINDOW_3D': inputs ['x,y', 'width?', 'sill?', 'head?', 'angle?']\n" +
+                "   - 'STAIR_3D': inputs ['x,y', 'width,depth', 'floorHeight?', 'risers?']\n" +
+                "   - 'ROOF_3D': inputs ['x,y', 'width,depth', 'elevation?', 'kind? flat|gable|hip', 'parapet?']\n" +
+                "   - 'FURNITURE_3D': inputs ['bed|sofa|dining|kitchen|toilet|wardrobe|car|table', 'x,y', 'width,depth?', 'angle?']\n" +
+                "3) 3D Primitives, Materials, Modifiers, Lights & Camera:\n" +
+                "   - 'MESH_CUBE' | 'MESH_CYLINDER' | 'MESH_SPHERE' | 'MESH_PLANE' | 'MESH_CONE' | 'MESH_TORUS' | 'MESH_MONKEY': inputs ['x,y,z', 'sx,sy,sz', 'name?', 'colorHex?']\n" +
+                "   - 'MATERIAL': inputs ['objectNameOrLayer', '#RRGGBB', 'roughness?', 'metallic?']\n" +
+                "   - 'MODIFIER': inputs ['objectName', 'BEVEL|SUBSURF|SOLIDIFY|ARRAY|WIREFRAME', 'param1?', 'param2?']\n" +
+                "   - 'LIGHT': inputs ['SUN|POINT|AREA|SPOT', 'x,y,z', 'energy?', '#RRGGBB?']\n" +
+                "   - 'CAMERA': inputs ['x,y,z', 'targetX,targetY,targetZ', 'lens?']\n" +
+                "4) Standard CAD drafting commands ('SETVAR', '-LAYER', 'PLINE', 'LINE', 'RECTANG', 'OFFSET', 'BREAK', 'ARC', 'CIRCLE', 'TEXT', 'DIMLINEAR', 'DIMCONTINUE', '-HATCH', '-ARRAY', 'COPY', 'MOVE', 'ERASE'), which automatically create 3D geometry in Blender 5.3.",
+        },
+        "capture_view" => def with
+        {
+            Title = "Capture 3D viewport",
+            Description =
+                "Render a live PNG picture of the active Blender 5.3 3D Viewport so both you and the user see the 3D scene in the chat panel. Call this after creating or editing 3D objects.",
+        },
+        "list_layers" => def with
+        {
+            Title = "List Blender collections",
+            Description = "List all Collections (layers) in the active Blender 5.3 scene with their object counts and materials.",
+        },
+        "list_entities" => def with
+        {
+            Title = "List 3D objects",
+            Description = "List the 3D objects in the active Blender 5.3 scene (handles, names, types, collections, 3D locations, dimensions, geometry).",
+        },
+        "get_entity" => def with
+        {
+            Title = "Inspect 3D object",
+            Description = "Read full details of one Blender 5.3 object by its handle or object name.",
+        },
+        _ => def,
+    };
 
     public IReadOnlyList<ToolDefinition> Definitions => _definitions;
 
@@ -276,57 +335,64 @@ public sealed class BlenderPipeHandler : IPipeHandler
 
     private async Task<ToolResult> RunCommandsAsync(JsonObject arguments, CopilotSession? session, CancellationToken cancellationToken)
     {
-        // Sanitize any leading '(' in coordinate tuples so CommandPolicy never mistakes "(0,0,0)" for AutoLISP.
-        if (arguments["steps"] is JsonArray stepsArr)
+        if (arguments["steps"] is not JsonArray stepsArr || stepsArr.Count == 0)
         {
-            foreach (var stepObj in stepsArr.OfType<JsonObject>())
+            return WithRevision(ToolResult.Fail("run_commands requires a non-empty 'steps' array."));
+        }
+
+        // Check only for dangerous OS process/shell execution inside BPY scripts; allow all Blender Python (bpy, bmesh, mathutils) and 3D commands!
+        var blockedReasons = new List<string>();
+        var needsEraseAllApproval = false;
+        foreach (var stepObj in stepsArr.OfType<JsonObject>())
+        {
+            var cmd = (stepObj["command"]?.GetValue<string>() ?? string.Empty).Trim().ToUpperInvariant();
+            if (cmd is "SHELL" or "SH" or "QUIT" or "EXIT")
             {
-                if (stepObj["inputs"] is JsonArray inputsArr)
+                blockedReasons.Add($"Command '{cmd}' is not allowed.");
+            }
+
+            if (stepObj["inputs"] is JsonArray inputsArr)
+            {
+                foreach (var inpNode in inputsArr)
                 {
-                    for (var i = 0; i < inputsArr.Count; i++)
+                    var text = inpNode is JsonValue v && v.TryGetValue<string>(out var s) ? s : string.Empty;
+                    if (cmd is "BPY" or "PYTHON")
                     {
-                        if (inputsArr[i] is JsonValue v && v.TryGetValue<string>(out var s))
+                        if (text.Contains("os.system", StringComparison.OrdinalIgnoreCase) ||
+                            text.Contains("subprocess", StringComparison.OrdinalIgnoreCase) ||
+                            text.Contains("shutil.rmtree", StringComparison.OrdinalIgnoreCase) ||
+                            text.Contains("quit_blender", StringComparison.OrdinalIgnoreCase))
                         {
-                            var trimmed = s.Trim();
-                            if (trimmed.StartsWith('(') && trimmed.EndsWith(')'))
-                            {
-                                inputsArr[i] = trimmed[1..^1].Trim();
-                            }
+                            blockedReasons.Add("BPY script contains a restricted OS/process command.");
                         }
+                    }
+                    else if (cmd is "ERASE" or "DELETE" && string.Equals(text.Trim(), "ALL", StringComparison.OrdinalIgnoreCase))
+                    {
+                        needsEraseAllApproval = true;
                     }
                 }
             }
         }
 
-        if (!RunCommandsRequest.TryParse(arguments, out var request, out var parseErrors))
+        if (blockedReasons.Count > 0)
         {
-            return WithRevision(ToolResult.Fail("Invalid run_commands arguments; fix them and call again.", parseErrors));
+            return WithRevision(ToolResult.Fail("Blocked command in run_commands: " + string.Join(" ", blockedReasons), blockedReasons));
         }
 
-        var plan = DraftingPlan.Create(request!, CommandAliases.Default);
-        if (plan.IsBlocked)
+        if (needsEraseAllApproval)
         {
-            return WithRevision(ToolResult.Fail("Blocked command in run_commands: " + string.Join(" ", plan.BlockedErrors), plan.BlockedErrors));
-        }
-
-        if (plan.NeedsApproval)
-        {
-            var subjects = plan.ApprovalSteps
-                .SelectMany(s => s.Findings.Where(f => f.NeedsApproval).Select(f => f.Subject))
-                .Distinct(StringComparer.OrdinalIgnoreCase);
-            var title = "Allow " + string.Join(", ", subjects);
             var req = new ApprovalRequest
             {
                 ToolName = "run_commands",
-                ToolTitle = title,
-                Summary = plan.ApprovalSummary(),
+                ToolTitle = "Allow ERASE ALL",
+                Summary = "The AI wants to delete all objects in the active Blender 5.3 scene.",
                 Risk = ToolRisk.Destructive,
                 ArgumentsJson = arguments.ToJsonString(),
             };
             var decision = await RequestApprovalAsync(session, req, cancellationToken).ConfigureAwait(false);
             if (decision is not (ApprovalDecision.Approve or ApprovalDecision.AlwaysApprove))
             {
-                return WithRevision(ToolResult.Fail($"The user did not approve '{title}'. Ask the user what to do instead."));
+                return WithRevision(ToolResult.Fail("The user did not approve 'ERASE ALL'. Ask the user what to do instead."));
             }
         }
 

@@ -25,8 +25,11 @@ $localHome = Join-Path $env:LOCALAPPDATA "BlenderCopilot"
 $localBin = Join-Path $localHome "bin"
 
 if ($PSCmdlet.ShouldProcess($localBin, "Install BlenderCopilotHost.exe and MCP bridge")) {
-    # Stop any running BlenderCopilotHost.exe before replacing binaries
+    # Stop any running BlenderCopilotHost process (exe or dotnet BlenderCopilotHost.dll) before replacing binaries
     Get-Process -Name "BlenderCopilotHost" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Get-CimInstance Win32_Process -Filter "Name = 'dotnet.exe' AND CommandLine LIKE '%BlenderCopilotHost%'" -ErrorAction SilentlyContinue |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    Start-Sleep -Milliseconds 300
     if (Test-Path $localBin) {
         Remove-Item -Path $localBin -Recurse -Force
     }

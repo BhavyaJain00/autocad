@@ -94,30 +94,51 @@ public sealed class QuickPromptsViewModel : ObservableObject
     }
 
     /// <summary>The prompts that ship with the panel.</summary>
-    public IReadOnlyList<QuickPromptItem> BuiltIns { get; } =
-    [
-        new("builtin-plan-30x40", "30x40 G+1 standard plan",
-            "Draw a standard G+1 house for a 30' x 40' east-facing plot. Ground floor: car parking, living, kitchen, 1 bedroom, 1 toilet and the staircase. First floor: 2 bedrooms with attached toilets, a family lounge and a balcony. Show me the room schedule first and wait for \"Draw it\".",
-            isBuiltIn: true),
-        new("builtin-dimensions", "Add dimensions",
-            "Add dimensions to this plan: overall sizes, every room and the wall openings, on layer A-ANNO-DIMS with the ARCH-48 style.",
-            isBuiltIn: true),
-        // Exactly this short text: the session recognises it and runs a second-opinion review by another AI.
-        new("builtin-review", "Review this plan", ChatViewModel.ReviewPrompt, isBuiltIn: true),
-        new("builtin-learn-style", "Learn my style from this drawing", ChatViewModel.LearnStylePrompt, isBuiltIn: true),
-        new("builtin-plot-pdf", "Plot to PDF",
-            "Plot the sheets to one PDF with plot_to_pdf (create the sheets with create_sheets first if there are none).",
-            isBuiltIn: true),
-        new("builtin-electrical-draft", "Electrical layout (draft)",
-            "Draw a first-draft electrical layout of this floor plan for my electrician: switchboards, lights, fans, sockets, AC and geyser points, DB, with the legend and the draft note.",
-            isBuiltIn: true),
-        new("builtin-colour-elevation", "Colour elevation + PNG",
-            "Make a colour presentation version of this elevation (soft palette, sky, ground and shadows) and export it as a PNG I can share.",
-            isBuiltIn: true),
-        new("builtin-full-set", "Full drawing set from this plan",
-            "Make the full drawing set from this approved ground floor plan: plan it with plan_full_set, then draft the other floors, front, rear and side elevations, the section through the stair, the site plan, furniture layouts, the door/window schedule and the area statement stage by stage, then arrange_drawings and create_sheets (A3). Ask me before the PDF.",
-            isBuiltIn: true),
-    ];
+    public IReadOnlyList<QuickPromptItem> BuiltIns { get; } = AcadCopilot.Core.AppPaths.Root.Contains("BlenderCopilot", StringComparison.OrdinalIgnoreCase)
+        ?
+        [
+            new("builtin-plan-30x40", "3D G+1 House (30x40 plot)",
+                "Build a complete 3D G+1 house on a 30' x 40' east-facing plot in Blender 5.3: 3D floor slabs, 9\" outer walls, 4.5\" inner walls, 3D doors, glazed windows, dog-legged staircase, roof parapet, 3D furniture, Principled BSDF materials and sun light.",
+                isBuiltIn: true),
+            new("builtin-3d-interior", "3D Living Room Interior",
+                "Model a 3D modern living room interior in Blender 5.3 using BPY and 3D furniture: walls, wood flooring, L-shaped sofa, coffee table, TV console, area rug, warm lighting and camera.",
+                isBuiltIn: true),
+            new("builtin-3d-facade", "3D Front Elevation & Facade",
+                "Build a 3D architectural front elevation / facade in Blender 5.3 with textured walls, glass windows, balcony railing, roof slab, shadows and sun lighting, then capture the view.",
+                isBuiltIn: true),
+            new("builtin-materials", "Apply PBR Materials & Lighting",
+                "Assign realistic Principled BSDF materials (warm plaster walls, teak wood doors, clear architectural glass, concrete slabs) and set up 3-point + Sun lighting in Blender 5.3.",
+                isBuiltIn: true),
+            new("builtin-review", "Review this 3D scene", ChatViewModel.ReviewPrompt, isBuiltIn: true),
+            new("builtin-learn-style", "Learn my style from this scene", ChatViewModel.LearnStylePrompt, isBuiltIn: true),
+            new("builtin-export-png", "Render & Export 3D View PNG",
+                "Frame the 3D scene nicely and export a high-resolution PNG render to my exports folder with export_view_png.",
+                isBuiltIn: true),
+        ]
+        :
+        [
+            new("builtin-plan-30x40", "30x40 G+1 standard plan",
+                "Draw a standard G+1 house for a 30' x 40' east-facing plot. Ground floor: car parking, living, kitchen, 1 bedroom, 1 toilet and the staircase. First floor: 2 bedrooms with attached toilets, a family lounge and a balcony. Show me the room schedule first and wait for \"Draw it\".",
+                isBuiltIn: true),
+            new("builtin-dimensions", "Add dimensions",
+                "Add dimensions to this plan: overall sizes, every room and the wall openings, on layer A-ANNO-DIMS with the ARCH-48 style.",
+                isBuiltIn: true),
+            // Exactly this short text: the session recognises it and runs a second-opinion review by another AI.
+            new("builtin-review", "Review this plan", ChatViewModel.ReviewPrompt, isBuiltIn: true),
+            new("builtin-learn-style", "Learn my style from this drawing", ChatViewModel.LearnStylePrompt, isBuiltIn: true),
+            new("builtin-plot-pdf", "Plot to PDF",
+                "Plot the sheets to one PDF with plot_to_pdf (create the sheets with create_sheets first if there are none).",
+                isBuiltIn: true),
+            new("builtin-electrical-draft", "Electrical layout (draft)",
+                "Draw a first-draft electrical layout of this floor plan for my electrician: switchboards, lights, fans, sockets, AC and geyser points, DB, with the legend and the draft note.",
+                isBuiltIn: true),
+            new("builtin-colour-elevation", "Colour elevation + PNG",
+                "Make a colour presentation version of this elevation (soft palette, sky, ground and shadows) and export it as a PNG I can share.",
+                isBuiltIn: true),
+            new("builtin-full-set", "Full drawing set from this plan",
+                "Make the full drawing set from this approved ground floor plan: plan it with plan_full_set, then draft the other floors, front, rear and side elevations, the section through the stair, the site plan, furniture layouts, the door/window schedule and the area statement stage by stage, then arrange_drawings and create_sheets (A3). Ask me before the PDF.",
+                isBuiltIn: true),
+        ];
 
     /// <summary>The user's own prompts, in menu order.</summary>
     public ObservableCollection<QuickPromptItem> Saved { get; } = [];

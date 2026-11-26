@@ -1,7 +1,8 @@
 """
-Main-thread RPC bridge and Win32 window locator inside Blender 5.3 Desktop.
-Connects Blender 5.3's main thread (`bpy.app.timers`) with `BlenderCopilotHost.exe`
-(the docked WPF AI Copilot panel, Quick Ask overlay, and MCP Named Pipe server).
+Main-thread RPC bridge, inner workspace dock manager, and Win32 window locator inside Blender 5.3 Desktop.
+Splits a dedicated right-hand dock column inside Blender 5.3's workspace (shifting Outliner and Properties
+to the left so they remain completely visible) and embeds `BlenderCopilotHost.exe` inside Blender's window
+(below Blender's top menu/workspace bar and above Blender's bottom status bar).
 """
 
 from __future__ import annotations
@@ -59,6 +60,18 @@ def find_blender_main_hwnd() -> int:
     return found[0][1]
 
 
+def maximize_blender_window() -> None:
+    """Ensure Blender 5.3's main window is maximized (full screen) so the AI Copilot panel docks inside it."""
+    if os.name != "nt":
+        return
+    hwnd = find_blender_main_hwnd()
+    if hwnd:
+        try:
+            ctypes.windll.user32.ShowWindow(hwnd, 3)  # SW_MAXIMIZE = 3
+        except Exception:
+            pass
+
+
 class BlenderWorkerServer:
     """TCP localhost worker running inside Blender 5.3, dispatching all work on Blender's main thread."""
 
@@ -70,6 +83,11 @@ class BlenderWorkerServer:
         self._running: bool = False
         self._req_queue: "queue.Queue[Tuple[Dict[str, Any], queue.Queue[Dict[str, Any]]]]" = queue.Queue()
         self._host_proc: Optional[subprocess.Popen] = None
+
+        # Inner workspace dock state (0 = not split yet, 1 = vertical split done, 2 = middle Outliner/Props ready)
+        self._dock_layout_stage: int = 0
+        self._mid_col_area: Optional[Any] = None
+        self._panel_visible: bool = True
 
         # Step-by-step Watch-mode state
         self._active_watch_job: Optional[Dict[str, Any]] = None
@@ -141,8 +159,118 @@ class BlenderWorkerServer:
             json.dump(info, f, indent=2)
         return worker_file
 
+    def ensure_inner_dock_layout(self) -> None:
+        """
+        Reserve a dedicated rightmost column inside Blender's workspace for the AI Copilot panel
+        by shifting Outliner and Properties into a middle-right column next to the 3D Viewport.
+        """
+        if self.bpy.app.background or not self._panel_visible:
+            return
+        try:
+            wm = self.bpy.context.window_manager
+            if not wm or not wm.windows:
+                return
+            win = wm.windows[0]
+            scr = win.screen
+            if not scr or not scr.areas:
+                return
+
+            if self._dock_layout_stage == 0:
+                maximize_blender_window()
+                v3ds = [a for a in scr.areas if a.type == "VIEW_3D"]
+                if not v3ds:
+                    return
+                v3d = max(v3ds, key=lambda a: a.width * a.height)
+                if v3d.width < 800:
+                    return
+                before = set(scr.areas)
+                with self.bpy.context.temp_override(window=win, screen=scr, area=v3d):
+                    self.bpy.ops.screen.area_split(direction="VERTICAL", factor=0.77)
+                added = list(set(scr.areas) - before)
+                if added:
+                    self._mid_col_area = added[0]
+                    self._dock_layout_stage = 1
+                else:
+                    self._dock_layout_stage = 2
+                return
+
+            if self._dock_layout_stage == 1:
+                mid = self._mid_col_area
+                if mid is None or mid not in list(scr.areas):
+                    self._dock_layout_stage = 2
+                    return
+                if mid.height < 150:
+                    return  # wait for Blender to compute layout dimensions
+                before = set(scr.areas)
+                with self.bpy.context.temp_override(window=win, screen=scr, area=mid):
+                    self.bpy.ops.screen.area_split(direction="HORIZONTAL", factor=0.74)
+                added = list(set(scr.areas) - before)
+                mid.type = "PROPERTIES"
+                if added:
+                    added[0].type = "OUTLINER"
+                self._dock_layout_stage = 2
+        except Exception as ex:
+            print(f"[AI Copilot] Layout split note: {ex}")
+            self._dock_layout_stage = 2
+
+    def compute_layout_rects(self) -> Tuple[Optional[Dict[str, int]], Optional[Dict[str, int]]]:
+        """
+        Return (dockRect, view3dRect) in Blender client-area pixels (origin bottom-left of client area).
+        - dockRect is the rightmost column inside Blender's window (between TOPBAR and STATUSBAR).
+        - view3dRect is the main 3D Viewport area (so Quick Ask's AI button sits inside the 3D Viewport).
+        """
+        if self.bpy.app.background:
+            return None, None
+        try:
+            wm = self.bpy.context.window_manager
+            if not wm or not wm.windows:
+                return None, None
+            win = wm.windows[0]
+            scr = win.screen
+            if not scr or not scr.areas or win.width <= 0 or win.height <= 0:
+                return None, None
+
+            areas = list(scr.areas)
+            min_y = min(a.y for a in areas)
+            max_top = max(a.y + a.height for a in areas)
+
+            # Find the rightmost column areas
+            max_right = max(a.x + a.width for a in areas)
+            right_areas = [a for a in areas if (a.x + a.width) >= max_right - 8 and a.width < win.width * 0.5]
+            if right_areas:
+                dock_x = min(a.x for a in right_areas)
+                dock_w = max_right - dock_x
+            else:
+                dock_w = min(430, int(win.width * 0.25))
+                dock_x = win.width - dock_w
+
+            dock_rect = {
+                "x": int(dock_x),
+                "y": int(min_y),
+                "width": int(max(340, dock_w)),
+                "height": int(max(300, max_top - min_y)),
+                "winWidth": int(win.width),
+                "winHeight": int(win.height),
+            }
+
+            v3ds = [a for a in areas if a.type == "VIEW_3D"]
+            v3d_rect = None
+            if v3ds:
+                v3d = max(v3ds, key=lambda a: a.width * a.height)
+                v3d_rect = {
+                    "x": int(v3d.x),
+                    "y": int(v3d.y),
+                    "width": int(v3d.width),
+                    "height": int(v3d.height),
+                    "winWidth": int(win.width),
+                    "winHeight": int(win.height),
+                }
+            return dock_rect, v3d_rect
+        except Exception:
+            return None, None
+
     def launch_wpf_host_if_needed(self) -> bool:
-        """Start BlenderCopilotHost.exe docked beside Blender 5.3 when running in desktop GUI mode."""
+        """Start BlenderCopilotHost.exe embedded inside Blender 5.3 when running in desktop GUI mode."""
         if self.bpy.app.background:
             return False
         if os.environ.get("BLENDER_COPILOT_NO_GUI") == "1":
@@ -154,6 +282,7 @@ class BlenderWorkerServer:
         if not host_exe or not os.path.exists(host_exe):
             return False
 
+        maximize_blender_window()
         hwnd = find_blender_main_hwnd()
         env = os.environ.copy()
         env["ACADCOPILOT_HOME"] = self._home_dir()
@@ -246,6 +375,9 @@ class BlenderWorkerServer:
 
     def pump_main_thread(self) -> float:
         """Called every 50 ms on Blender's main thread via bpy.app.timers."""
+        if not self.bpy.app.background and self._dock_layout_stage < 2:
+            self.ensure_inner_dock_layout()
+
         try:
             self._capture_manual_user_actions()
         except Exception:
@@ -439,6 +571,7 @@ class BlenderWorkerServer:
                 cur = self.bpy.context.scene.cursor.location
                 cx_du, cy_du, cz_du = meters_to_du(cur.x), meters_to_du(cur.y), meters_to_du(cur.z)
                 sel = self.engine.get_selection()["data"]
+                dock_rect, view3d_rect = self.compute_layout_rects()
                 events = list(self.pending_ui_events)
                 self.pending_ui_events.clear()
                 return {
@@ -449,6 +582,8 @@ class BlenderWorkerServer:
                         "documentTitle": filename,
                         "documentPath": filepath if filepath else None,
                         "revision": self.engine.revision,
+                        "dockRect": dock_rect,
+                        "view3dRect": view3d_rect,
                         "cursor": {
                             "x": round(cx_du, 2),
                             "y": round(cy_du, 2),

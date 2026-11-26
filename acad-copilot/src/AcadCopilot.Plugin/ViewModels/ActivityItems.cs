@@ -454,7 +454,7 @@ public sealed class ToolActivityItem : ObservableObject
     /// otherwise a readable tool name ("Listed layers").
     /// </summary>
     public string Title => Kind == ActivityKind.Commands
-        ? _callTitle ?? "AutoCAD commands"
+        ? _callTitle ?? (AcadCopilot.Core.AppPaths.Root.Contains("BlenderCopilot", StringComparison.OrdinalIgnoreCase) ? "Blender 5.3 commands" : "AutoCAD commands")
         : ToolActivityText.WebTitle(Name, Summary, State) ?? ToolActivityText.Title(Name, State);
 
     /// <summary>Muted text after the title: "3 commands" for run_commands, nothing for capture_view, else the argument summary.</summary>

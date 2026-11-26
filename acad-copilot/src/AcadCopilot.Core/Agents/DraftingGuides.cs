@@ -121,6 +121,37 @@ public static class DraftingGuides
             "ventilator (or a shaft), kitchens an outside window; keep living rooms and bedrooms within 2:1. Sizes are whole inches."),
     ];
 
+    /// <summary>Built-in 3D guides when running inside Blender 5.3 Desktop.</summary>
+    public static IReadOnlyList<DraftingGuide> BlenderGuides { get; } =
+    [
+        new(
+            "3D Front Elevation & Facade (Blender 5.3)",
+            ["elevation", "elevations", "facade", "façade", "front"],
+            "In Blender 5.3, build the front elevation as a real 3D architectural model (or position the camera in front of the 3D building) using run_commands: " +
+            "SLAB_3D for the plinth (1'6 high) and floor slabs, WALL_3D for the 9\" facade walls (10'6 floor height), DOOR_3D for the main entrance door (3'6 x 7'), " +
+            "WINDOW_3D for the front windows (sill 3', head 7', with clear glass on A-GLAZ), ROOF_3D for the roof overhang and 3' parapet wall, " +
+            "MATERIAL for warm plaster walls, teak wood doors and glass, LIGHT [\"SUN\", \"180,-240,360\", \"4.0\"] and CAMERA [\"15',-45',6'\", \"15',0,6'\"] facing the front facade, then capture_view."),
+        new(
+            "3D Dog-legged Stair (Blender 5.3)",
+            ["stair", "stairs", "staircase", "steps", "dog-legged", "doglegged", "flight", "landing"],
+            "In Blender 5.3, use STAIR_3D [\"x,y\", \"width,depth\", \"floorHeight\", \"risers\"] (e.g. STAIR_3D [\"3',24'\", \"7'6,11'\", \"10'6\", \"18\"]) " +
+            "in run_commands to build a full 3D two-flight dog-legged staircase with 18 stepped risers, mid-landing and stone/concrete material on collection A-STRS."),
+        new(
+            "3D Furniture & Interior (Blender 5.3)",
+            ["furniture", "furnish", "interior", "bed", "sofa", "dining", "wardrobe", "kitchen", "toilet"],
+            "In Blender 5.3, use FURNITURE_3D [\"bed|sofa|dining|kitchen|toilet|wardrobe|car|table\", \"x,y\", \"width,depth\", \"angle\"] " +
+            "or BPY (Python bpy/bmesh) to build detailed 3D furniture meshes with Principled BSDF materials on collection A-FURN."),
+        new(
+            "Blender Python BPY Scripting",
+            ["bpy", "python", "mesh", "modifier", "material", "shader", "node", "nodes", "3d"],
+            "In run_commands, use step command \"BPY\" with inputs: [\"<python script>\"] to run any Blender 5.3 Python code directly on Blender's main thread. " +
+            "Available globals: bpy, bmesh, mathutils, Vector, Euler, Matrix, C (bpy.context), D (bpy.data), O (bpy.ops), scene (bpy.context.scene), " +
+            "ensure_collection(name), ensure_material(name, rgba, roughness, metallic), assign_object_to_layer(obj, layer)."),
+    ];
+
+    private static IReadOnlyList<DraftingGuide> ActiveGuides =>
+        AppPaths.Root.Contains("BlenderCopilot", StringComparison.OrdinalIgnoreCase) ? BlenderGuides : All;
+
     /// <summary>The guides whose keywords appear in <paramref name="query"/> (best first, at most <see cref="MaxPerQuery"/>).</summary>
     public static IReadOnlyList<DraftingGuide> Match(string? query)
     {
@@ -130,7 +161,7 @@ public static class DraftingGuides
             return [];
         }
 
-        return [.. All
+        return [.. ActiveGuides
             .Select(g => (Guide: g, Score: g.Keywords.Count(words.Contains) + (words.Contains(g.Name.ToLowerInvariant()) ? 2 : 0)))
             .Where(x => x.Score > 0)
             .OrderByDescending(x => x.Score)
@@ -153,7 +184,7 @@ public static class DraftingGuides
         var data = result.Data is JsonObject obj ? (JsonObject)obj.DeepClone() : new JsonObject();
         if (Words(query).Count == 0)
         {
-            data["builtInGuides"] = new JsonArray([.. All.Select(g => (JsonNode)g.Name)]);
+            data["builtInGuides"] = new JsonArray([.. ActiveGuides.Select(g => (JsonNode)g.Name)]);
             return result with { Data = data };
         }
 
