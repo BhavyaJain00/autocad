@@ -162,12 +162,23 @@ class BlenderWorkerServer:
             env["DOTNET_ROOT"] = dotnet_root
             env["PATH"] = dotnet_root + os.pathsep + env.get("PATH", "")
 
-        args = [
-            host_exe,
-            "--blender-pid", str(os.getpid()),
-            "--worker-port", str(self.port),
-            "--blender-hwnd", str(hwnd),
-        ]
+        dotnet_exe = os.path.join(dotnet_root, "dotnet.exe")
+        host_dll = os.path.join(os.path.dirname(host_exe), "BlenderCopilotHost.dll")
+        if os.path.isfile(dotnet_exe) and os.path.isfile(host_dll):
+            args = [
+                dotnet_exe,
+                host_dll,
+                "--blender-pid", str(os.getpid()),
+                "--worker-port", str(self.port),
+                "--blender-hwnd", str(hwnd),
+            ]
+        else:
+            args = [
+                host_exe,
+                "--blender-pid", str(os.getpid()),
+                "--worker-port", str(self.port),
+                "--blender-hwnd", str(hwnd),
+            ]
         try:
             creation_flags = 0x08000000 if os.name == "nt" else 0  # CREATE_NO_WINDOW
             self._host_proc = subprocess.Popen(

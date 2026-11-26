@@ -1642,6 +1642,12 @@ class BlenderCadEngine:
         }
 
     def apply_drawing_template(self) -> Dict[str, Any]:
+        default_cube = self.bpy.data.objects.get("Cube")
+        if default_cube is not None and not default_cube.get("acad_handle"):
+            try:
+                self.bpy.data.objects.remove(default_cube, do_unlink=True)
+            except Exception:
+                pass
         for lname in LAYER_SPECS:
             ensure_collection(self.bpy, lname)
             ensure_layer_material(self.bpy, lname)

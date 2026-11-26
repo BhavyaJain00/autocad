@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json.Nodes;
 using AcadCopilot.Core;
 using AcadCopilot.Core.Accuracy;
+using AcadCopilot.Core.Diagnostics;
 using AcadCopilot.Core.Drafting;
 using AcadCopilot.Core.Interaction;
 using AcadCopilot.Core.Ipc;
@@ -342,7 +343,7 @@ public sealed class BlenderPipeHandler : IPipeHandler
         if (save && validation.IsReady && arguments["plan"] is JsonObject planObj)
         {
             var docTitle = _backend.Acad.DocumentTitle ?? "Untitled.blend";
-            var key = CheckpointStore.DrawingKey(docTitle, docTitle);
+            var key = CheckpointStore.DrawingKey(docTitle);
             PlanStore.CreateDefault().Save(key, docTitle, planObj, _backend.Acad.Pid, appliedRules.Vastu, DateTimeOffset.UtcNow);
         }
 
@@ -352,7 +353,7 @@ public sealed class BlenderPipeHandler : IPipeHandler
     private async Task<ToolResult> CheckDrawingAsync(JsonObject arguments, CancellationToken cancellationToken)
     {
         var docTitle = _backend.Acad.DocumentTitle ?? "Untitled.blend";
-        var key = CheckpointStore.DrawingKey(docTitle, docTitle);
+        var key = CheckpointStore.DrawingKey(docTitle);
         var store = PlanStore.CreateDefault();
         var stored = store.Load(key) ?? store.LatestOfProcess(_backend.Acad.Pid);
         if (stored is null)
@@ -369,16 +370,7 @@ public sealed class BlenderPipeHandler : IPipeHandler
         var snapResp = await _worker.SendRawAsync("get_drawing_snapshot", null, cancellationToken).ConfigureAwait(false);
         var snapData = snapResp["data"] as JsonObject ?? new JsonObject();
         var snapshot = ParseSnapshot(snapData);
-        var rules = PlanRules.FromRules(AccuracyTools.RuleLines(_backend.Knowledge.Directory));
-        rules.Vastu = stored.Vastu;
-        var stage = stageText.ToLowerInvariant() switch
-        {
-            "walls" => CheckStage.Walls,
-            "openings" => CheckStage.Openings,
-            "annotation" => CheckStage.Annotation,
-            _ => CheckStage.All,
-        };
-        var report = DrawingChecker.Check(plan, floor, origin, snapshot, new CheckLayers(), rules, stage);
+        var report = DrawingChecker.Check(plan, floor, origin, snapshot, new CheckLayers(), stageText);
         return WithRevision(AccuracyTools.CheckResult(report, floor, origin, stored, maxFindings));
     }
 
@@ -484,12 +476,15 @@ public sealed class BlenderPipeHandler : IPipeHandler
             .Where(n => !string.IsNullOrWhiteSpace(n))
             .ToList() ?? ["A-WALL", "A-DOOR", "A-GLAZ", "A-STRS", "A-FURN"];
 
-        var sections = new Dictionary<string, IReadOnlyList<string>>
+        var sample = new StyleSample
         {
-            ["Units"] = ["- Architectural feet-inches (1 unit = 1 inch, 3D scale in meters in Blender 5.3)"],
-            ["Layers"] = [.. layerNames.Select(l => $"- Collection {l}")],
+            DrawingName = docTitle,
+            InchesPerUnit = 1.0,
+            UnitsSummary = "Architectural feet-inches (1 unit = 1 inch, 3D scale in meters in Blender 5.3)",
+            Layers = [.. layerNames.Select(l => new LayerSample(l!, "7", "Continuous", 0.25, 1))],
         };
-        _backend.Knowledge.MergeStyle(sections, docTitle);
+        var profile = StyleAnalyzer.Analyze(sample);
+        _backend.Knowledge.MergeStyle(profile);
         return WithRevision(ToolResult.Ok(
             $"Learned style from '{docTitle}' ({layerNames.Count} collection(s)) into style.md.",
             new JsonObject { ["source"] = docTitle, ["collections"] = layerNames.Count }));

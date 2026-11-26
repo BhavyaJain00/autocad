@@ -69,9 +69,9 @@ public sealed class BlenderWorkerClient
         var revision = raw["revision"] is JsonValue rv && rv.TryGetValue<long>(out var rev) ? rev : 1L;
         var data = raw["data"]?.DeepClone() as JsonObject;
 
-        var created = ReadStringArray(raw["createdIds"]);
-        var modified = ReadStringArray(raw["modifiedIds"]);
-        var deleted = ReadStringArray(raw["deletedIds"]);
+        var created = ReadHandleIdArray(raw["createdIds"]);
+        var modified = ReadHandleIdArray(raw["modifiedIds"]);
+        var deleted = ReadHandleIdArray(raw["deletedIds"]);
         var warnings = ReadStringArray(raw["warnings"]);
         var errors = ReadStringArray(raw["errors"]);
 
@@ -102,6 +102,32 @@ public sealed class BlenderWorkerClient
             Images = images,
             Revision = revision,
         };
+    }
+
+    private static IReadOnlyList<long> ReadHandleIdArray(JsonNode? node)
+    {
+        if (node is not JsonArray arr)
+        {
+            return [];
+        }
+
+        var list = new List<long>(arr.Count);
+        foreach (var item in arr)
+        {
+            if (item is JsonValue v)
+            {
+                if (v.TryGetValue<long>(out var num))
+                {
+                    list.Add(num);
+                }
+                else if (v.TryGetValue<string>(out var s) && long.TryParse(s, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var hex))
+                {
+                    list.Add(hex);
+                }
+            }
+        }
+
+        return list;
     }
 
     private static IReadOnlyList<string> ReadStringArray(JsonNode? node)

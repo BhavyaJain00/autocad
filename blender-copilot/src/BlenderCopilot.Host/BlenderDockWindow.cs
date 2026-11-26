@@ -491,11 +491,11 @@ public sealed class BlenderDockWindow : Window
 
         var area = QuickAskNative.ClientRect(_blenderHwnd) ?? Win32.GetMonitorWorkArea(_blenderHwnd);
         var window = new QuickAskBoxWindow(box, PanelTheme.Dark, _blenderHwnd);
-        window.ClickedAway += (_, _) => _quickAsk.CloseBox(returnFocus: false);
+        window.ClickedAway += (_, _) => _quickAsk.CloseBox();
         _boxWindow = window;
 
         var scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
-        if (box.OpenReason == QuickAskOpenReason.Button && _overlayWindow?.ScreenBounds is { } btnRect)
+        if (box.Reason == QuickAskOpenReason.Button && _overlayWindow?.ScreenBounds is { } btnRect)
         {
             window.ShowAt((w, h) => QuickAskPlacement.BoxUnderButton(area, btnRect, w, h));
         }

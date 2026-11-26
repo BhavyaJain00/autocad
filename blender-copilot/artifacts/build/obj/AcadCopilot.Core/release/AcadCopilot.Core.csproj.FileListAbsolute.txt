@@ -1,0 +1,14 @@
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\bin\AcadCopilot.Core\release\AcadCopilot.Core.deps.json
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\bin\AcadCopilot.Core\release\AcadCopilot.Core.dll
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\bin\AcadCopilot.Core\release\AcadCopilot.Core.pdb
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\bin\AcadCopilot.Core\release\AcadCopilot.Core.xml
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\obj\AcadCopilot.Core\release\AcadCopilot.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\obj\AcadCopilot.Core\release\AcadCopilot.Core.AssemblyInfoInputs.cache
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\obj\AcadCopilot.Core\release\AcadCopilot.Core.AssemblyInfo.cs
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\obj\AcadCopilot.Core\release\AcadCopilot.Core.csproj.CoreCompileInputs.cache
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\obj\AcadCopilot.Core\release\AcadCopilot.Core.sourcelink.json
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\obj\AcadCopilot.Core\release\AcadCopilot.Core.dll
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\obj\AcadCopilot.Core\release\refint\AcadCopilot.Core.dll
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\obj\AcadCopilot.Core\release\AcadCopilot.Core.xml
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\obj\AcadCopilot.Core\release\AcadCopilot.Core.pdb
+C:\Users\pc\Desktop\AUTOCAD\blender-copilot\artifacts\build\obj\AcadCopilot.Core\release\ref\AcadCopilot.Core.dll

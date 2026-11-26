@@ -347,7 +347,7 @@ public sealed class BlenderQuickAskHost : IQuickAskHost
     public async Task<QuickAskUndoResult> UndoAsync(ChatViewModel chat, int calls, CancellationToken cancellationToken)
     {
         var res = await _worker.CallToolAsync("undo", new JsonObject { ["count"] = Math.Max(1, calls) }, cancellationToken).ConfigureAwait(true);
-        return new QuickAskUndoResult(res.Success, res.Message);
+        return new QuickAskUndoResult(res.Success, res.Message ?? "Undone.");
     }
 
     public void ReturnFocusToDrawing()

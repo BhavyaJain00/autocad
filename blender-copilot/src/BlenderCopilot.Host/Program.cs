@@ -270,11 +270,11 @@ public static class Program
             vm.Apply(new ToolCallStarted("c3", "run_commands", "{\"title\":\"3D House Ground Floor (30' x 40')\",\"steps\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14]}", "acad"), turn);
             vm.OnToolCallStarting("run_commands", result.runArgs);
             vm.OnToolCallFinished("run_commands", result.runArgs, result.runRes);
-            vm.Apply(new ToolCallFinished("c3", true, result.runRes.Message), turn);
+            vm.Apply(new ToolCallFinished("c3", true, result.runRes.Message ?? "Done"), turn);
             vm.Apply(new ToolCallStarted("c4", "capture_view", "", "acad"), turn);
             vm.OnToolCallStarting("capture_view", new JsonObject());
             vm.OnToolCallFinished("capture_view", new JsonObject(), result.capRes);
-            vm.Apply(new ToolCallFinished("c4", true, result.capRes.Message), turn);
+            vm.Apply(new ToolCallFinished("c4", true, result.capRes.Message ?? "Captured"), turn);
             vm.UpdatePlan(new AcadCopilot.Core.Interaction.PlanUpdate
             {
                 Tasks =

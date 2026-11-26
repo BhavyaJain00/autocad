@@ -80,8 +80,10 @@ try {
     }
     Write-Host "3. Blender 5.3 worker listening on TCP port $workerPort (PID $($blenderProc.Id))." -ForegroundColor Green
 
-    Write-Host "4. Running BlenderCopilotHost.exe end-to-end pipe & UI test against Blender 5.3..." -ForegroundColor Cyan
-    & $hostExe --self-test --blender-pid $blenderProc.Id --worker-port $workerPort --artifacts-dir $artifactsDir
+    Write-Host "4. Running BlenderCopilotHost end-to-end pipe & UI test against Blender 5.3..." -ForegroundColor Cyan
+    $dotnetExe = Join-Path $dotnetDir "dotnet.exe"
+    $hostDll = Join-Path (Split-Path -Parent $hostExe) "BlenderCopilotHost.dll"
+    & $dotnetExe $hostDll --self-test --blender-pid $blenderProc.Id --worker-port $workerPort --artifacts-dir $artifactsDir
     if ($LASTEXITCODE -ne 0) {
         throw "BlenderCopilotHost --self-test failed with exit code $LASTEXITCODE."
     }
