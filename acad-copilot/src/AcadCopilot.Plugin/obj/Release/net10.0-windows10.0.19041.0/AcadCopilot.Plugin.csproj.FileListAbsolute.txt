@@ -27,3 +27,7 @@ C:\Users\pc\Desktop\AUTOCAD\acad-copilot\src\AcadCopilot.Plugin\obj\Release\net1
 C:\Users\pc\Desktop\AUTOCAD\acad-copilot\src\AcadCopilot.Plugin\obj\Release\net10.0-windows10.0.19041.0\AcadCopilot.Plugin.xml
 C:\Users\pc\Desktop\AUTOCAD\acad-copilot\src\AcadCopilot.Plugin\obj\Release\net10.0-windows10.0.19041.0\AcadCopilot.Plugin.pdb
 C:\Users\pc\Desktop\AUTOCAD\acad-copilot\src\AcadCopilot.Plugin\obj\Release\net10.0-windows10.0.19041.0\ref\AcadCopilot.Plugin.dll
+c:\Users\pc\Desktop\AUTOCAD\acad-copilot\src\AcadCopilot.Plugin\obj\Release\net10.0-windows10.0.19041.0\QuickAsk\QuickAskBoxView.g.cs
+c:\Users\pc\Desktop\AUTOCAD\acad-copilot\src\AcadCopilot.Plugin\obj\Release\net10.0-windows10.0.19041.0\QuickAsk\QuickAskButtonView.g.cs
+c:\Users\pc\Desktop\AUTOCAD\acad-copilot\src\AcadCopilot.Plugin\obj\Release\net10.0-windows10.0.19041.0\QuickAsk\QuickAskBoxView.baml
+c:\Users\pc\Desktop\AUTOCAD\acad-copilot\src\AcadCopilot.Plugin\obj\Release\net10.0-windows10.0.19041.0\QuickAsk\QuickAskButtonView.baml

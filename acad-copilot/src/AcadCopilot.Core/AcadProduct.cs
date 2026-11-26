@@ -13,6 +13,13 @@ public static class AcadProduct
     /// <summary>AutoCAD Architecture's name without the year.</summary>
     public const string Architecture = "AutoCAD Architecture";
 
+    /// <summary>Blender desktop host name prefix.</summary>
+    public const string Blender = "Blender";
+
+    /// <summary>True when the host product is Blender desktop (e.g. "Blender 5.3").</summary>
+    public static bool IsBlender(string? productName) =>
+        productName is not null && productName.Contains(Blender, StringComparison.OrdinalIgnoreCase);
+
     // acad.exe /product <code> starts a vertical (toolset) of "AutoCAD including specialized toolsets".
     private static readonly Dictionary<string, string> ProductCodes = new(StringComparer.OrdinalIgnoreCase)
     {

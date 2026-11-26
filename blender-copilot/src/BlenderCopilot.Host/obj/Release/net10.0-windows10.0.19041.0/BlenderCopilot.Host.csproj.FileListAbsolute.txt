@@ -1,0 +1,6 @@
+c:\Users\pc\Desktop\AUTOCAD\blender-copilot\src\BlenderCopilot.Host\obj\Release\net10.0-windows10.0.19041.0\BlenderCopilot.Host.csproj.AssemblyReference.cache
+c:\Users\pc\Desktop\AUTOCAD\blender-copilot\src\BlenderCopilot.Host\obj\Release\net10.0-windows10.0.19041.0\BlenderCopilot.Host.GeneratedMSBuildEditorConfig.editorconfig
+c:\Users\pc\Desktop\AUTOCAD\blender-copilot\src\BlenderCopilot.Host\obj\Release\net10.0-windows10.0.19041.0\BlenderCopilot.Host.AssemblyInfoInputs.cache
+c:\Users\pc\Desktop\AUTOCAD\blender-copilot\src\BlenderCopilot.Host\obj\Release\net10.0-windows10.0.19041.0\BlenderCopilot.Host.AssemblyInfo.cs
+c:\Users\pc\Desktop\AUTOCAD\blender-copilot\src\BlenderCopilot.Host\obj\Release\net10.0-windows10.0.19041.0\BlenderCopilot.Host.csproj.CoreCompileInputs.cache
+c:\Users\pc\Desktop\AUTOCAD\blender-copilot\src\BlenderCopilot.Host\obj\Release\net10.0-windows10.0.19041.0\BlenderCopilot.Host.sourcelink.json

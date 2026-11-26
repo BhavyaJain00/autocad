@@ -13,11 +13,12 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AcadCopilot")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.1.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+ddb381414c3e4c32dce1a346bb49aa6ce1898b28")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+14a83974e6a121c9acbb35c88ab97ff09f44286b")]
 [assembly: System.Reflection.AssemblyProductAttribute("AI Copilot for AutoCAD 2027")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AcadCopilot.Plugin")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.1.0.0")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("AcadCopilot.Plugin.Ui.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("BlenderCopilot.Host")]
 [assembly: System.Runtime.Versioning.TargetPlatformAttribute("Windows10.0.19041.0")]
 [assembly: System.Runtime.Versioning.SupportedOSPlatformAttribute("Windows10.0.19041.0")]
 

@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "3SG7g0KJsIw=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\pc\\Desktop\\AUTOCAD\\blender-copilot\\src\\BlenderCopilot.Host\\BlenderCopilot.Host.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\pc\\.nuget\\packages\\system.speech\\10.0.15\\system.speech.10.0.15.nupkg.sha512",
+    "C:\\Users\\pc\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
+  ],
+  "logs": []
+}

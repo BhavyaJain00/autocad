@@ -326,6 +326,63 @@
         <member name="M:AcadCopilot.Plugin.Acad.RevisionTracker.Dispose">
             <summary>Stops tracking. Main thread.</summary>
         </member>
+        <member name="T:AcadCopilot.Plugin.Accuracy.AccuracyDrawingReader">
+            <summary>
+            Reads the model-space objects of one area of the active drawing into a <see cref="T:AcadCopilot.Core.Accuracy.DrawingSnapshot"/> (inches) for
+            check_drawing: lines and polyline pieces, arcs, text, linear dimensions and every object's layer. Main thread, inside
+            the caller's read transaction.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Accuracy.AccuracyDrawingReader.MaxObjects">
+            <summary>Most objects read in one area.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Accuracy.AccuracyDrawingReader.Read(Autodesk.AutoCAD.ApplicationServices.Document,Autodesk.AutoCAD.DatabaseServices.Transaction,AcadCopilot.Core.Accuracy.Box)">
+            <summary>Reads the objects whose extents touch <paramref name="regionInches"/>.</summary>
+            <returns>The snapshot and whether the drawing's unit scale was known (unitless drawings are read as inches).</returns>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Accuracy.TemplateReport">
+            <summary>What apply_drawing_template did.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Accuracy.TemplateOptions">
+            <summary>Options of apply_drawing_template.</summary>
+            <param name="Scale">"1/4" or "1/8".</param>
+            <param name="Overwrite">Update existing layers and styles.</param>
+            <param name="TitleBlock">Define the title block.</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Accuracy.TemplateOptions.#ctor(System.String,System.Boolean,System.Boolean)">
+            <summary>Options of apply_drawing_template.</summary>
+            <param name="Scale">"1/4" or "1/8".</param>
+            <param name="Overwrite">Update existing layers and styles.</param>
+            <param name="TitleBlock">Define the title block.</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Accuracy.TemplateOptions.Scale">
+            <summary>"1/4" or "1/8".</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Accuracy.TemplateOptions.Overwrite">
+            <summary>Update existing layers and styles.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Accuracy.TemplateOptions.TitleBlock">
+            <summary>Define the title block.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Accuracy.TemplateApplier">
+            <summary>
+            Applies a <see cref="T:AcadCopilot.Core.Accuracy.DrawingTemplate"/> (or the user's own DWT/DWG) to a drawing through the AutoCAD database API:
+            header variables, linetypes, layers, text styles, dimension styles and the title block. Main thread, inside the
+            caller's write transaction (document locked), so everything is one undo step and no dialog can open.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Accuracy.TemplateApplier.BuiltIn(System.String)">
+            <summary>The built-in template: the bundle's Templates\AcadCopilot-Architectural.json when it is valid, else the data in code.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Accuracy.TemplateApplier.Apply(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,AcadCopilot.Core.Accuracy.DrawingTemplate,AcadCopilot.Plugin.Accuracy.TemplateOptions)">
+            <summary>Applies <paramref name="template"/>.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Accuracy.TemplateApplier.Import(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,System.String,AcadCopilot.Plugin.Accuracy.TemplateOptions)">
+            <summary>
+            Imports the user's own template drawing (.dwt / .dwg): its units, linetypes, layers, text styles, dimension styles
+            and named blocks, keeping (or with overwrite replacing) what the drawing already has.
+            </summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.Commands.CopilotCommands">
             <summary>AutoCAD commands of the plug-in: COPILOT (show / hide the chat palette) and COPILOTSTATUS (diagnostics).</summary>
         </member>
@@ -337,6 +394,28 @@
         </member>
         <member name="M:AcadCopilot.Plugin.Commands.CopilotCommands.Status">
             <summary>COPILOTSTATUS: prints the pipe, discovery file, tool count, bridge path and log path.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Commands.QuickAskCommands">
+            <summary>
+            Quick Ask commands: AI / QUICKAI open the Quick Ask box next to the cursor; -AI / -QUICKAI ask on the command line
+            ("AI: Ask the copilot:") and send at once; AIBUTTON shows / hides the floating AI button. The request goes to the chat
+            of the active drawing, the side panel stays as it is.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Commands.QuickAskCommands.Ask">
+            <summary>AI: opens the Quick Ask box next to the cursor.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Commands.QuickAskCommands.QuickAsk">
+            <summary>QUICKAI: the same as AI (for when another add-in defines AI).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Commands.QuickAskCommands.AskOnCommandLine">
+            <summary>-AI: asks for the request on the command line and sends it.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Commands.QuickAskCommands.QuickAskOnCommandLine">
+            <summary>-QUICKAI: the same as -AI.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Commands.QuickAskCommands.ToggleButton">
+            <summary>AIBUTTON: shows the floating AI button when hidden, hides it when shown.</summary>
         </member>
         <member name="T:AcadCopilot.Plugin.Drafting.AcadInput">
             <summary>
@@ -818,6 +897,28 @@
         <member name="M:AcadCopilot.Plugin.Drafting.SysvarScope.Restore(Autodesk.AutoCAD.ApplicationServices.Document)">
             <summary>Puts every changed variable back to the user's value (once; later calls do nothing).</summary>
         </member>
+        <member name="T:AcadCopilot.Plugin.Drafting.ViewFollow">
+            <summary>
+            "Follow the AI's drawing" (panel setting, default on): after a run_commands call that created objects, the view
+            zooms to them with a 10% margin when they are outside the visible area or too small to see (<see cref="T:AcadCopilot.Plugin.Inspect.ViewFraming"/>).
+            Only in a plan view of model space (never through a layout viewport, whose scale must not change), never while a
+            command, dialog or text editor is active (the user may be in the middle of his own command), and through
+            <c>Editor.SetCurrentView</c>, so nothing is typed on the command line and nothing enters the undo history. Main
+            thread only; never throws.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Drafting.ViewFollow.MaxObjects">
+            <summary>Most new objects measured for one call (more are rare and the first ones show where the work is).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Drafting.ViewFollow.IsEnabled">
+            <summary>True when the setting is on (panel.json, read for each call so a change applies at once).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Drafting.ViewFollow.FrameCreated(Autodesk.AutoCAD.ApplicationServices.Document,System.Collections.Generic.IReadOnlyList{Autodesk.AutoCAD.DatabaseServices.ObjectId},AcadCopilot.Plugin.Acad.AcadDispatcher)">
+            <summary>
+            Zooms <paramref name="document"/>'s view to <paramref name="created"/> when they are off screen or too small.
+            Returns what was done for the log ("zoomed to 12 new objects (outside the view)"), or null when the view stayed.
+            </summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.Inspect.CaptureMath">
             <summary>
             Pure pixel and size maths for capture_view (no AutoCAD, GDI or WPF types), so it is unit-tested outside AutoCAD:
@@ -1224,6 +1325,61 @@
             Scales <paramref name="source"/> to fit <paramref name="maxWidth"/> x <see cref="F:AcadCopilot.Plugin.Inspect.CaptureMath.MaxHeight"/>,
             optionally turns a render on black into a picture on white, checks for a blank result and encodes a 24-bit PNG.
             </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Inspect.FramingReason">
+            <summary>Why <see cref="M:AcadCopilot.Plugin.Inspect.ViewFraming.Decide(AcadCopilot.Plugin.Inspect.PlanBox,AcadCopilot.Plugin.Inspect.PlanBox)"/> moves the view.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Inspect.FramingReason.None">
+            <summary>The new objects are visible and big enough: the view stays.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Inspect.FramingReason.Outside">
+            <summary>Some of the new objects are outside the view.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Inspect.FramingReason.TooSmall">
+            <summary>The new objects are inside the view but too small to see.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Inspect.FramingDecision">
+            <summary>Where the view should go: the visible area (world XY of a plan view) and why.</summary>
+            <param name="Window">The new visible area; its proportions match the viewport's.</param>
+            <param name="Reason">Why the view moves.</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Inspect.FramingDecision.#ctor(AcadCopilot.Plugin.Inspect.PlanBox,AcadCopilot.Plugin.Inspect.FramingReason)">
+            <summary>Where the view should go: the visible area (world XY of a plan view) and why.</summary>
+            <param name="Window">The new visible area; its proportions match the viewport's.</param>
+            <param name="Reason">Why the view moves.</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Inspect.FramingDecision.Window">
+            <summary>The new visible area; its proportions match the viewport's.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Inspect.FramingDecision.Reason">
+            <summary>Why the view moves.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Inspect.ViewFraming">
+            <summary>
+            "Follow the AI's drawing": pure maths (no AutoCAD types, unit-tested) that decides whether the view should zoom to the
+            objects a run_commands call created, and to which window. It zooms when part of them is outside the visible area, or
+            when they are so small that they cover under <see cref="F:AcadCopilot.Plugin.Inspect.ViewFraming.SmallFraction"/> of the view; the window is their extents
+            plus <see cref="F:AcadCopilot.Plugin.Inspect.ViewFraming.Margin"/> on every side, fitted to the viewport's proportions. A zoom-in never goes deeper than
+            <see cref="F:AcadCopilot.Plugin.Inspect.ViewFraming.MaxZoomIn"/> times per call, so a tiny object does not fill the whole screen.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Inspect.ViewFraming.Margin">
+            <summary>Margin around the new objects, as a fraction of their size on each side (10%).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Inspect.ViewFraming.SmallFraction">
+            <summary>New objects smaller than this fraction of the view (in both directions) count as too small to see.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Inspect.ViewFraming.MaxZoomIn">
+            <summary>The most the view may zoom in for one call.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Inspect.ViewFraming.Decide(AcadCopilot.Plugin.Inspect.PlanBox,AcadCopilot.Plugin.Inspect.PlanBox)">
+            <summary>
+            Decides whether <paramref name="view"/> (the visible area) should move to show <paramref name="created"/> (the
+            extents of the new objects), or null to keep the view. Both boxes are world XY of a plan view.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Inspect.ViewFraming.Union(System.Collections.Generic.IEnumerable{AcadCopilot.Plugin.Inspect.PlanBox})">
+            <summary>The smallest box around <paramref name="boxes"/>, or null when there is none.</summary>
         </member>
         <member name="T:AcadCopilot.Plugin.Inspect.ViewFacts">
             <summary>The current view of the active viewport, converted from display coordinates (DCS) to world coordinates.</summary>
@@ -1781,11 +1937,184 @@
         <member name="M:AcadCopilot.Plugin.Learning.IUserActionRecorder.Discard">
             <summary>Stops and throws the recording away (nothing is saved).</summary>
         </member>
+        <member name="T:AcadCopilot.Plugin.Palette.AcadLayoutSurface">
+            <summary>
+            <see cref="T:AcadCopilot.Plugin.Palette.ILayoutSurface"/> inside AutoCAD 2027 (API names checked by reflection over AdWindows.dll / acmgd.dll):
+            the ribbon is <c>Autodesk.Windows.ComponentManager.Ribbon</c> and its minimise state is
+            <c>RibbonControl.AutoHideMode</c> (<c>Autodesk.Internal.Windows.RibbonAutoHideMode</c>: None, HidePanelBar = tab names,
+            HidePanel = panel titles, CollapsePanels = panel buttons), which is what the ribbon's own minimise button cycles and is
+            fully reversible (RIBBONCLOSE would remove the ribbon instead). NAVBARDISPLAY is saved in the registry; NAVVCUBEDISPLAY
+            is saved in the drawing, so it is set under a document lock and the drawing's DBMOD is put back to 0 afterwards when
+            it had no unsaved changes (ObjectARX <c>acdbSetDbmod</c>, exported by acdb26.dll). System-variable notices are muted
+            (SYSMON 0) while focus mode sets them. Main thread only; never throws.
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Palette.AcadFocusLayout">
+            <summary>
+            Connects <see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutController"/> to AutoCAD's events: a drawing that becomes active gets its ViewCube
+            hidden while focus mode is on (on the next idle, when the switch is complete), a drawing being saved keeps the user's
+            ViewCube setting in its file, a closed drawing is forgotten. Main thread only; never throws into AutoCAD.
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Palette.IFocusLayoutHost">
+            <summary>
+            Focus mode as the panel sees it: on or off, and switching it. Implemented by <see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutController"/>
+            inside AutoCAD; tests use a stand-in. Main (UI) thread only.
+            </summary>
+        </member>
+        <member name="E:AcadCopilot.Plugin.Palette.IFocusLayoutHost.Changed">
+            <summary>Raised after focus mode was switched on or off (by the panel, the palette or AutoCAD closing).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.IFocusLayoutHost.IsFocusMode">
+            <summary>True while focus mode is on.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.IFocusLayoutHost.SetFocusMode(System.Boolean)">
+            <summary>
+            Switches focus mode on or off. Returns what could not be done in one short sentence ("The ribbon could not be
+            minimised"), or null when everything was applied or restored.
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Palette.ILayoutSurface">
+            <summary>
+            The parts of AutoCAD's screen focus mode changes, behind an interface so <see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutController"/> is
+            unit-tested without AutoCAD (<c>AcadLayoutSurface</c> is the real one). Every member is "best effort": null or false
+            when AutoCAD cannot do it right now. Main thread only.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.ILayoutSurface.RibbonMode">
+            <summary>
+            The ribbon's minimise state (AdWindows <c>RibbonControl.AutoHideMode</c>: 0 = full ribbon, 1 = tab names only,
+            2 = panel titles, 3 = panel buttons), or null when there is no ribbon or it cannot be minimised.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.ILayoutSurface.TrySetRibbonMode(System.Int32)">
+            <summary>Sets the ribbon's minimise state; false when it failed.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.ILayoutSurface.GetSystemVariable(System.String)">
+            <summary>An integer system variable saved in the registry (NAVBARDISPLAY), or null when it cannot be read.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.ILayoutSurface.TrySetSystemVariable(System.String,System.Int32)">
+            <summary>Sets an integer system variable saved in the registry; false when AutoCAD refused.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.ILayoutSurface.ActiveDrawingId">
+            <summary>Id of the active drawing (<c>DrawingDirectory.IdOf</c>), or null when no drawing is open.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.ILayoutSurface.ActiveViewCube">
+            <summary>NAVVCUBEDISPLAY of the active drawing (saved in the drawing), or null when it cannot be read.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.ILayoutSurface.TrySetActiveViewCube(System.Int32)">
+            <summary>
+            Sets NAVVCUBEDISPLAY of the active drawing without marking the drawing as changed (a drawing with no unsaved
+            changes must not ask "Save changes?" because of focus mode). False when it failed.
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Palette.FocusLayoutState">
+            <summary>
+            What focus mode changed, kept in %LOCALAPPDATA%\AcadCopilot\focus-layout.json while it is on, so a crash of AutoCAD
+            can never leave the user's ribbon minimised or navigation bar hidden: the next start puts them back
+            (<see cref="M:AcadCopilot.Plugin.Palette.FocusLayoutController.RecoverIfNeeded"/>).
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutState.Active">
+            <summary>True while focus mode is applied (false or no file: nothing to restore).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutState.RibbonPrevious">
+            <summary>The user's ribbon minimise state before focus mode, or null when focus mode did not change the ribbon.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutState.RibbonApplied">
+            <summary>The ribbon minimise state focus mode set.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutState.NavBarPrevious">
+            <summary>The user's NAVBARDISPLAY before focus mode, or null when focus mode did not change it.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutState.AppliedUtc">
+            <summary>When focus mode was switched on (UTC).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutState.HasSomethingToRestore">
+            <summary>True when something still has to be restored.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Palette.FocusLayoutStore">
+            <summary>Loads and saves <see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutState"/>. Never throws.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutStore.#ctor(System.String)">
+            <summary>Creates the store.</summary>
+            <param name="path">State file; defaults to %LOCALAPPDATA%\AcadCopilot\focus-layout.json.</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutStore.Path">
+            <summary>The state file.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutStore.Load">
+            <summary>Reads the state (inactive when missing or unreadable).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutStore.Save(AcadCopilot.Plugin.Palette.FocusLayoutState)">
+            <summary>Writes the state (best effort).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Palette.FocusLayoutController">
+            <summary>
+            FOCUS MODE: more room for the drawing while the AI Copilot works. On: the ribbon is minimised to its tab names
+            (<c>RibbonControl.AutoHideMode</c> = 1, reversible; a ribbon the user had minimised already is left alone), the
+            navigation bar is hidden (NAVBARDISPLAY = 0, registry) and the ViewCube is hidden in every drawing that becomes
+            active (NAVVCUBEDISPLAY = 0, saved in the drawing, so it is changed without marking the drawing modified and put back
+            while the drawing is being saved). The command line is never touched. Off (the button, closing the panel, AutoCAD
+            closing): everything is put back exactly as it was, unless the user changed that item himself in the meantime.
+            While it is on, <see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutStore"/> remembers the previous values, so the next start restores them after
+            a crash. Pure logic over <see cref="T:AcadCopilot.Plugin.Palette.ILayoutSurface"/>; main thread only.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Palette.FocusLayoutController.RibbonFull">
+            <summary>RibbonControl.AutoHideMode: full ribbon.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Palette.FocusLayoutController.RibbonTabsOnly">
+            <summary>RibbonControl.AutoHideMode: minimised to the tab names (what focus mode uses).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Palette.FocusLayoutController.NavBarVariable">
+            <summary>The navigation bar's system variable (registry).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.#ctor(AcadCopilot.Plugin.Palette.ILayoutSurface,AcadCopilot.Plugin.Palette.FocusLayoutStore)">
+            <summary>Creates the controller.</summary>
+        </member>
+        <member name="E:AcadCopilot.Plugin.Palette.FocusLayoutController.Changed">
+            <inheritdoc />
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutController.IsFocusMode">
+            <inheritdoc />
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.FocusLayoutController.TrackedDrawings">
+            <summary>Drawings whose ViewCube focus mode hid (or still has to put back); for tests and diagnostics.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.RecoverIfNeeded">
+            <summary>
+            After a crash with focus mode on: puts the ribbon and the navigation bar back as they were before (call at start-up,
+            before focus mode is switched on again). Items AutoCAD cannot reach yet (no ribbon) stay remembered for later.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.SetFocusMode(System.Boolean)">
+            <inheritdoc />
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.OnDrawingActivated">
+            <summary>
+            The active drawing changed (or a drawing opened): while focus mode is on its ViewCube is hidden; a drawing left
+            behind when focus mode went off gets its ViewCube back.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.OnDrawingSaving(System.String)">
+            <summary>The active drawing is about to be saved: its file gets the user's ViewCube setting, not focus mode's.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.OnDrawingSaved(System.String)">
+            <summary>The drawing was saved (or the save failed): the ViewCube is hidden again while focus mode is on.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.FocusLayoutController.OnDrawingClosed(System.String)">
+            <summary>The drawing closed: nothing to put back there any more (its unsaved state is gone).</summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.Palette.PaletteHost">
             <summary>
-            The AutoCAD palette that hosts the WPF chat pane (<see cref="T:AcadCopilot.Plugin.Views.CopilotPane"/>): a PaletteSet with a fixed GUID (AutoCAD
-            remembers its dock side and size per workspace), docked on the right about 430 px wide on the very first start, and
-            reopened at start-up when it was open when AutoCAD last closed. Main thread only.
+            The AutoCAD palette that hosts the WPF chat pane (<see cref="T:AcadCopilot.Plugin.Views.CopilotPane"/>): a PaletteSet with a fixed GUID, always
+            docked on the RIGHT at full height (the drawing stays on the left), <see cref="F:AcadCopilot.Plugin.Palette.PaletteHost.DefaultWidth"/> wide until the user
+            resizes it (his width is remembered in palette.json), reopened at start-up when it was open when AutoCAD last closed.
+            Docking is checked when the palette is created, on the next two idles (AutoCAD may restore an older layout of the
+            palette after creating it) and on every COPILOT. While it is open, focus mode (<see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutController"/>)
+            gives the drawing more room when "Use focus mode when the AI Copilot opens" is on; closing the palette or AutoCAD
+            restores the layout. Main thread only.
             </summary>
         </member>
         <member name="F:AcadCopilot.Plugin.Palette.PaletteHost.PaletteId">
@@ -1795,7 +2124,13 @@
             <summary>Palette title.</summary>
         </member>
         <member name="F:AcadCopilot.Plugin.Palette.PaletteHost.DefaultWidth">
-            <summary>Width on the first start, device-independent pixels.</summary>
+            <summary>Docked width until the user resizes the panel, device-independent pixels.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Palette.PaletteHost.MinDockWidth">
+            <summary>Narrowest docked width the panel is given back (a narrower one counts as cramped).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Palette.PaletteHost.MaxDockWidth">
+            <summary>Widest docked width the panel is given back.</summary>
         </member>
         <member name="F:AcadCopilot.Plugin.Palette.PaletteHost.DefaultHeight">
             <summary>Height of the floating palette on the first start, device-independent pixels.</summary>
@@ -1822,28 +2157,30 @@
             </summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.Show">
-            <summary>Shows the palette (creating it if needed).</summary>
-        </member>
-        <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.DockRight(Autodesk.AutoCAD.Windows.PaletteSet)">
-            <summary>
-            Docks the palette on the right edge of AutoCAD (full height, about <see cref="F:AcadCopilot.Plugin.Palette.PaletteHost.DefaultWidth"/> px wide) when it is
-            floating. The user wants the panel as a full-height side panel, like the drawing on the left and the AI on the right.
-            </summary>
+            <summary>Shows the palette (creating it if needed), docked right at full height, wide enough, in focus mode when set.</summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.Hide">
-            <summary>Hides the palette.</summary>
+            <summary>Hides the palette (focus mode ends with it).</summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.Toggle">
             <summary>Shows the palette when hidden, hides it when shown. Returns true when it is now visible.</summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.Freeze">
             <summary>
-            Saves the current visibility and stops recording changes (call when AutoCAD starts closing: AutoCAD hides
-            palettes while it shuts down, which must not be remembered as "closed by the user").
+            Saves the current visibility, puts AutoCAD's layout back (focus mode off, so AutoCAD saves the user's own ribbon
+            state in his profile) and stops recording changes (call when AutoCAD starts closing: AutoCAD hides palettes while
+            it shuts down, which must not be remembered as "closed by the user").
             </summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.Dispose">
             <summary>Releases the chat tabs (stops running turns). The palette set itself is destroyed by AutoCAD.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Palette.PaletteHost.EnsureDockedRight(Autodesk.AutoCAD.Windows.PaletteSet)">
+            <summary>
+            Docks the palette on the right edge of AutoCAD (full height) at the user's width (<see cref="P:AcadCopilot.Plugin.Palette.PaletteState.DockWidth"/>,
+            <see cref="F:AcadCopilot.Plugin.Palette.PaletteHost.DefaultWidth"/> until he resizes it): when it floats or sits on the left, when its docked width is not the
+            remembered one (AutoCAD restored an old, cramped size), and when auto-hide rolled it up to a strip.
+            </summary>
         </member>
         <member name="T:AcadCopilot.Plugin.Palette.PaletteState">
             <summary>What the palette remembers between AutoCAD sessions (%LOCALAPPDATA%\AcadCopilot\palette.json).</summary>
@@ -1852,7 +2189,16 @@
             <summary>The palette was open when AutoCAD last closed (or the user last showed / hid it): reopen it at start-up.</summary>
         </member>
         <member name="P:AcadCopilot.Plugin.Palette.PaletteState.Width">
-            <summary>Last width in device-independent pixels.</summary>
+            <summary>Last docked width in device-independent pixels (used when <see cref="P:AcadCopilot.Plugin.Palette.PaletteState.WidthChosen"/>).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.PaletteState.WidthChosen">
+            <summary>
+            True once the user resized the docked panel himself: <see cref="P:AcadCopilot.Plugin.Palette.PaletteState.Width"/> is then his choice and is used at every
+            start. False (also for files of older versions) docks it <see cref="F:AcadCopilot.Plugin.Palette.PaletteHost.DefaultWidth"/> wide.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Palette.PaletteState.DockWidth">
+            <summary>The docked width to use: the user's own when he chose one, else the default; always within limits.</summary>
         </member>
         <member name="P:AcadCopilot.Plugin.Palette.PaletteState.Height">
             <summary>Last height in device-independent pixels (floating palette).</summary>
@@ -1909,6 +2255,915 @@
         </member>
         <member name="M:AcadCopilot.Plugin.Palette.RibbonTabHost.RibbonCommand.#ctor(System.Action)">
             <summary>ICommand behind the ribbon button.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.AcadQuickAskHost">
+            <summary>
+            Quick Ask's link to AutoCAD and the panel (main thread only).
+            <list type="bullet">
+            <item><b>Cursor point</b>: <c>Editor.PointMonitor</c> of the active drawing (re-attached on
+            <c>DocumentBecameCurrent</c>) keeps the last cursor position in the drawing; the handler only stores a point, so the
+            mouse never slows down. <c>InputPointContext.ComputedPoint</c> is in world coordinates (as AcEdInputPoint in
+            ObjectARX); feet-inch text comes from the drawing's units when the box opens.</item>
+            <item><b>Selection, Pick</b>: the panel's <see cref="T:AcadCopilot.Plugin.Interaction.AcadDrawingInteraction"/> (pickfirst selection; picks wait for
+            their turn in the chats' AutoCAD queue).</item>
+            <item><b>Undo</b>: waits for its turn in <see cref="P:AcadCopilot.Core.Panel.CopilotBackend.DrawingQueue"/> like a tool call, switches to the
+            chat's drawing when needed and runs the copilot's own undo of its last run_commands calls
+            (<see cref="M:AcadCopilot.Plugin.Drafting.DraftingCommands.UndoAsync(AcadCopilot.Plugin.Acad.AcadDispatcher,System.Int32,System.Threading.CancellationToken)"/>, which refuses when the user changed the drawing since).</item>
+            <item><b>Open chat</b>: shows the palette (<see cref="M:AcadCopilot.Plugin.Palette.PaletteHost.Show"/>) on that tab.</item>
+            </list>
+            AutoCAD API names verified by reflection over the AutoCAD 2027 assemblies (Editor.PointMonitor,
+            PointMonitorEventArgs.Context, InputPointContext.ComputedPoint / RawPoint / PointComputed). Compile-verified only.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.AcadQuickAskHost.ActiveDocument">
+            <summary>The active document now (null when none).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView">
+            <summary>
+            The Quick Ask box (DataContext: <see cref="T:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel"/>). Enter sends, Esc stops the mic or closes,
+            Ctrl+Space starts / stops the mic (as in the panel). Rendered off-screen in the UI tests.
+            </summary>
+            <summary>
+            QuickAskBoxView
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView.#ctor(AcadCopilot.Plugin.Resources.PanelTheme)">
+            <summary>Creates the view in <paramref name="theme"/>.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView.Theme">
+            <summary>The theme applied.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView.InputBox">
+            <summary>The request's text box.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView.ApplyTheme(AcadCopilot.Plugin.Resources.PanelTheme)">
+            <summary>Re-colors the view (AutoCAD's light / dark theme).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView.FocusInput">
+            <summary>Puts the keyboard into the text box, caret at the end.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxView.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason">
+            <summary>How the Quick Ask box was opened.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason.Button">
+            <summary>The floating AI button (the cursor is on the button, so no cursor point is taken).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason.Shortcut">
+            <summary>The keyboard shortcut (the cursor is in the drawing).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason.Command">
+            <summary>The AI / QUICKAI command.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel">
+            <summary>
+            The compact Quick Ask box shown next to the cursor in the drawing area: one line of text, the point chip (where the
+            cursor was, or the point clicked with Pick), the selection chip, the mic (the panel's voice input) and Send. Enter
+            sends, Esc closes. The window layer listens to <see cref="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.SendRequested"/>, <see cref="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.PickRequested"/> and
+            <see cref="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.CloseRequested"/>. UI thread only.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.#ctor(System.Windows.Threading.Dispatcher,AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason,AcadCopilot.Plugin.Interaction.PickedPoint,AcadCopilot.Plugin.Interaction.SelectionSnapshot,System.String,AcadCopilot.Plugin.Voice.VoiceInputService,AcadCopilot.Plugin.ViewModels.PanelSettings)">
+            <summary>Creates the box.</summary>
+            <param name="dispatcher">The UI dispatcher (AutoCAD's main thread).</param>
+            <param name="reason">How it was opened.</param>
+            <param name="cursorPoint">Where the cursor was in the drawing (null: unknown or opened from the button).</param>
+            <param name="selection">The user's selection now (null or empty: none).</param>
+            <param name="drawingTitle">The active drawing ("House.dwg"), for the hint line.</param>
+            <param name="voice">The panel's voice input (null hides the mic).</param>
+            <param name="panelSettings">The panel's settings (voice language and "send automatically after speaking").</param>
+        </member>
+        <member name="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.SendRequested">
+            <summary>Raised by Enter / Send (and by voice auto-send).</summary>
+        </member>
+        <member name="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.PickRequested">
+            <summary>Raised by Pick: the window hides while the user clicks in the drawing.</summary>
+        </member>
+        <member name="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.CloseRequested">
+            <summary>Raised by Esc or the x.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Reason">
+            <summary>How the box was opened.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.DrawingTitle">
+            <summary>The active drawing.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Text">
+            <summary>The request typed (or spoken).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.AcadCopilot#Plugin#ViewModels#IVoiceTarget#ComposerText">
+            <inheritdoc />
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.AcadCopilot#Plugin#ViewModels#IVoiceTarget#VoiceLanguageTag">
+            <inheritdoc />
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.AcadCopilot#Plugin#ViewModels#IVoiceTarget#VoiceAutoSend">
+            <inheritdoc />
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.AcadCopilot#Plugin#ViewModels#IVoiceTarget#SendFromVoice">
+            <inheritdoc />
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Placeholder">
+            <summary>"Ask the AI to draw or change something..." / "Speak now..." while listening.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Voice">
+            <summary>The mic, or null when voice input is not available.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.HasVoice">
+            <summary>True when the mic button is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Point">
+            <summary>The point that goes with the request, or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.PointSource">
+            <summary>Where <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Point"/> came from.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.HasPoint">
+            <summary>True when the point chip is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.PointChipText">
+            <summary>"Cursor 12'-6", 30'-0"" or "Point 12'-6", 30'-0"".</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.PointChipToolTip">
+            <summary>Tool tip of the point chip.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Selection">
+            <summary>The selection that goes with the request, or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.HasSelection">
+            <summary>True when the selection chip is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.SelectionChipText">
+            <summary>"5 objects selected".</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.SelectionChipToolTip">
+            <summary>The selection chip's tool tip.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.IsPicking">
+            <summary>True while the user clicks a point in the drawing (the box is hidden meanwhile).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Problem">
+            <summary>A problem to show under the text (pick failed ...), or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.StatusLine">
+            <summary>The line under the text: the mic's state or problem, or a pick problem; empty when none.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.HasStatusLine">
+            <summary>True when <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.StatusLine"/> is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.StatusIsError">
+            <summary>True when the status line is a problem (red).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.HintText">
+            <summary>"Enter to send · Esc to close · Chat of House.dwg".</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.CanSend">
+            <summary>True when Send is possible.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.SendCommand">
+            <summary>Sends the request.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.PickCommand">
+            <summary>Lets the user click the point for the request.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.RemovePointCommand">
+            <summary>Leaves the point out.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.RemoveSelectionCommand">
+            <summary>Leaves the selection out.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.CloseCommand">
+            <summary>Closes the box.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.SetPoint(AcadCopilot.Plugin.Interaction.PickedPoint,AcadCopilot.Plugin.QuickAsk.QuickAskPointSource)">
+            <summary>Uses <paramref name="point"/> (from Pick) or leaves the point out (null / None).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Compose">
+            <summary>The message this box sends now.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxViewModel.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskButtonView">
+            <summary>
+            The floating AI button plus the status bubble of the last Quick Ask (DataContext: <see cref="T:AcadCopilot.Plugin.QuickAsk.QuickAskController"/>).
+            Nothing in it takes keyboard focus. Rendered off-screen in the UI tests.
+            </summary>
+            <summary>
+            QuickAskButtonView
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskButtonView.#ctor(AcadCopilot.Plugin.Resources.PanelTheme)">
+            <summary>Creates the view in <paramref name="theme"/>.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskButtonView.Theme">
+            <summary>The theme applied.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskButtonView.ApplyTheme(AcadCopilot.Plugin.Resources.PanelTheme)">
+            <summary>Re-colors the view (AutoCAD's light / dark theme).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskButtonView.InitializeComponent">
+            <summary>
+            InitializeComponent
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskUndoResult">
+            <summary>The outcome of Quick Ask's Undo.</summary>
+            <param name="Success">True when every drawing step of the request was taken back.</param>
+            <param name="Message">What happened (shown when it failed).</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskUndoResult.#ctor(System.Boolean,System.String)">
+            <summary>The outcome of Quick Ask's Undo.</summary>
+            <param name="Success">True when every drawing step of the request was taken back.</param>
+            <param name="Message">What happened (shown when it failed).</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskUndoResult.Success">
+            <summary>True when every drawing step of the request was taken back.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskUndoResult.Message">
+            <summary>What happened (shown when it failed).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.IQuickAskHost">
+            <summary>
+            What Quick Ask needs from AutoCAD and the panel (implemented inside AutoCAD by <see cref="T:AcadCopilot.Plugin.QuickAsk.AcadQuickAskHost"/>; tests
+            use a fake). Free of AutoCAD types. Everything is called on AutoCAD's main (UI) thread.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.Shell">
+            <summary>The panel's chat tabs, or null while the panel does not exist yet.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.ActiveDrawingId">
+            <summary>Id of the active drawing (DrawingDirectory), or null when none is open.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.ActiveDrawingTitle">
+            <summary>File name of the active drawing ("House.dwg"), or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.CursorPoint">
+            <summary>Where the cursor was last in the active drawing (world coordinates, feet-inches when the units allow), or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.Selection">
+            <summary>The user's selection in the active drawing now (null or empty when nothing is selected).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.PickPointAsync(System.Threading.CancellationToken)">
+            <summary>Lets the user click one point in the drawing (waits for AutoCAD's turn; never throws for expected problems).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.ShowChat(AcadCopilot.Plugin.ViewModels.ChatViewModel)">
+            <summary>Shows the side panel on <paramref name="chat"/> (Open chat, or a question waiting there).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.UndoAsync(AcadCopilot.Plugin.ViewModels.ChatViewModel,System.Int32,System.Threading.CancellationToken)">
+            <summary>Takes back the last <paramref name="calls"/> run_commands calls of <paramref name="chat"/> in its drawing.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.IQuickAskHost.ReturnFocusToDrawing">
+            <summary>Gives the keyboard back to the drawing (after the box closes).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskController">
+            <summary>
+            Quick Ask: the floating AI in the drawing area. Opens the compact box (button, shortcut or the AI command), sends the
+            request to the chat tab bound to the active drawing (a new background tab when there is none) as a normal message
+            with the cursor point (or a picked point) and the selection, and drives the status bubble next to the button. The
+            side panel is never shown for this (only Open chat or a question / approval brings it up). UI thread only; the window
+            layer (<see cref="T:AcadCopilot.Plugin.QuickAsk.QuickAskService"/>) shows <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.Box"/> and the bubble.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.#ctor(AcadCopilot.Plugin.QuickAsk.IQuickAskHost,AcadCopilot.Plugin.QuickAsk.QuickAskOptions,System.Windows.Threading.Dispatcher,AcadCopilot.Plugin.Voice.VoiceInputService,AcadCopilot.Plugin.ViewModels.PanelSettingsStore)">
+            <summary>Creates the controller.</summary>
+            <param name="host">AutoCAD and the panel.</param>
+            <param name="options">The Quick Ask settings (button on/off, shortcut).</param>
+            <param name="dispatcher">The UI dispatcher.</param>
+            <param name="voice">The panel's voice input (null hides the mic in the box).</param>
+            <param name="panelSettings">The panel's settings file (voice language, auto-send); null = defaults.</param>
+        </member>
+        <member name="E:AcadCopilot.Plugin.QuickAsk.QuickAskController.BoxChanged">
+            <summary>Raised after <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.Box"/> changed (opened, closed or replaced).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.Options">
+            <summary>The settings.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.Status">
+            <summary>The status bubble.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.Box">
+            <summary>The open box, or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.IsBoxOpen">
+            <summary>True while the box is open.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.ToggleBoxCommand">
+            <summary>The floating button: opens the box, or closes it when open.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.OpenPanelCommand">
+            <summary>The button's menu: shows the side panel (on the chat of the active drawing when there is one).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.HideButtonCommand">
+            <summary>The button's menu: hides the floating button (the AIBUTTON command or the panel's Settings bring it back).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.ShortcutMenuText">
+            <summary>"Shortcut: Ctrl+Shift+Space" (the button's menu).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskController.ButtonToolTip">
+            <summary>"Ask the AI (Ctrl+Shift+Space)" for the button's tool tip.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.ToggleBox(AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason)">
+            <summary>Opens the box, or closes it when it is open (the button and the shortcut).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.OpenBox(AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason)">
+            <summary>
+            Opens the box with the context of this moment: the cursor point (not for the button, where the cursor is on the
+            button) and the selection. Nothing happens without a drawing.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.CloseBox">
+            <summary>Closes the box (the typed text is dropped; the mic stops) and gives the keyboard back to the drawing.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.SubmitText(System.String)">
+            <summary>
+            Sends <paramref name="text"/> as a Quick Ask now (the command-line version, -AI): with the cursor point and the
+            selection of this moment. False when nothing could be sent (the bubble says why).
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.SubmitBox">
+            <summary>Sends what the box holds and closes it. False when nothing was sent.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.Send(AcadCopilot.Plugin.QuickAsk.QuickAskMessage)">
+            <summary>Sends <paramref name="message"/> to the chat of the active drawing and follows it in the bubble.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.ChatFor(AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel)">
+            <summary>The chat bound to the active drawing (an idle one first), else a new background tab on it.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.PickAsync">
+            <summary>Lets the user click the point for the request (the box hides meanwhile, then comes back).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskController.Dispose">
+            <summary>Closes the box and stops following requests (AutoCAD closing).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskService">
+            <summary>
+            Starts and stops Quick Ask inside AutoCAD (one per session, main thread): the floating button window, the box window,
+            the keyboard shortcut and the AI commands' entry points. Started by <see cref="T:AcadCopilot.Plugin.Acad.CopilotApp"/> after the palette exists;
+            stopped when AutoCAD starts closing.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskService.IsRunning">
+            <summary>True while Quick Ask runs.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskService.Start(AcadCopilot.Plugin.Acad.CopilotApp)">
+            <summary>Starts Quick Ask (once; never throws: failures are logged and Quick Ask stays off).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskService.Stop">
+            <summary>Closes the Quick Ask windows and releases AutoCAD's events.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskService.OpenFromCommand(System.String@)">
+            <summary>Opens the box next to the cursor (the AI command). False with a reason when it cannot open now.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskService.SubmitText(System.String,System.String@)">
+            <summary>Sends <paramref name="text"/> as a Quick Ask (the -AI command line version). False when it was not sent.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskSession">
+            <summary>The running Quick Ask: windows, shortcut and AutoCAD event handlers. Main thread only.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskSession.TryOpen(AcadCopilot.Plugin.QuickAsk.QuickAskOpenReason,System.String@)">
+            <summary>Opens the box (or explains why not).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskSettings">
+            <summary>Quick Ask preferences (no secrets), kept in %LOCALAPPDATA%\AcadCopilot\quickask.json.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskSettings.ShowButton">
+            <summary>Show the round AI button in the drawing area's top-right corner (default on).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskSettings.Shortcut">
+            <summary>The keyboard shortcut that opens the Quick Ask box ("Ctrl+Shift+Space").</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskSettingsStore">
+            <summary>Loads / saves <see cref="T:AcadCopilot.Plugin.QuickAsk.QuickAskSettings"/> as JSON (atomic writes; errors are logged, never thrown).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskSettingsStore.#ctor(System.String)">
+            <summary>Creates a store for <paramref name="path"/> (default: quickask.json under <see cref="P:AcadCopilot.Core.AppPaths.Root"/>).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskSettingsStore.Path">
+            <summary>File path.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskSettingsStore.Load">
+            <summary>Reads the settings; defaults when missing or unreadable.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskSettingsStore.Save(AcadCopilot.Plugin.QuickAsk.QuickAskSettings)">
+            <summary>Writes the settings.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.ShortcutModifiers">
+            <summary>Modifier keys of a <see cref="T:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut"/>.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.ShortcutModifiers.None">
+            <summary>No modifier.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.ShortcutModifiers.Ctrl">
+            <summary>Ctrl.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.ShortcutModifiers.Shift">
+            <summary>Shift.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.ShortcutModifiers.Alt">
+            <summary>Alt.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut">
+            <summary>
+            The Quick Ask keyboard shortcut: modifiers plus one key (Windows virtual-key code). Pure: parsing, display text and
+            matching a key press. Ctrl or Alt is required (a plain key or Shift+key would swallow typing), and the clipboard /
+            undo / file shortcuts AutoCAD users press all day are refused.
+            </summary>
+            <param name="Modifiers">Ctrl / Shift / Alt.</param>
+            <param name="VirtualKey">Windows virtual-key code of the key (0x20 = Space).</param>
+            <param name="KeyName">Display name of the key ("Space", "Q", "F2").</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.#ctor(AcadCopilot.Plugin.QuickAsk.ShortcutModifiers,System.Int32,System.String)">
+            <summary>
+            The Quick Ask keyboard shortcut: modifiers plus one key (Windows virtual-key code). Pure: parsing, display text and
+            matching a key press. Ctrl or Alt is required (a plain key or Shift+key would swallow typing), and the clipboard /
+            undo / file shortcuts AutoCAD users press all day are refused.
+            </summary>
+            <param name="Modifiers">Ctrl / Shift / Alt.</param>
+            <param name="VirtualKey">Windows virtual-key code of the key (0x20 = Space).</param>
+            <param name="KeyName">Display name of the key ("Space", "Q", "F2").</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.Modifiers">
+            <summary>Ctrl / Shift / Alt.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.VirtualKey">
+            <summary>Windows virtual-key code of the key (0x20 = Space).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.KeyName">
+            <summary>Display name of the key ("Space", "Q", "F2").</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.Default">
+            <summary>Ctrl+Shift+Space.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.ToString">
+            <summary>"Ctrl+Shift+Space".</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.Matches(System.Int32,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>True when a key press of <paramref name="virtualKey"/> with these modifier states is this shortcut.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskShortcut.TryParse(System.String,AcadCopilot.Plugin.QuickAsk.QuickAskShortcut@,System.String@)">
+            <summary>
+            Parses "Ctrl+Shift+Space", "ctrl + alt + q", "Ctrl-Shift-F2". Keys: Space, A-Z, 0-9, F1-F12. False with a reason
+            the settings can show when it is not usable.
+            </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskOptions">
+            <summary>
+            The Quick Ask settings shared by the floating button, the shortcut and the panel's Settings section (one instance per
+            AutoCAD session, <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.Shared"/>). Changes are saved at once. UI thread only.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.#ctor(AcadCopilot.Plugin.QuickAsk.QuickAskSettingsStore)">
+            <summary>Creates the options over <paramref name="store"/>.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.Shared">
+            <summary>The session's options (quickask.json in %LOCALAPPDATA%\AcadCopilot).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ShowButton">
+            <summary>Show the floating AI button in the drawing area (persisted, default on).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.Shortcut">
+            <summary>The shortcut in use.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ShortcutText">
+            <summary>
+            The shortcut as typed in the settings. A valid one is used and saved at once; an invalid one keeps the previous
+            shortcut and shows <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ShortcutError"/>.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ShortcutError">
+            <summary>Why the typed shortcut cannot be used, or null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.HasShortcutError">
+            <summary>True when <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ShortcutError"/> is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ShortcutHint">
+            <summary>"Ctrl+Shift+Space, or type AI on the command line".</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskOptions.ResetShortcut">
+            <summary>Puts the shortcut back to Ctrl+Shift+Space.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskState">
+            <summary>What the status bubble next to the floating AI button shows.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Hidden">
+            <summary>No bubble.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Queued">
+            <summary>The request waits in the chat's queue (the chat is still busy).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Working">
+            <summary>The AI works on it ("Drawing kitchen walls...").</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.NeedsAnswer">
+            <summary>A question or approval card waits in the chat.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Done">
+            <summary>Finished ("Done - kitchen 10'x20'").</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Stopped">
+            <summary>Stopped by the user.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Failed">
+            <summary>Failed, or a problem before sending.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Undoing">
+            <summary>Undo of the request's drawing steps runs.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskState.Undone">
+            <summary>The request's drawing steps were undone.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel">
+            <summary>
+            The status bubble of the last Quick Ask: follows the chat tab that got the request (its message, live activity, plan
+            task, question / approval cards and the turn's footer) and offers Undo (the run_commands calls of that request) and
+            Open chat. Finished states hide by themselves after a while (never while the pointer is over the bubble). UI thread.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.DoneVisibleFor">
+            <summary>How long "Done" (and "Stopped", "Undone") stays.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.ErrorVisibleFor">
+            <summary>How long an error stays.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.#ctor(AcadCopilot.Plugin.QuickAsk.IQuickAskHost,System.Windows.Threading.Dispatcher)">
+            <summary>Creates the bubble's view model.</summary>
+        </member>
+        <member name="E:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.LayoutChanged">
+            <summary>Raised when <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsVisible"/> or the bubble's size may have changed (the window re-anchors).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.State">
+            <summary>What the bubble shows.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.Text">
+            <summary>The bubble's line.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.ToolTip">
+            <summary>Tool tip: the full request and where it went.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsVisible">
+            <summary>True while the bubble is shown.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsBusy">
+            <summary>True while the spinner turns (queued, working, undoing).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsDone">
+            <summary>True for the green check (done, undone).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsProblem">
+            <summary>True for the warning icon (failed, stopped).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsNeedsAnswer">
+            <summary>True while a question or approval waits in the chat.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.UndoCalls">
+            <summary>The run_commands calls of the request (what Undo takes back).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.CanUndo">
+            <summary>True when [Undo] is offered: done, and the request drew something.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.ShowOpenChat">
+            <summary>True when [Open chat] is offered.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.ShowDismiss">
+            <summary>True when the small x is offered (finished states; a running request keeps its bubble).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.Chat">
+            <summary>The chat that got the request (null before the first request).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.IsPointerOver">
+            <summary>The view sets this while the pointer is over the bubble (it then does not hide).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.UndoCommand">
+            <summary>Takes back the drawing steps of the request (the copilot's undo of its run_commands calls).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.OpenChatCommand">
+            <summary>Shows the side panel on the chat of the request.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.DismissCommand">
+            <summary>Hides the bubble.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.Track(AcadCopilot.Plugin.ViewModels.ChatViewModel,AcadCopilot.Plugin.QuickAsk.QuickAskMessage,AcadCopilot.Plugin.ViewModels.QuickAskDelivery)">
+            <summary>Starts following <paramref name="chat"/> for <paramref name="message"/> (the previous request is let go).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.ShowProblem(System.String,AcadCopilot.Plugin.ViewModels.ChatViewModel)">
+            <summary>Shows a problem that happened before anything was sent (no chat, queue full ...).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.Refresh">
+            <summary>Recomputes the bubble from the chat (public for tests; the chat's events call it).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskStatusViewModel.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskPointSource">
+            <summary>Where the point sent with a Quick Ask came from.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskPointSource.None">
+            <summary>No point goes with the request.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskPointSource.Cursor">
+            <summary>Where the cursor was in the drawing when the box opened.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskPointSource.Picked">
+            <summary>A point the user clicked with Pick.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskMessage">
+            <summary>What one Quick Ask sends: the chat shows <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.DisplayText"/>, the AI receives <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.SentText"/>.</summary>
+            <param name="DisplayText">The request as the user sees it in the chat (with the point token).</param>
+            <param name="SentText">The request with its context lines (point, selection).</param>
+            <param name="SelectionNote">"5 objects selected" when the selection goes with it, else null.</param>
+            <param name="Subject">Short name of the job for the status bubble ("kitchen 10'x20'").</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.#ctor(System.String,System.String,System.String,System.String)">
+            <summary>What one Quick Ask sends: the chat shows <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.DisplayText"/>, the AI receives <see cref="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.SentText"/>.</summary>
+            <param name="DisplayText">The request as the user sees it in the chat (with the point token).</param>
+            <param name="SentText">The request with its context lines (point, selection).</param>
+            <param name="SelectionNote">"5 objects selected" when the selection goes with it, else null.</param>
+            <param name="Subject">Short name of the job for the status bubble ("kitchen 10'x20'").</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.DisplayText">
+            <summary>The request as the user sees it in the chat (with the point token).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.SentText">
+            <summary>The request with its context lines (point, selection).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.SelectionNote">
+            <summary>"5 objects selected" when the selection goes with it, else null.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskMessage.Subject">
+            <summary>Short name of the job for the status bubble ("kitchen 10'x20'").</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskText">
+            <summary>
+            Pure text helpers of Quick Ask: the message (request + "[point ...]" + "[selected in AutoCAD: ...]", the same tokens as
+            the panel's Point button and selection chip), the short subject shown in the status bubble ("kitchen 10'x20'") and
+            the bubble's lines.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskText.MaxStatusLength">
+            <summary>Longest status line in the bubble.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskText.MaxSubjectLength">
+            <summary>Longest subject ("kitchen 10'x20'").</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskText.Origin">
+            <summary>The marker line that tells the AI where the request came from.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Compose(System.String,AcadCopilot.Plugin.Interaction.PickedPoint,AcadCopilot.Plugin.QuickAsk.QuickAskPointSource,AcadCopilot.Plugin.Interaction.SelectionSnapshot)">
+            <summary>
+            Builds the message of a Quick Ask: the typed request, then the point (labelled as the cursor position or the
+            clicked point) and the selection block. Empty <paramref name="text"/> is not allowed.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Subject(System.String)">
+            <summary>
+            The job in a few words, for the status bubble: "make the kitchen 10 by 20" -> "kitchen 10'x20'", "Draw a 4 ft wide
+            staircase please" -> "4' wide staircase". Leading polite words, verbs and articles go; "A by B" / "A x B" sizes
+            become A'xB' (feet, unless another unit is written).
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Working(System.String,System.String,System.String)">
+            <summary>
+            The working line: the plan task in progress ("Drawing kitchen walls..."), else what the chat is doing ("Typing
+            AutoCAD commands: Kitchen walls..." -> "Drawing: Kitchen walls..."), else "Working on kitchen 10'x20'...".
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Queued(System.Int32)">
+            <summary>"Waiting: the chat is still busy" (the request waits in the chat's queue).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Done(System.String)">
+            <summary>"Done - kitchen 10'x20'".</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Stopped(System.String)">
+            <summary>"Stopped - kitchen 10'x20'".</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Failed(System.String)">
+            <summary>"Could not finish: &lt;first line of the error&gt;".</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Undone(System.Int32)">
+            <summary>"Undid 3 drawing steps" / "Undid the drawing step".</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Shorten(System.String,System.Int32)">
+            <summary>Text cut at a word boundary with an ellipsis when longer than <paramref name="max"/>.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.Sizes">
+            <remarks>
+            Pattern:<br/>
+            <code>(?&lt;a&gt;\\d+(?:\\.\\d+)?)'?\\s*(?:by|x|X|×|into|\\*)\\s*(?&lt;b&gt;\\d+(?:\\.\\d+)?)(?&lt;unit&gt;'|"|\\s*(?:feet|foot|ft|meters?|metres?|mm|cm|m|inches|inch)\\b)?</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ "a" capture group.<br/>
+                ○ Match a Unicode digit greedily at least once.<br/>
+                ○ Optional (greedy).<br/>
+                    ○ Match '.'.<br/>
+                    ○ Match a Unicode digit atomically at least once.<br/>
+            ○ Match '\'' atomically, optionally.<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match with 4 alternative expressions.<br/>
+                ○ Match the string "by".<br/>
+                ○ Match a character in the set [Xx\u00D7].<br/>
+                ○ Match the string "into".<br/>
+                ○ Match '*'.<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ "b" capture group.<br/>
+                ○ Match a Unicode digit greedily at least once.<br/>
+                ○ Optional (greedy).<br/>
+                    ○ Match '.'.<br/>
+                    ○ Match a Unicode digit greedily at least once.<br/>
+            ○ Optional (greedy).<br/>
+                ○ "unit" capture group.<br/>
+                    ○ Match with 2 alternative expressions, atomically.<br/>
+                        ○ Match a character in the set ["'].<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match a whitespace character atomically any number of times.<br/>
+                            ○ Match with 5 alternative expressions.<br/>
+                                ○ Match a sequence of expressions.<br/>
+                                    ○ Match 'f'.<br/>
+                                    ○ Match with 3 alternative expressions.<br/>
+                                        ○ Match the string "eet".<br/>
+                                        ○ Match the string "oot".<br/>
+                                        ○ Match 't'.<br/>
+                                ○ Match a sequence of expressions.<br/>
+                                    ○ Match 'm'.<br/>
+                                    ○ Match with 2 alternative expressions.<br/>
+                                        ○ Match a sequence of expressions.<br/>
+                                            ○ Match the string "et".<br/>
+                                            ○ Match with 2 alternative expressions.<br/>
+                                                ○ Match a sequence of expressions.<br/>
+                                                    ○ Match the string "er".<br/>
+                                                    ○ Match 's' greedily, optionally.<br/>
+                                                ○ Match a sequence of expressions.<br/>
+                                                    ○ Match the string "re".<br/>
+                                                    ○ Match 's' greedily, optionally.<br/>
+                                        ○ Match 'm'.<br/>
+                                ○ Match the string "cm".<br/>
+                                ○ Match 'm'.<br/>
+                                ○ Match a sequence of expressions.<br/>
+                                    ○ Match the string "inch".<br/>
+                                    ○ Optional (greedy).<br/>
+                                        ○ Match the string "es".<br/>
+                            ○ Match if at a word boundary.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskText.FeetWords">
+            <remarks>
+            Pattern:<br/>
+            <code>\\b(\\d+(?:\\.\\d+)?)\\s*(?:feet|foot|ft)\\b</code><br/>
+            Options:<br/>
+            <code>RegexOptions.IgnoreCase | RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at a word boundary.<br/>
+            ○ 1st capture group.<br/>
+                ○ Match a Unicode digit greedily at least once.<br/>
+                ○ Optional (greedy).<br/>
+                    ○ Match '.'.<br/>
+                    ○ Match a Unicode digit atomically at least once.<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match a character in the set [Ff].<br/>
+            ○ Match with 3 alternative expressions.<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match a character in the set [Ee] exactly 2 times.<br/>
+                    ○ Match a character in the set [Tt].<br/>
+                ○ Match a sequence of expressions.<br/>
+                    ○ Match a character in the set [Oo] exactly 2 times.<br/>
+                    ○ Match a character in the set [Tt].<br/>
+                ○ Match a character in the set [Tt].<br/>
+            ○ Match if at a word boundary.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.ScreenRect">
+            <summary>A rectangle in screen pixels (physical, as Win32 reports it).</summary>
+            <param name="Left">Left edge.</param>
+            <param name="Top">Top edge.</param>
+            <param name="Right">Right edge (exclusive).</param>
+            <param name="Bottom">Bottom edge (exclusive).</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.ScreenRect.#ctor(System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>A rectangle in screen pixels (physical, as Win32 reports it).</summary>
+            <param name="Left">Left edge.</param>
+            <param name="Top">Top edge.</param>
+            <param name="Right">Right edge (exclusive).</param>
+            <param name="Bottom">Bottom edge (exclusive).</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.ScreenRect.Left">
+            <summary>Left edge.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.ScreenRect.Top">
+            <summary>Top edge.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.ScreenRect.Right">
+            <summary>Right edge (exclusive).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.ScreenRect.Bottom">
+            <summary>Bottom edge (exclusive).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.ScreenRect.Width">
+            <summary>Width in pixels.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.ScreenRect.Height">
+            <summary>Height in pixels.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.ScreenRect.Contains(System.Int32,System.Int32)">
+            <summary>True when <paramref name="x"/>, <paramref name="y"/> lies inside.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement">
+            <summary>
+            Pure placement rules of the Quick Ask windows (screen pixels): the button sits in the drawing area's top-right corner,
+            left of the ViewCube; the box opens next to the cursor (or under the button) and always stays inside the drawing area.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement.RightInset">
+            <summary>Gap between the drawing area's right edge and the button window, DIPs (leaves the ViewCube free).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement.TopInset">
+            <summary>Gap between the drawing area's top edge and the button window, DIPs.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement.MinAreaSize">
+            <summary>Smallest drawing area (pixels) that still shows the button.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement.Button(AcadCopilot.Plugin.QuickAsk.ScreenRect,System.Int32,System.Double)">
+            <summary>Top-left of the button window of <paramref name="width"/> pixels in <paramref name="area"/>.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement.Box(AcadCopilot.Plugin.QuickAsk.ScreenRect,System.Int32,System.Int32,System.Int32,System.Int32,System.Double)">
+            <summary>
+            Top-left of the box window (<paramref name="width"/> x <paramref name="height"/> pixels): just below-right of
+            <paramref name="cursorX"/>, <paramref name="cursorY"/>, flipped left / up when it would leave
+            <paramref name="area"/>, and clamped inside it.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskPlacement.BoxUnderButton(AcadCopilot.Plugin.QuickAsk.ScreenRect,AcadCopilot.Plugin.QuickAsk.ScreenRect,System.Int32,System.Int32)">
+            <summary>Top-left of the box when it opens from the button: right-aligned under the button window.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskNative">
+            <summary>Win32 helpers of the Quick Ask windows.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskNative.WmMouseActivate">
+            <summary>WM_MOUSEACTIVATE.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.QuickAsk.QuickAskNative.MaNoActivate">
+            <summary>MA_NOACTIVATE.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.SetToolStyle(System.IntPtr,System.Boolean)">
+            <summary>Tool window (no taskbar button, not in Alt+Tab); <paramref name="noActivate"/> also never takes the keyboard.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.Move(System.IntPtr,System.Int32,System.Int32)">
+            <summary>Moves <paramref name="hwnd"/> without resizing, activating or changing its z-order.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.WindowRect(System.IntPtr)">
+            <summary>The window's rectangle in screen pixels, or null.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.ClientRect(System.IntPtr)">
+            <summary>The window's client area in screen pixels, or null.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.IsShown(System.IntPtr)">
+            <summary>True when the window exists, is visible and not minimised.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.IsEnabled(System.IntPtr)">
+            <summary>True when the window takes input (false while a modal dialog of AutoCAD is open).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.CursorPosition">
+            <summary>The mouse position in screen pixels.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskNative.IsKeyDown(System.Int32)">
+            <summary>True when the key is held down now (GetKeyState high bit).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskOverlayWindow">
+            <summary>
+            The small window that carries the floating AI button and the status bubble over the drawing area: owned by AutoCAD's
+            main window (so it stays above AutoCAD only, hides with it when minimised and drops behind other applications with
+            it), no taskbar button, and it never activates (WS_EX_NOACTIVATE + MA_NOACTIVATE), so clicking it never takes the
+            keyboard from the drawing. Its top-right corner is anchored; it grows to the left when the bubble shows.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.QuickAsk.QuickAskOverlayWindow.ScreenBounds">
+            <summary>The window's rectangle on screen (pixels), or null before it is shown.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskOverlayWindow.PlaceIn(System.Nullable{AcadCopilot.Plugin.QuickAsk.ScreenRect})">
+            <summary>Shows the window anchored in <paramref name="area"/>, or hides it (null).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.QuickAsk.QuickAskBoxWindow">
+            <summary>
+            The window of the Quick Ask box: owned by AutoCAD's main window, no taskbar button, activated while open (the user
+            types into it). Clicking elsewhere (it loses activation) closes it, except while the user picks a point.
+            </summary>
+        </member>
+        <member name="E:AcadCopilot.Plugin.QuickAsk.QuickAskBoxWindow.ClickedAway">
+            <summary>Raised when the user clicked away (the controller closes the box).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxWindow.ShowAt(System.Func{System.Int32,System.Int32,System.ValueTuple{System.Int32,System.Int32}})">
+            <summary>Shows the box at <paramref name="place"/> (computed from its measured size) and gives it the keyboard.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.QuickAsk.QuickAskBoxWindow.SetPicking(System.Boolean)">
+            <summary>Hides the box while the user picks a point, or shows it again after.</summary>
         </member>
         <member name="T:AcadCopilot.Plugin.Recovery.CheckpointService">
             <summary>
@@ -2296,6 +3551,250 @@
         <member name="M:AcadCopilot.Plugin.Services.SymbolLibraryImporter.MissingBlocks(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,System.Collections.Generic.IEnumerable{AcadCopilot.Core.Services.SymbolDefinition})">
             <summary>The names of the <paramref name="symbols"/> blocks missing from the drawing. Main thread.</summary>
         </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.ArrangeRequest">
+            <summary>What arrange_drawings was asked.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.ArrangeRequest.#ctor(System.Collections.Generic.IReadOnlyList{AcadCopilot.Core.Sheets.DrawingLabel},System.Nullable{System.Double},System.Nullable{System.Double},System.Boolean,AcadCopilot.Core.Sheets.DrawingScale)">
+            <summary>What arrange_drawings was asked.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.TitleAction">
+            <summary>A title change for one drawing.</summary>
+            <param name="Number">Drawing number.</param>
+            <param name="What">"title and scale added", "scale line added", "scale line corrected".</param>
+            <param name="Planned">Texts to add (null when only an existing scale line is corrected).</param>
+            <param name="ScaleItem">Item index of an existing scale line to correct.</param>
+            <param name="Scale">The drawing's scale.</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.TitleAction.#ctor(System.Int32,System.String,AcadCopilot.Core.Sheets.PlannedTitle,System.Nullable{System.Int32},AcadCopilot.Core.Sheets.DrawingScale)">
+            <summary>A title change for one drawing.</summary>
+            <param name="Number">Drawing number.</param>
+            <param name="What">"title and scale added", "scale line added", "scale line corrected".</param>
+            <param name="Planned">Texts to add (null when only an existing scale line is corrected).</param>
+            <param name="ScaleItem">Item index of an existing scale line to correct.</param>
+            <param name="Scale">The drawing's scale.</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.TitleAction.Number">
+            <summary>Drawing number.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.TitleAction.What">
+            <summary>"title and scale added", "scale line added", "scale line corrected".</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.TitleAction.Planned">
+            <summary>Texts to add (null when only an existing scale line is corrected).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.TitleAction.ScaleItem">
+            <summary>Item index of an existing scale line to correct.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.TitleAction.Scale">
+            <summary>The drawing's scale.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.ArrangeOutcome">
+            <summary>The result of arrange_drawings.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.ArrangeOutcome.#ctor(AcadCopilot.Plugin.Sheets.FoundDrawings,AcadCopilot.Core.Sheets.ArrangementResult,System.Collections.Generic.IReadOnlyList{AcadCopilot.Plugin.Sheets.TitleAction},System.Collections.Generic.IReadOnlyDictionary{System.Int32,AcadCopilot.Core.Sheets.DrawingScale},System.Collections.Generic.IReadOnlyList{Autodesk.AutoCAD.DatabaseServices.ObjectId},System.Collections.Generic.IReadOnlyList{Autodesk.AutoCAD.DatabaseServices.ObjectId},System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>The result of arrange_drawings.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.DrawingArranger">
+            <summary>
+            arrange_drawings in AutoCAD: finds the drawings, plans titles and the arrangement (Core), and with
+            <c>apply</c> moves whole drawings (TransformBy, locked layers unlocked for the move and locked again) and adds or
+            corrects the titles. Main thread, inside the caller's transaction (one undo step).
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.DrawingArranger.Run(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,AcadCopilot.Plugin.Sheets.ArrangeRequest,System.Boolean)">
+            <summary>Plans and (when <paramref name="apply"/>) carries out the arrangement.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.LayerUnlocker">
+            <summary>Unlocks layers on demand and locks them again when disposed (inside the same transaction).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.LayerUnlocker.#ctor(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction)">
+            <summary>Creates the unlocker for <paramref name="database"/>.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.LayerUnlocker.Unlock(System.String)">
+            <summary>Unlocks <paramref name="layer"/> when it is locked.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.LayerUnlocker.Dispose">
+            <summary>Locks the unlocked layers again.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.FoundDrawings">
+            <summary>The drawings found in model space with everything the drawing-set tools need about them.</summary>
+            <param name="Scan">Model space objects.</param>
+            <param name="Clusters">The drawings (labels applied).</param>
+            <param name="Warnings">Problems found while separating them.</param>
+            <param name="UnmatchedLabels">Labels that named no drawing.</param>
+            <param name="Units">The drawing's units.</param>
+            <param name="InchesPerUnit">Inches per drawing unit (1 when unknown).</param>
+            <param name="System">Scale notation for these units.</param>
+            <param name="ClusterGap">The gap used to separate drawings (drawing units).</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.FoundDrawings.#ctor(AcadCopilot.Plugin.Sheets.ModelSpaceScan,System.Collections.Generic.IReadOnlyList{AcadCopilot.Core.Sheets.DrawingCluster},System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{AcadCopilot.Core.Sheets.DrawingLabel},AcadCopilot.Core.Drafting.DrawingUnits,System.Double,AcadCopilot.Core.Sheets.ScaleSystem,System.Double)">
+            <summary>The drawings found in model space with everything the drawing-set tools need about them.</summary>
+            <param name="Scan">Model space objects.</param>
+            <param name="Clusters">The drawings (labels applied).</param>
+            <param name="Warnings">Problems found while separating them.</param>
+            <param name="UnmatchedLabels">Labels that named no drawing.</param>
+            <param name="Units">The drawing's units.</param>
+            <param name="InchesPerUnit">Inches per drawing unit (1 when unknown).</param>
+            <param name="System">Scale notation for these units.</param>
+            <param name="ClusterGap">The gap used to separate drawings (drawing units).</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.Scan">
+            <summary>Model space objects.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.Clusters">
+            <summary>The drawings (labels applied).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.Warnings">
+            <summary>Problems found while separating them.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.UnmatchedLabels">
+            <summary>Labels that named no drawing.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.Units">
+            <summary>The drawing's units.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.InchesPerUnit">
+            <summary>Inches per drawing unit (1 when unknown).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.System">
+            <summary>Scale notation for these units.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.FoundDrawings.ClusterGap">
+            <summary>The gap used to separate drawings (drawing units).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.FoundDrawings.SheetDrawings">
+            <summary>The drawings as the sheet planner sees them.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.DrawingFinder">
+            <summary>Finds the drawings of model space (main thread, inside the caller's transaction).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.DrawingFinder.Find(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,System.Nullable{System.Double},System.Collections.Generic.IReadOnlyList{AcadCopilot.Core.Sheets.DrawingLabel})">
+            <summary>Scans model space, separates the drawings and applies the AI's labels.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.DrawingFinder.LayerOrCurrent(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,System.String)">
+            <summary>Layer <paramref name="preferred"/> when it exists, else the current layer.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.DrawingFinder.StyleOrCurrent(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,System.String)">
+            <summary>Text style <paramref name="preferred"/> when it exists, else the current style.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.DrawingFinder.AddText(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,Autodesk.AutoCAD.DatabaseServices.BlockTableRecord,System.Double,System.Double,System.Double,System.String,Autodesk.AutoCAD.DatabaseServices.ObjectId,Autodesk.AutoCAD.DatabaseServices.ObjectId)">
+            <summary>Adds a middle-centred single-line text to <paramref name="space"/>; returns its id.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.DrawingFinder.SetText(Autodesk.AutoCAD.DatabaseServices.Transaction,Autodesk.AutoCAD.DatabaseServices.ObjectId,System.String)">
+            <summary>Replaces the text of a TEXT or MTEXT object; true when it changed.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.ModelSpaceScan">
+            <summary>
+            Model space as the drawing-set tools see it: every object with extents as a <see cref="T:AcadCopilot.Core.Sheets.ClusterItem"/> (box, text,
+            annotation / wall flags), with its ObjectId and layer at the same index. Main thread, inside the caller's transaction.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.ModelSpaceScan.Items">
+            <summary>The items for <see cref="M:AcadCopilot.Core.Sheets.DrawingClusters.Find(System.Collections.Generic.IReadOnlyList{AcadCopilot.Core.Sheets.ClusterItem},System.Double)"/>.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.ModelSpaceScan.Ids">
+            <summary>The object of each item.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.ModelSpaceScan.Layers">
+            <summary>The layer of each item.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.ModelSpaceScan.Read(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction)">
+            <summary>Reads model space of <paramref name="database"/>.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.ModelSpaceScan.IdsOf(AcadCopilot.Core.Sheets.DrawingCluster)">
+            <summary>The objects of <paramref name="cluster"/>.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.PlotOutcome">
+            <summary>The result of plot_to_pdf.</summary>
+            <param name="Path">The PDF written.</param>
+            <param name="Sheets">The layouts plotted, in page order.</param>
+            <param name="Notes">What was adjusted (layouts switched to DWG To PDF for this plot).</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.PlotOutcome.#ctor(System.String,System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>The result of plot_to_pdf.</summary>
+            <param name="Path">The PDF written.</param>
+            <param name="Sheets">The layouts plotted, in page order.</param>
+            <param name="Notes">What was adjusted (layouts switched to DWG To PDF for this plot).</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.PlotOutcome.Path">
+            <summary>The PDF written.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.PlotOutcome.Sheets">
+            <summary>The layouts plotted, in page order.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.PlotOutcome.Notes">
+            <summary>What was adjusted (layouts switched to DWG To PDF for this plot).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.PdfPlotter">
+            <summary>
+            plot_to_pdf in AutoCAD: plots layouts into one multi-page PDF with the publish engine
+            (PlotFactory.CreatePublishEngine, one BeginDocument, a page per layout) on DWG To PDF.pc3, with BACKGROUNDPLOT 0
+            during the plot (restored after) and the current layout restored. Main thread, application context.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.PdfPlotter.ChooseLayouts(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>The layouts plot_to_pdf would plot: <paramref name="requested"/>, else the create_sheets sheets, else all, in tab order.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.PdfPlotter.Plot(Autodesk.AutoCAD.ApplicationServices.Document,System.Collections.Generic.IReadOnlyList{System.String},System.String)">
+            <summary>Plots the <paramref name="requested"/> layouts (null = the sheets) of <paramref name="document"/> into <paramref name="path"/>.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.SheetsRequest">
+            <summary>What create_sheets was asked.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.SheetsRequest.#ctor(AcadCopilot.Core.Sheets.PaperSize,AcadCopilot.Core.Sheets.TitleBlockValues,System.Collections.Generic.IReadOnlyList{System.Int32},System.Collections.Generic.IReadOnlyList{AcadCopilot.Core.Sheets.DrawingLabel},System.Boolean,AcadCopilot.Core.Sheets.DrawingScale,System.Nullable{System.Double},System.Boolean)">
+            <summary>What create_sheets was asked.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.BuiltSheet">
+            <summary>One sheet made.</summary>
+            <param name="Spec">The planned sheet.</param>
+            <param name="LayoutName">The layout's actual name (" (2)" added when the name was taken).</param>
+            <param name="Viewports">Its viewports.</param>
+            <param name="Media">The plotter paper chosen.</param>
+            <param name="Replaced">True when a layout of that name was deleted first.</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.BuiltSheet.#ctor(AcadCopilot.Core.Sheets.SheetSpec,System.String,System.Collections.Generic.IReadOnlyList{Autodesk.AutoCAD.DatabaseServices.ObjectId},System.String,System.Boolean)">
+            <summary>One sheet made.</summary>
+            <param name="Spec">The planned sheet.</param>
+            <param name="LayoutName">The layout's actual name (" (2)" added when the name was taken).</param>
+            <param name="Viewports">Its viewports.</param>
+            <param name="Media">The plotter paper chosen.</param>
+            <param name="Replaced">True when a layout of that name was deleted first.</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.BuiltSheet.Spec">
+            <summary>The planned sheet.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.BuiltSheet.LayoutName">
+            <summary>The layout's actual name (" (2)" added when the name was taken).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.BuiltSheet.Viewports">
+            <summary>Its viewports.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.BuiltSheet.Media">
+            <summary>The plotter paper chosen.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Sheets.BuiltSheet.Replaced">
+            <summary>True when a layout of that name was deleted first.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.SheetsOutcome">
+            <summary>The result of create_sheets.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.SheetsOutcome.#ctor(AcadCopilot.Core.Sheets.SheetSetPlan,System.Collections.Generic.IReadOnlyList{AcadCopilot.Plugin.Sheets.BuiltSheet},System.String,System.Boolean,System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{Autodesk.AutoCAD.DatabaseServices.ObjectId},System.Collections.Generic.IReadOnlyList{Autodesk.AutoCAD.DatabaseServices.ObjectId})">
+            <summary>The result of create_sheets.</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Sheets.SheetBuilder">
+            <summary>
+            create_sheets in AutoCAD: plans the sheets (Core <see cref="T:AcadCopilot.Core.Sheets.SheetPlanner"/>), then for each one creates a layout
+            (LayoutManager.CreateLayout), sets DWG To PDF.pc3 with the matching paper at 1:1 in millimetres
+            (PlotSettingsValidator), inserts the title block with its attributes and adds locked viewports at the planned scale.
+            Main thread, inside the caller's write transaction (document locked).
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.SheetBuilder.Build(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction,AcadCopilot.Plugin.Sheets.SheetsRequest)">
+            <summary>Builds the sheets.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Sheets.SheetBuilder.LayoutNames(Autodesk.AutoCAD.DatabaseServices.Database,Autodesk.AutoCAD.DatabaseServices.Transaction)">
+            <summary>The names of the paper-space layouts.</summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.Tools.ToolContext">
             <summary>
             Everything a tool handler needs for one call: main-thread access to the active drawing (through
@@ -2399,33 +3898,12 @@
         <member name="M:AcadCopilot.Plugin.Tools.ToolContext.Warn(System.String,System.Exception)">
             <summary>Writes a warning line to addin.log, tagged with the tool name and call id.</summary>
         </member>
-        <member name="T:AcadCopilot.Plugin.Tools.ToolSpec">
-            <summary>
-            One AutoCAD tool: its definition (name, title, LLM description, risk, strict input schema) and its handler.
-            The handler receives schema-validated arguments, runs on a thread-pool thread (use <see cref="T:AcadCopilot.Plugin.Tools.ToolContext"/> to reach
-            AutoCAD's main thread), returns a <see cref="T:AcadCopilot.Core.Tools.ToolResult"/> (failures as results; throw <see cref="T:AcadCopilot.Core.Tools.ToolException"/> for
-            problems the AI can fix) and honours the cancellation token (Stop in the panel, or the bridge abandoning the call).
-            </summary>
-            <param name="Definition">What the LLM sees.</param>
-            <param name="Handler">The implementation.</param>
-        </member>
-        <member name="M:AcadCopilot.Plugin.Tools.ToolSpec.#ctor(AcadCopilot.Core.Tools.ToolDefinition,System.Func{AcadCopilot.Plugin.Tools.ToolContext,System.Text.Json.Nodes.JsonObject,System.Threading.CancellationToken,System.Threading.Tasks.Task{AcadCopilot.Core.Tools.ToolResult}})">
-            <summary>
-            One AutoCAD tool: its definition (name, title, LLM description, risk, strict input schema) and its handler.
-            The handler receives schema-validated arguments, runs on a thread-pool thread (use <see cref="T:AcadCopilot.Plugin.Tools.ToolContext"/> to reach
-            AutoCAD's main thread), returns a <see cref="T:AcadCopilot.Core.Tools.ToolResult"/> (failures as results; throw <see cref="T:AcadCopilot.Core.Tools.ToolException"/> for
-            problems the AI can fix) and honours the cancellation token (Stop in the panel, or the bridge abandoning the call).
-            </summary>
-            <param name="Definition">What the LLM sees.</param>
-            <param name="Handler">The implementation.</param>
-        </member>
-        <member name="P:AcadCopilot.Plugin.Tools.ToolSpec.Definition">
-            <summary>What the LLM sees.</summary>
-        </member>
-        <member name="P:AcadCopilot.Plugin.Tools.ToolSpec.Handler">
-            <summary>The implementation.</summary>
-        </member>
         <member name="T:AcadCopilot.Plugin.Tools.ToolRegistry">
+            <summary>
+            Accuracy tools: validate_plan (pure checks of a plan in numbers, saved per drawing), check_drawing (the drawn geometry
+            against that plan) and apply_drawing_template (units, layers, styles, title block in one undo step). Definitions and
+            all checks live in AcadCopilot.Core.Accuracy; this file only reads or changes the drawing on AutoCAD's main thread.
+            </summary>
             <summary>
             All AutoCAD tools of the plug-in, exposed over the pipe (tools.list / tools.call) and through the MCP bridge.
             The tools are contributed by partial methods in the other ToolRegistry.*.cs files:
@@ -2467,6 +3945,18 @@
             export_view_png (a shareable PNG). Definitions live in AcadCopilot.Core (Services/, Presentation/), the AutoCAD work
             in Plugin/Services/. Everything touching AutoCAD runs through <see cref="T:AcadCopilot.Plugin.Tools.ToolContext"/> on the main thread.
             </summary>
+            <summary>
+            Drawing-set tools: arrange_drawings (line up model space, titles and scales), create_sheets (layouts with title
+            block and viewports), plot_to_pdf (one multi-page PDF; the user approves) and plan_full_set (the full set's to-do
+            list from the ground floor plan). Definitions and the pure maths are in AcadCopilot.Core/Sheets, the AutoCAD work in
+            Plugin/Sheets. Everything touching AutoCAD runs through <see cref="T:AcadCopilot.Plugin.Tools.ToolContext"/> on the main thread.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Tools.ToolRegistry.AddAccuracyTools(System.Collections.Generic.List{AcadCopilot.Plugin.Tools.ToolSpec})">
+            <summary>Adds the accuracy tools (called from CreateDefault).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Tools.ToolRegistry.PlanDrawingKey(Autodesk.AutoCAD.ApplicationServices.Document)">
+            <summary>The key of a drawing's plan file (as for checkpoints: unsaved drawings are keyed by process and name).</summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Tools.ToolRegistry.#ctor(System.Collections.Generic.IEnumerable{AcadCopilot.Plugin.Tools.ToolSpec})">
             <summary>Creates a registry from explicit specs (tests); validates them.</summary>
@@ -2531,6 +4021,35 @@
         </member>
         <member name="M:AcadCopilot.Plugin.Tools.ToolRegistry.AddServicesTools(System.Collections.Generic.List{AcadCopilot.Plugin.Tools.ToolSpec})">
             <summary>Adds the services and presentation tools (called from CreateDefault).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Tools.ToolRegistry.AddSheetsTools(System.Collections.Generic.List{AcadCopilot.Plugin.Tools.ToolSpec})">
+            <summary>Adds the drawing-set tools (called from CreateDefault).</summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.Tools.ToolSpec">
+            <summary>
+            One AutoCAD tool: its definition (name, title, LLM description, risk, strict input schema) and its handler.
+            The handler receives schema-validated arguments, runs on a thread-pool thread (use <see cref="T:AcadCopilot.Plugin.Tools.ToolContext"/> to reach
+            AutoCAD's main thread), returns a <see cref="T:AcadCopilot.Core.Tools.ToolResult"/> (failures as results; throw <see cref="T:AcadCopilot.Core.Tools.ToolException"/> for
+            problems the AI can fix) and honours the cancellation token (Stop in the panel, or the bridge abandoning the call).
+            </summary>
+            <param name="Definition">What the LLM sees.</param>
+            <param name="Handler">The implementation.</param>
+        </member>
+        <member name="M:AcadCopilot.Plugin.Tools.ToolSpec.#ctor(AcadCopilot.Core.Tools.ToolDefinition,System.Func{AcadCopilot.Plugin.Tools.ToolContext,System.Text.Json.Nodes.JsonObject,System.Threading.CancellationToken,System.Threading.Tasks.Task{AcadCopilot.Core.Tools.ToolResult}})">
+            <summary>
+            One AutoCAD tool: its definition (name, title, LLM description, risk, strict input schema) and its handler.
+            The handler receives schema-validated arguments, runs on a thread-pool thread (use <see cref="T:AcadCopilot.Plugin.Tools.ToolContext"/> to reach
+            AutoCAD's main thread), returns a <see cref="T:AcadCopilot.Core.Tools.ToolResult"/> (failures as results; throw <see cref="T:AcadCopilot.Core.Tools.ToolException"/> for
+            problems the AI can fix) and honours the cancellation token (Stop in the panel, or the bridge abandoning the call).
+            </summary>
+            <param name="Definition">What the LLM sees.</param>
+            <param name="Handler">The implementation.</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Tools.ToolSpec.Definition">
+            <summary>What the LLM sees.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Tools.ToolSpec.Handler">
+            <summary>The implementation.</summary>
         </member>
         <member name="T:AcadCopilot.Plugin.ViewModels.ActivityState">
             <summary>State of one tool call row.</summary>
@@ -2905,6 +4424,64 @@
         </member>
         <member name="F:AcadCopilot.Plugin.ViewModels.ToolActivityText.CaptureView">
             <summary>Name of the tool that returns a picture of the drawing view.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.ToolActivityText.IsWebSearch(System.String)">
+            <summary>The CLIs' web search tools (Claude Code, Codex, Gemini CLI).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.ToolActivityText.IsWebFetch(System.String)">
+            <summary>The CLIs' read-a-web-page tools (Claude Code, Gemini CLI).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.ToolActivityText.IsWebTool(System.String)">
+            <summary>True for any of the CLIs' web tools (Web research).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.ToolActivityText.WebTitle(System.String,System.String,AcadCopilot.Plugin.ViewModels.ActivityState)">
+            <summary>
+            Title of a web tool row: "Searching the web: 30x50 east facing plan" / "Searched the web: ..." and "Reading
+            houseplans.com" / "Read houseplans.com", from the CLI's argument summary. Null for other tools.
+            </summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.ToolActivityText.WebQueryPattern">
+            <remarks>
+            Pattern:<br/>
+            <code>^\\s*query:\\s*(.*?)(?:,\\s*[a-z_]+:\\s.*)?$</code><br/>
+            Options:<br/>
+            <code>RegexOptions.Singleline</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at the beginning of the string.<br/>
+            ○ Match a whitespace character atomically any number of times.<br/>
+            ○ Match the string "query:".<br/>
+            ○ Match a whitespace character greedily any number of times.<br/>
+            ○ 1st capture group.<br/>
+                ○ Match any character lazily any number of times.<br/>
+            ○ Optional (greedy).<br/>
+                ○ Match ','.<br/>
+                ○ Match a whitespace character atomically any number of times.<br/>
+                ○ Match a character in the set [_a-z] atomically at least once.<br/>
+                ○ Match ':'.<br/>
+                ○ Match a whitespace character.<br/>
+                ○ Match any character greedily any number of times.<br/>
+            ○ Match if at the end of the string or if before an ending newline.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.ToolActivityText.WebHostPattern">
+            <remarks>
+            Pattern:<br/>
+            <code>https?://([^/\\s,?#…]+)</code><br/>
+            Options:<br/>
+            <code>RegexOptions.IgnoreCase</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match a character in the set [Hh].<br/>
+            ○ Match a character in the set [Tt] exactly 2 times.<br/>
+            ○ Match a character in the set [Pp].<br/>
+            ○ Match a character in the set [Ss] atomically, optionally.<br/>
+            ○ Match the string "://".<br/>
+            ○ 1st capture group.<br/>
+                ○ Match a character in the set [^#,/?\u2026\s] atomically at least once.<br/>
+            </code>
+            </remarks>
         </member>
         <member name="M:AcadCopilot.Plugin.ViewModels.ToolActivityText.IsLearning(System.String)">
             <summary>True for the learning tools (their result message is shown under the row).</summary>
@@ -3572,6 +5149,10 @@
             the WPF dispatcher thread except the <see cref="T:AcadCopilot.Core.Interaction.ICopilotUi"/> and <see cref="T:AcadCopilot.Plugin.ViewModels.IToolActivitySink"/> methods, which
             marshal themselves.
             </summary>
+            <summary>
+            Quick Ask (the floating AI box in the drawing area, Plugin/QuickAsk) sends through the tab bound to the active drawing
+            like a normal message, without touching what the user is typing in the tab's own message box.
+            </summary>
         </member>
         <member name="F:AcadCopilot.Plugin.ViewModels.ChatViewModel.ReviewPrompt">
             <summary>The message that asks for a second-opinion review (the session recognises it, <see cref="T:AcadCopilot.Core.Panel.ReviewRequests"/>).</summary>
@@ -3590,6 +5171,18 @@
         </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.TutorMode">
             <summary>The AI explains each AutoCAD command it uses in one short line.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.WebResearch">
+            <summary>
+            Web research: the AI may search the internet and read web pages for ideas (the CLI's read-only web tools). Shared by
+            every tab, persisted in settings.json, applied to the next message sent. Off by default.
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.WebResearchToolTip">
+            <summary>Tooltip of the composer's globe "Web" button.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.ToggleWebResearchCommand">
+            <summary>The composer's one-click globe "Web" button: turns <see cref="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.WebResearch"/> on or off.</summary>
         </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.ProviderOrderText">
             <summary>"Takes over in this order: Claude, ChatGPT, Gemini".</summary>
@@ -3626,6 +5219,12 @@
         </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.QuickPrompts">
             <summary>The ⚡ quick prompts shared by the panel's tabs (null hides the button).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.Layout">
+            <summary>
+            The Focus button and the drawing-area settings, shared by the panel's tabs (null: no Focus button and no
+            DRAWING AREA settings).
+            </summary>
         </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.ComposerCaret">
             <summary>
@@ -4119,6 +5718,23 @@
         <member name="M:AcadCopilot.Plugin.ViewModels.ChatViewModel.ToolReport.#ctor(System.String,System.Text.Json.Nodes.JsonObject,AcadCopilot.Core.Tools.ToolResult)">
             <summary>One plug-in report: a tool call starting (no result yet) or finished.</summary>
         </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.QuickAskSettings">
+            <summary>The Quick Ask settings (floating button, shortcut): one set for every tab, shown in the panel's Settings.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.ChatViewModel.ResetQuickAskShortcutCommand">
+            <summary>Puts the Quick Ask shortcut back to Ctrl+Shift+Space.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.ChatViewModel.SendQuickAsk(System.String,System.String,System.String)">
+            <summary>
+            Sends a Quick Ask request as this tab's next user message: <paramref name="displayText"/> is shown in the chat,
+            <paramref name="sentText"/> (with its point and selection lines) goes to the AI. Starts at once when the tab is
+            idle; otherwise the request waits in the tab's queue (Enter-while-busy behaviour; a paused queue is resumed so it
+            runs). The message box is left alone.
+            </summary>
+            <param name="displayText">What the chat shows as the user's message.</param>
+            <param name="sentText">What the AI receives.</param>
+            <param name="selectionNote">"5 objects selected" when the selection goes with it.</param>
+        </member>
         <member name="T:AcadCopilot.Plugin.ViewModels.QueuedRequest">
             <summary>One request waiting in a chat's queue.</summary>
         </member>
@@ -4222,6 +5838,18 @@
         <member name="F:AcadCopilot.Plugin.ViewModels.ChatTabState.NeedsAnswer">
             <summary>A question or approval card waits for the user.</summary>
         </member>
+        <member name="T:AcadCopilot.Plugin.ViewModels.QuickAskDelivery">
+            <summary>How a Quick Ask request was handed to a chat tab.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.ViewModels.QuickAskDelivery.Started">
+            <summary>The turn started at once.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.ViewModels.QuickAskDelivery.Queued">
+            <summary>The tab is working (or the most chats at once are): the request waits in its queue and runs next.</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.ViewModels.QuickAskDelivery.Rejected">
+            <summary>The tab's queue is full: nothing was sent.</summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel">
             <summary>
             The panel's chat tabs. Each tab is a <see cref="T:AcadCopilot.Plugin.ViewModels.ChatViewModel"/> over its own <see cref="T:AcadCopilot.Core.Panel.ICopilotSession"/>: its own
@@ -4299,6 +5927,12 @@
         <member name="M:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel.NewTab">
             <summary>Opens a new tab (bound to the drawing that is active now) and shows it. Null when no tab can be added.</summary>
         </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel.NewTab(System.Boolean)">
+            <summary>
+            Opens a new tab bound to the drawing that is active now. <paramref name="show"/> false opens it in the background
+            (Quick Ask: the panel keeps showing its tab and nothing takes the keyboard focus). Null when no tab can be added.
+            </summary>
+        </member>
         <member name="M:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel.SelectTab(AcadCopilot.Plugin.ViewModels.ChatViewModel)">
             <summary>Shows <paramref name="tab"/>.</summary>
         </member>
@@ -4324,6 +5958,43 @@
             Hub for a host that hands the pane a single <see cref="T:AcadCopilot.Core.Panel.ICopilotBackend"/> (no chat tabs): one fixed session that
             forwards to it.
             </summary>
+        </member>
+        <member name="T:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel">
+            <summary>
+            The panel's drawing-area controls, shared by every chat tab: the Focus button in the header (more room for the
+            drawing: ribbon minimised, ViewCube and navigation bar hidden) and the settings "Use focus mode when the AI Copilot
+            opens" and "Follow the AI's drawing" (panel.json). UI thread only.
+            </summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.FocusToolTipText">
+            <summary>Tool tip of the Focus button.</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.#ctor(AcadCopilot.Plugin.Palette.IFocusLayoutHost,AcadCopilot.Plugin.ViewModels.PanelSettingsStore,System.Action{System.String})">
+            <summary>Creates the view model.</summary>
+            <param name="host">Focus mode inside AutoCAD; null hides the Focus button (no AutoCAD).</param>
+            <param name="store">panel.json.</param>
+            <param name="reportProblem">Shows what focus mode could not do (the notice banner of the tab shown).</param>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.CanFocus">
+            <summary>True when focus mode is available (inside AutoCAD).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.IsFocusMode">
+            <summary>True while focus mode is on (the Focus button is highlighted).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.FocusToolTip">
+            <summary>Tool tip of the Focus button: what it does and its state.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.ToggleFocusCommand">
+            <summary>Switches focus mode on or off.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.FocusModeOnOpen">
+            <summary>Use focus mode whenever the AI Copilot opens (persisted; default on).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.FollowAiDrawing">
+            <summary>Zoom to what the AI drew when it is off screen or too small (persisted; default on).</summary>
+        </member>
+        <member name="M:AcadCopilot.Plugin.ViewModels.FocusLayoutViewModel.Dispose">
+            <inheritdoc />
         </member>
         <member name="T:AcadCopilot.Plugin.ViewModels.IFilePicker">
             <summary>Lets the user pick files to attach (implemented with the Windows open-file dialog in the view).</summary>
@@ -4489,6 +6160,18 @@
         </member>
         <member name="P:AcadCopilot.Plugin.ViewModels.PanelSettings.QuickPrompts">
             <summary>The user's own quick prompts (the composer's ⚡ menu), in menu order.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.PanelSettings.FocusModeOnOpen">
+            <summary>
+            Focus mode whenever the AI Copilot opens (default on): the ribbon is minimised to its tab names and the ViewCube
+            and navigation bar are hidden while the panel is open (<see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutController"/>).
+            </summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.ViewModels.PanelSettings.FollowAiDrawing">
+            <summary>
+            Follow the AI's drawing (default on): after a run_commands call that created objects which are off screen or too
+            small to see, the view zooms to them with a 10% margin (never while the user is in a command).
+            </summary>
         </member>
         <member name="T:AcadCopilot.Plugin.ViewModels.SavedQuickPrompt">
             <summary>One quick prompt the user saved.</summary>
@@ -4984,6 +6667,12 @@
         <member name="P:AcadCopilot.Plugin.Views.CopilotPaneOptions.EnableQuickPrompts">
             <summary>False hides the ⚡ quick-prompt menu.</summary>
         </member>
+        <member name="P:AcadCopilot.Plugin.Views.CopilotPaneOptions.FocusLayout">
+            <summary>
+            Focus mode (more room for the drawing) inside AutoCAD (<see cref="T:AcadCopilot.Plugin.Palette.FocusLayoutController"/>);
+            null hides the Focus button. The DRAWING AREA settings are shown either way.
+            </summary>
+        </member>
         <member name="T:AcadCopilot.Plugin.Views.CopilotPane">
             <summary>
             The chat panel hosted in AutoCAD's dockable pane: a strip of chat tabs (<see cref="T:AcadCopilot.Plugin.ViewModels.CopilotPanelViewModel"/>) above
@@ -5002,6 +6691,12 @@
         </member>
         <member name="M:AcadCopilot.Plugin.Views.CopilotPane.#ctor(AcadCopilot.Core.Panel.ICopilotBackend,AcadCopilot.Plugin.Views.CopilotPaneOptions)">
             <summary>Creates the pane with explicit options.</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Views.CopilotPane.Layout">
+            <summary>The Focus button and the drawing-area settings (shared by the tabs).</summary>
+        </member>
+        <member name="P:AcadCopilot.Plugin.Views.CopilotPane.IsCompactHeader">
+            <summary>True while the header is the slim one-line bar (the panel is narrower than <see cref="F:AcadCopilot.Plugin.Views.CopilotPane.CompactHeaderWidth"/>).</summary>
         </member>
         <member name="P:AcadCopilot.Plugin.Views.CopilotPane.Backend">
             <summary>The backend the view model talks to.</summary>
@@ -5027,6 +6722,12 @@
         </member>
         <member name="M:AcadCopilot.Plugin.Views.CopilotPane.ApplyTheme(AcadCopilot.Plugin.Resources.PanelTheme)">
             <summary>Re-colors the panel (call on the UI thread, e.g. from AutoCAD's ThemeChanged event).</summary>
+        </member>
+        <member name="F:AcadCopilot.Plugin.Views.CopilotPane.CompactHeaderWidth">
+            <summary>
+            Below this panel width the header becomes one slim line (provider and model drop-downs next to the Focus, New chat
+            and Settings buttons), so the conversation gets the height.
+            </summary>
         </member>
         <member name="M:AcadCopilot.Plugin.Views.CopilotPane.InitializeComponent">
             <summary>
@@ -5643,288 +7344,386 @@
         <member name="M:AcadCopilot.Plugin.Voice.WinRtSpeechEngine.Dispose">
             <inheritdoc />
         </member>
-        <member name="T:XamlGeneratedNamespace.GeneratedInternalTypeHelper">
-            <summary>
-            GeneratedInternalTypeHelper
-            </summary>
+        <member name="T:System.Text.RegularExpressions.Generated.Sizes_0">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the Sizes method.</summary>
         </member>
-        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.CreateInstance(System.Type,System.Globalization.CultureInfo)">
-            <summary>
-            CreateInstance
-            </summary>
+        <member name="F:System.Text.RegularExpressions.Generated.Sizes_0.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.GetPropertyValue(System.Reflection.PropertyInfo,System.Object,System.Globalization.CultureInfo)">
-            <summary>
-            GetPropertyValue
-            </summary>
+        <member name="M:System.Text.RegularExpressions.Generated.Sizes_0.#ctor">
+            <summary>Initializes the instance.</summary>
         </member>
-        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.SetPropertyValue(System.Reflection.PropertyInfo,System.Object,System.Object,System.Globalization.CultureInfo)">
-            <summary>
-            SetPropertyValue
-            </summary>
+        <member name="T:System.Text.RegularExpressions.Generated.Sizes_0.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.CreateDelegate(System.Type,System.Object,System.String)">
-            <summary>
-            CreateDelegate
-            </summary>
+        <member name="M:System.Text.RegularExpressions.Generated.Sizes_0.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:XamlGeneratedNamespace.GeneratedInternalTypeHelper.AddEventHandler(System.Reflection.EventInfo,System.Object,System.Delegate)">
-            <summary>
-            AddEventHandler
-            </summary>
+        <member name="T:System.Text.RegularExpressions.Generated.Sizes_0.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_0">
+        <member name="M:System.Text.RegularExpressions.Generated.Sizes_0.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Sizes_0.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Sizes_0.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.FeetWords_1">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the FeetWords method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.FeetWords_1.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FeetWords_1.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.FeetWords_1.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FeetWords_1.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.FeetWords_1.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FeetWords_1.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FeetWords_1.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.FeetWords_1.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.WebQueryPattern_2">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the WebQueryPattern method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.WebQueryPattern_2.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_2.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.WebQueryPattern_2.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_2.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.WebQueryPattern_2.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_2.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_2.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.WebQueryPattern_2.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.WebHostPattern_3">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the WebHostPattern method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.WebHostPattern_3.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_3.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.WebHostPattern_3.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_3.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.WebHostPattern_3.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_3.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_3.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.WebHostPattern_3.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_4">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the TitleRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.TitleRegex_0.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.TitleRegex_4.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_0.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_4.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_0.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_4.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_0.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_4.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_0.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.TitleRegex_4.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_0.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_4.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_0.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_4.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_0.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.TitleRegex_4.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.StepsRegex_1">
+        <member name="T:System.Text.RegularExpressions.Generated.StepsRegex_5">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the StepsRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.StepsRegex_1.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.StepsRegex_5.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_1.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_5.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.StepsRegex_1.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.StepsRegex_5.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_1.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_5.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.StepsRegex_1.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.StepsRegex_5.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_1.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_5.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_1.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_5.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_1.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.StepsRegex_5.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.HeadingRegex_2">
+        <member name="T:System.Text.RegularExpressions.Generated.HeadingRegex_6">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the HeadingRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.HeadingRegex_2.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.HeadingRegex_6.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_2.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_6.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.HeadingRegex_2.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.HeadingRegex_6.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_2.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_6.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.HeadingRegex_2.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.HeadingRegex_6.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_2.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_6.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_2.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_6.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_2.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.HeadingRegex_6.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.RuleRegex_3">
+        <member name="T:System.Text.RegularExpressions.Generated.RuleRegex_7">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the RuleRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.RuleRegex_3.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.RuleRegex_7.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_3.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_7.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.RuleRegex_3.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.RuleRegex_7.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_3.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_7.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.RuleRegex_3.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.RuleRegex_7.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_3.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_7.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_3.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_7.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_3.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.RuleRegex_7.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.TableSeparatorRegex_4">
+        <member name="T:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the TableSeparatorRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.TableSeparatorRegex_4.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_4.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.TableSeparatorRegex_4.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_4.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.TableSeparatorRegex_4.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_4.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_4.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_4.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.TableSeparatorRegex_8.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.ListItemRegex_5">
+        <member name="T:System.Text.RegularExpressions.Generated.ListItemRegex_9">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the ListItemRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.ListItemRegex_5.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.ListItemRegex_9.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_5.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_9.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.ListItemRegex_5.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.ListItemRegex_9.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_5.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_9.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.ListItemRegex_5.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.ListItemRegex_9.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_5.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_9.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_5.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_9.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_5.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.ListItemRegex_9.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.LinkRegex_6">
+        <member name="T:System.Text.RegularExpressions.Generated.LinkRegex_10">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the LinkRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.LinkRegex_6.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.LinkRegex_10.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_6.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_10.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.LinkRegex_6.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.LinkRegex_10.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_6.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_10.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.LinkRegex_6.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.LinkRegex_10.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_6.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_10.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_6.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_10.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_6.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.LinkRegex_10.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.UrlRegex_7">
+        <member name="T:System.Text.RegularExpressions.Generated.UrlRegex_11">
             <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the UrlRegex method.</summary>
         </member>
-        <member name="F:System.Text.RegularExpressions.Generated.UrlRegex_7.Instance">
+        <member name="F:System.Text.RegularExpressions.Generated.UrlRegex_11.Instance">
             <summary>Cached, thread-safe singleton instance.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_7.#ctor">
+        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_11.#ctor">
             <summary>Initializes the instance.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.UrlRegex_7.RunnerFactory">
+        <member name="T:System.Text.RegularExpressions.Generated.UrlRegex_11.RunnerFactory">
             <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_7.RunnerFactory.CreateInstance">
+        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_11.RunnerFactory.CreateInstance">
             <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
         </member>
-        <member name="T:System.Text.RegularExpressions.Generated.UrlRegex_7.RunnerFactory.Runner">
+        <member name="T:System.Text.RegularExpressions.Generated.UrlRegex_11.RunnerFactory.Runner">
             <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_7.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_11.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
             <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_7.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_11.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
             <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if a possible match was found; false if no more matches are possible.</returns>
         </member>
-        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_7.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+        <member name="M:System.Text.RegularExpressions.Generated.UrlRegex_11.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
             <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
             <param name="inputSpan">The text being scanned by the regular expression.</param>
             <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
@@ -5938,6 +7737,21 @@
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_hasTimeout">
             <summary>Whether <see cref="F:System.Text.RegularExpressions.Generated.Utilities.s_defaultTimeout"/> is non-infinite.</summary>
         </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.IndexOfAnyDigit(System.ReadOnlySpan{System.Char})">
+            <summary>Finds the next index of any character that matches a Unicode digit.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.IsBoundaryWordChar(System.Char)">
+            <summary>Determines whether the specified index is a boundary word character.</summary>
+            <remarks>This is the same as \w plus U+200C ZERO WIDTH NON-JOINER and U+200D ZERO WIDTH JOINER.</remarks>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.IsPostWordCharBoundary(System.ReadOnlySpan{System.Char},System.Int32)">
+            <summary>Determines whether the specified index is a boundary.</summary>
+            <remarks>This variant is only employed when the previous character has already been validated as a word character.</remarks>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.IsPreWordCharBoundary(System.ReadOnlySpan{System.Char},System.Int32)">
+            <summary>Determines whether the specified index is a boundary.</summary>
+            <remarks>This variant is only employed when the subsequent character will separately be validated as a word character.</remarks>
+        </member>
         <member name="M:System.Text.RegularExpressions.Generated.Utilities.StackPop(System.Int32[],System.Int32@,System.Int32@,System.Int32@)">
             <summary>Pops 2 values from the backtracking stack.</summary>
         </member>
@@ -5950,10 +7764,25 @@
         <member name="M:System.Text.RegularExpressions.Generated.Utilities.StackPush(System.Int32[]@,System.Int32@,System.Int32,System.Int32,System.Int32)">
             <summary>Pushes 3 values onto the backtracking stack.</summary>
         </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.WordCategoriesMask">
+            <summary>Provides a mask of Unicode categories that combine to form [\w].</summary>
+        </member>
+        <member name="P:System.Text.RegularExpressions.Generated.Utilities.WordCharBitmap">
+            <summary>Gets a bitmap for whether each character 0 through 127 is in [\w]</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_asciiExceptDigits">
+            <summary>Supports searching for characters in or not in "\0\u0001\u0002\u0003\u0004\u0005\u0006\a\b\t\n\v\f\r\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001a\u001b\u001c\u001d\u001e\u001f !\"#$%&amp;'()*+,-./:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\u007f".</summary>
+        </member>
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_asciiWordChars">
             <summary>Supports searching for characters in or not in "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz".</summary>
         </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_ascii_80FEFFFF07">
+            <summary>Supports searching for characters in or not in "_abcdefghijklmnopqrstuvwxyz".</summary>
+        </member>
         <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_indexOfString_http_Ordinal">
+            <summary>Supports searching for the string "http".</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_indexOfString_http_OrdinalIgnoreCase">
             <summary>Supports searching for the string "http".</summary>
         </member>
     </members>

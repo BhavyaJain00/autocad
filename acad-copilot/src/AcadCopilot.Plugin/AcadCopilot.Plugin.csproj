@@ -57,6 +57,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="AcadCopilot.Plugin.Ui.Tests" />
+    <InternalsVisibleTo Include="BlenderCopilot.Host" />
+    <InternalsVisibleTo Include="BlenderCopilotHost" />
   </ItemGroup>
 
   <!-- Voice input, offline fallback: Windows Speech Recognition (SAPI desktop dictation). -->

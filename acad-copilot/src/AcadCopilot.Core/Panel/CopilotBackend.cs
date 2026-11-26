@@ -131,7 +131,7 @@ public sealed class CopilotBackend : ICopilotBackend, ICopilotHub, ICopilotAssis
     /// </summary>
     public string BuildReviewerInstructions()
     {
-        var text = CopilotInstructions.Reviewer;
+        var text = AcadProduct.IsBlender(Acad.Product) ? CopilotInstructions.BlenderReviewer : CopilotInstructions.Reviewer;
         var learned = KnowledgeDigest.Build(Knowledge);
         if (!string.IsNullOrWhiteSpace(learned))
         {
